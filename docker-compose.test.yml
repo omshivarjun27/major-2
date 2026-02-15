@@ -1,0 +1,24 @@
+version: '3.8'
+services:
+  assistant:
+    build: .
+    ports:
+      - '8000:8000'
+    environment:
+      - SPATIAL_PERCEPTION_ENABLED=true
+      - SPATIAL_USE_YOLO=false
+      - ENABLE_QR_SCANNING=true
+      - LIVEKIT_URL=ws://localhost:7880
+      - LIVEKIT_API_KEY=devkey
+      - LIVEKIT_API_SECRET=devsecret
+      - DEEPGRAM_API_KEY=test
+      - ELEVEN_API_KEY=test
+      - LLM_BASE_URL=http://localhost:11434/v1
+      - LLM_API_KEY=test
+    healthcheck:
+      test: ['CMD', 'python', '-c', 'import httpx; r=httpx.get("http://localhost:8000/health"); assert r.status_code==200']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    command: ["uvicorn", "apps.api.server:app", "--host", "0.0.0.0", "--port", "8000"]

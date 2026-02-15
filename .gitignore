@@ -19,17 +19,18 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+
+# Environment and secrets — NEVER commit real credentials
 .env
 
 # Testing and evaluation files
 evaluation.py
-test_groq.py
+test_ollama.py
 performance_test_*.log
 capture_test_*.log
 *_test_*.log
 
 # Environment and virtual environments
-# .env  # We're keeping this file
 .venv
 env/
 **/env/
@@ -48,6 +49,8 @@ ally_env/
 .ipynb_checkpoints
 
 # ML models and data
+models/
+*.onnx
 *.pt
 *.pth
 *.h5
@@ -55,7 +58,10 @@ ally_env/
 *.pkl
 *.npz
 *.bin
-*.onnx
+
+# Face embeddings (biometric PII — never commit)
+fid_*.npy
+data/face_embeddings/
 
 # Logs
 logs/
@@ -81,12 +87,6 @@ htmlcov/
 # Exceptions - keep these files
 !images/*.png
 !images/*.jpg
-!.env  # Keep the example .env file
-
-# API Keys and secrets
-*api_key*
-*secret*
-# !.env  # Keep the example .env file
 
 # Credentials and tokens
 credentials.json
@@ -96,4 +96,29 @@ client_secret_*.json
 *oauth*.json
 
 # Generated files
-conversation_log.txt .gitignore
+conversation_log.txt
+
+# Benchmark and report outputs
+.benchmarks/
+benchmark_results.json
+repro_report.json
+
+# Memory engine PII data
+data/memory_index/
+data/face_consent.json
+
+# Diagnostic telemetry (opt-in)
+telemetry/
+diagnostics_*.json
+
+# Runtime artifacts
+.runtime/
+.import_linter_cache/
+
+# QR cache (runtime generated)
+qr_cache/
+
+# Runtime data files (created/populated at runtime)
+calendar_events.json
+contacts.json
+identities.json

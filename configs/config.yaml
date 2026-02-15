@@ -1,0 +1,60 @@
+# =============================================================================
+# Voice-Vision Assistant — Central Configuration
+# =============================================================================
+# All thresholds referenced by the Perception Controller spec live here.
+# Environment variables override any value below (see startup_guards.py).
+# =============================================================================
+
+confidence:
+  detected_threshold: 0.60        # >= this → "detected"
+  low_confidence_threshold: 0.30  # 0.30–0.59 → "possible — low confidence"
+  face_verify_threshold: 0.85     # face recognition minimum
+  confusion_pair_penalty: 0.20    # confidence penalty when secondary verifier disagrees
+
+latency:
+  frame_budget_ms: 250            # max end-to-end per frame
+  tts_first_chunk_ms: 300         # TTS must emit first chunk within this
+  tts_remote_timeout_ms: 2000     # remote TTS hard timeout
+  partial_response_window: 10     # rolling frame count for avg latency check
+
+robustness:
+  motion_stability_frames: 3      # object must be visible for N frames
+  small_crop_min_area: 1024       # bbox area below this → confidence penalty
+  small_crop_penalty: 0.15        # penalty applied for small crops
+  edge_density_min: 0.05          # min Sobel edge density in crop
+  edge_density_penalty: 0.10      # penalty for low-edge crops
+  misclass_alert_count: 3         # repeated mislabels before meta.alerts
+  misclass_window_seconds: 30     # sliding window for mislabel tracking
+
+tts:
+  chunk_max_seconds: 2.0          # maximum TTS chunk duration
+  gap_max_ms: 300                 # max silence gap between chunks
+  cache_enabled: true
+  cache_max_entries: 500
+
+privacy:
+  face_recognition_opt_in: false  # face recognition disabled by default
+  memory_consent_required: true
+
+banned_modules:
+  - antigravity
+
+confusion_pairs:
+  - ["bottle", "smartphone"]
+  - ["cup", "bowl"]
+  - ["remote", "phone"]
+  - ["mouse", "remote"]
+
+# Feature toggles (can also be set via env vars)
+features:
+  spatial_perception: true
+  qr_scanning: true
+  ocr: true
+  face_detection: true
+  face_recognition: false         # requires opt-in
+  audio_engine: true
+  action_engine: true
+  braille: true
+  memory_rag: true
+  tavus: false
+  cloud_sync: false

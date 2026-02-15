@@ -33,37 +33,44 @@ graph TD
     QueryType -->|"Calendar"| CalendarProcess["Calendar Management"]
     QueryType -->|"Contact"| ContactProcess["Contact Management"]
     QueryType -->|"Email"| EmailProcess["Email Management"]
+    QueryType -->|"QR/AR"| QRProcess["QR / AR Scan"]
     QueryType -->|"General"| TextProcess["Direct Text Response"]
     
     %% Simplified visual path
     VisualProcess --> ModelChoice{"Model Selection"}
-    ModelChoice -->|"GPT-4o"| GPTAnalysis["GPT Analysis Stream"]
-    ModelChoice -->|"LLAMA"| LLAMAAnalysis["LLAMA Analysis"]
+    ModelChoice -->|"ollama:qwen3-vl:235b-instruct-cloud"| ollama:qwen3-vl:235b-instruct-cloudAnalysis["ollama:qwen3-vl:235b-instruct-cloud Analysis Stream"]
+    ModelChoice -->|"ollama:qwen3-vl:235b-instruct-cloud"| ollama:qwen3-vl:235b-instruct-cloudAnalysis2["ollama:qwen3-vl:235b-instruct-cloud Analysis"]
     
     %% Places path
-    PlacesProcess --> GooglePlaces["Google Places API"]
-    GooglePlaces --> PlacesResults["Location Details"]
+    PlacesProcess --> OSMNominatim["OpenStreetMap Nominatim"]
+    OSMNominatim --> PlacesResults["Location Details"]
     
     %% Calendar path
-    CalendarProcess --> GoogleCalendar["Google Calendar API"]
-    GoogleCalendar --> CalendarResults["Event Management"]
+    CalendarProcess --> LocalCalendar["Local JSON Calendar"]
+    LocalCalendar --> CalendarResults["Event Management"]
     
     %% Contact path
-    ContactProcess --> GoogleContacts["Google Contacts API"]
-    GoogleContacts --> ContactResults["Contact Information"]
+    ContactProcess --> LocalContacts["Local JSON Contacts"]
+    LocalContacts --> ContactResults["Contact Information"]
     
     %% Email path
-    EmailProcess --> Gmail["Gmail API"]
-    Gmail --> EmailResults["Email Management"]
+    EmailProcess --> IMAP["IMAP/SMTP Email"]
+    IMAP --> EmailResults["Email Management"]
+    
+    %% QR/AR path
+    QRProcess --> QRScanner["QR Scanner + AR Handler"]
+    QRScanner --> QRDecoder["Decoder + Cache"]
+    QRDecoder --> QRResults["Contextual Message"]
     
     %% Output consolidation - simplified
-    GPTAnalysis --> Response["TTS Processing"]
-    LLAMAAnalysis --> Response
+    ollama:qwen3-vl:235b-instruct-cloudAnalysis --> Response["TTS Processing"]
+    ollama:qwen3-vl:235b-instruct-cloudAnalysis2 --> Response
     SearchProcess --> Response
     PlacesResults --> Response
     CalendarResults --> Response
     ContactResults --> Response
     EmailResults --> Response
+    QRResults --> Response
     TextProcess --> Response
     Response --> Deliver["Voice Response to User"]
     
@@ -75,10 +82,10 @@ graph TD
     classDef api fill:#fff1f0,stroke:#f5222d,stroke-width:1px
     
     class User,Deliver interface
-    class Router,VisualProcess,GPTAnalysis,LLAMAAnalysis,SearchProcess,TextProcess,PlacesProcess,CalendarProcess,ContactProcess,EmailProcess process
+    class Router,VisualProcess,ollama:qwen3-vl:235b-instruct-cloudAnalysis,ollama:qwen3-vl:235b-instruct-cloudAnalysis2,SearchProcess,TextProcess,PlacesProcess,CalendarProcess,ContactProcess,EmailProcess process
     class QueryType,ModelChoice decision
     class Response,PlacesResults,CalendarResults,ContactResults,EmailResults output
-    class GooglePlaces,GoogleCalendar,GoogleContacts,Gmail api
+    class OSMNominatim,LocalCalendar,LocalContacts,IMAP api
 ```
 
 ---
@@ -86,9 +93,16 @@ graph TD
 ## ✨ Key Features
 
 ### 🔄 Dual Vision Model Approach
-* **People Detection First:** Llama-4-Scout-17B checks for presence of people
-* **Conditional Processing:** GPT-4o for scenes without people, Llama for scenes with people
+* **People Detection First:** ollama:qwen3-vl:235b-instruct-cloud checks for presence of people
+* **Conditional Processing:** ollama:qwen3-vl:235b-instruct-cloud for scenes without people, ollama:qwen3-vl:235b-instruct-cloud for scenes with people
 * **Privacy-Aware:** Thoughtful descriptions while respecting privacy
+
+### 🚀 Spatial Perception & Micro-Navigation (NEW)
+* **Object Detection:** Real-time detection of obstacles using YOLO/ONNX models
+* **Edge-Aware Segmentation:** Precise object boundaries for accurate localization
+* **Depth Estimation:** Per-pixel depth maps for distance calculation
+* **Spatial Fusion:** Combined detection + depth for navigation cues
+* **Micro-Navigation Output:** Concise TTS warnings like "Obstacle 1.5m ahead, slightly left"
 
 ### 🌊 Real-time Response Streaming
 * Progressive output for improved user experience
@@ -105,15 +119,51 @@ graph TD
 * **Enhanced Communication:** Helps blind users interact with sighted individuals
 * **Professional Presence:** Maintains visual engagement in meetings and calls
 
+### 🔤 Braille Engine (NEW)
+* **Camera Capture Analysis:** Checks brightness, contrast, focus, angle before OCR
+* **Dot Segmentation:** CLAHE + adaptive threshold + contour detection + grid fitting
+* **Grade 1 Classification:** English braille lookup table + PyTorch model stub
+* **End-to-End OCR:** `BrailleOCR.read()` pipeline: deskew → segment → classify → text
+* **Embossing Guidance:** Layout generation, overlay rendering, verification
+* **12 Real-World Scenarios:** Medicine labels, elevators, menus, transit signs, and more
+
+### 📝 OCR Engine Hardening (NEW)
+* **3-Tier Fallback:** EasyOCR → Tesseract → MSER heuristic → helpful error message
+* **Auto-Probe:** Detects which backends are installed at startup
+* **Install Scripts:** `scripts/install_ocr_deps.sh` for automated setup
+* **OS-Aware Hints:** Platform-specific install instructions when backends are missing
+
+### 🧠 Memory Engine (Privacy-First)
+* **MEMORY_ENABLED=false by default** — opt-in only
+* **Persistent Consent:** `/memory/consent` endpoint with file-backed storage
+* **RAG Pipeline:** FAISS indexer + sentence-transformers embeddings + Claude/Ollama reasoning
+* **Retention Policies:** Auto-expiry, user-initiated deletion, raw media controls
+
+### 🐳 Docker & CI/CD (NEW)
+* **Multi-stage Dockerfile:** python:3.11-slim with tesseract, libzbar, ffmpeg
+* **GitHub Actions CI:** Test matrix (3.10–3.12), linting, Docker build
+* **Dependency Checker:** `scripts/check_deps.py` for environment validation
+
 ### 🧩 Comprehensive Capabilities
 * **Voice Interaction:** Natural conversation using speech
 * **Visual Understanding:** Camera-based vision to describe surroundings
 * **Internet Search:** Real-time information lookup
 * **Location Search:** Find nearby businesses, restaurants, and points of interest
 * **Calendar Management:** Add and view calendar events
-* **Contact Management:** Find contact information from your Google Contacts
+* **Contact Management:** Find contact information from local contacts store
 * **Email Management:** Read emails and send messages
+* **QR/AR Scanning:** Decode QR codes and AR tags with contextual deep linking
+* **Braille Reading:** Capture → decode → speak braille text from camera frames
 * **Seamless Integration:** Coordinated operation between components
+
+### 📱 QR / AR Tag Scanning & Offline Cache (NEW)
+* **Camera-Based QR Detection:** Scan QR codes from live frames using pyzbar or OpenCV
+* **AR Marker Detection:** Recognise ArUco markers for spatial tagging
+* **Content Classification:** URLs, locations, transport stops, products, contacts, WiFi
+* **Contextual Deep Linking:** Raw QR data is transformed into spoken context (e.g. "Bus stop 145 — Route 14 to Downtown")
+* **Offline-First Cache:** Previously scanned results are stored locally with configurable TTL
+* **Navigation Integration:** QR codes containing location data offer "Would you like me to guide you there?"
+* **REST API:** `/qr/scan`, `/qr/cache`, `/qr/history`, `/qr/debug` endpoints
 
 ---
 
@@ -121,7 +171,7 @@ graph TD
 
 ### Model Selection
 
-We carefully selected `meta-llama/llama-4-scout-17b-16e-instruct` as our primary people detection model based on:
+We carefully selected `ollama:qwen3-vl:235b-instruct-cloud` as our primary people detection model based on:
 
 | Criteria | Performance |
 |:---------|:------------|
@@ -132,12 +182,12 @@ We carefully selected `meta-llama/llama-4-scout-17b-16e-instruct` as our primary
 | Image Limits | 4MB (base64), 20MB (URL), multiple images supported |
 | Success Rate | >95% in testing |
 
-### Groq API Integration
+### ollama:qwen3-vl:235b-instruct-cloud API Integration
 
-The Groq API powers our Llama model implementation when people are detected in scenes:
+The ollama:qwen3-vl:235b-instruct-cloud API powers our ollama:qwen3-vl:235b-instruct-cloud model implementation when people are detected in scenes:
 
 * **⚡ Fast Processing:** Sub-500ms TTFT meets accessibility requirements
-* **🧠 Advanced Models:** Leverages state-of-the-art Llama 4 Scout capabilities
+* **🧠 Advanced Models:** Leverages state-of-the-art ollama:qwen3-vl:235b-instruct-cloud capabilities
 * **🔌 Simple Integration:** Clean API with official Python client library
 
 ---
@@ -145,23 +195,74 @@ The Groq API powers our Llama model implementation when people are detected in s
 ## 🗂️ Project Structure
 
 ```
-Ally/
-├── app.py                  # Main entry point
-├── requirements.txt        # Dependencies
-├── .env                    # Environment variables
-├── images/                 # Images and diagrams
-└── src/
-    ├── main.py             # Entry point and agent implementation
-    ├── config.py           # Configuration handling
-    ├── utils.py            # Utility functions for Google API integration
-    └── tools/
-        ├── visual.py       # Visual processing (camera, frames, image analysis)
-        ├── groq_handler.py # Groq API integration for enhanced image analysis
-        ├── internet_search.py # Web search functionality
-        ├── google_places.py # Places search using Google Places API
-        ├── calendar.py     # Calendar integration for managing events
-        └── communication.py # Contact and email management
+Voice-Vision-Assistant-for-Blind/
+├── apps/                          # Entrypoints
+│   ├── api/server.py              # FastAPI REST API
+│   ├── realtime/                  # LiveKit real-time agent
+│   │   ├── entrypoint.py          # Agent launcher
+│   │   └── agent.py               # Agent logic (2 087 LOC)
+│   └── cli/                       # Debug tools (re-exports shared/debug)
+│
+├── core/                          # Pure domain logic (engines)
+│   ├── vqa/                       # Visual question answering
+│   ├── memory/                    # RAG memory (privacy-first)
+│   ├── face/                      # Face detection & tracking
+│   ├── audio/                     # Audio event detection
+│   ├── qr/                        # QR / AR scanning + cache
+│   ├── ocr/                       # OCR with 3-tier fallback
+│   ├── action/                    # Action recognition
+│   ├── braille/                   # Braille capture → OCR
+│   ├── speech/                    # Voice pipeline + TTS bridge
+│   └── vision/                    # Spatial perception & detection
+│
+├── application/                   # Use-case orchestration
+│   ├── frame_processing/          # Frame orchestrator, freshness, cascade
+│   └── pipelines/                 # Debouncer, watchdog, worker pool, TTS, …
+│
+├── infrastructure/                # External system adapters
+│   ├── llm/                       # Ollama, internet search, Google Places
+│   ├── speech/                    # Deepgram (STT), ElevenLabs (TTS)
+│   └── tavus/                     # Virtual avatar adapter
+│
+├── shared/                        # Cross-cutting utilities
+│   ├── config/                    # Settings & environment
+│   ├── logging/                   # Structured logging
+│   ├── schemas/                   # Shared data structures & ABCs
+│   ├── debug/                     # Debug visualizer & session logger
+│   └── utils/                     # Encryption, calendar, contacts, helpers
+│
+├── tests/                         # Test suite (429+ tests)
+│   ├── unit/                      # Fast isolated tests
+│   ├── integration/               # Cross-module tests
+│   ├── realtime/                  # Live pipeline tests
+│   └── performance/               # NFR / benchmark tests
+│
+├── research/                      # Benchmarks, experiments, reports
+├── scripts/                       # Setup & utility scripts
+├── docs/                          # Documentation
+├── configs/                       # config.yaml
+├── models/                        # ML model weights (ONNX)
+├── data/                          # Persistent runtime data
+├── deployments/                   # Docker & Compose files
+│
+├── pyproject.toml                 # Package config, tool settings, import-linter
+├── requirements.txt               # Core dependencies
+├── requirements-extras.txt        # Optional: OCR, Claude, GPU, dev
+├── Dockerfile                     # Root Dockerfile (COPY . .)
+└── docker-compose.test.yml        # Docker Compose for local testing
 ```
+
+**Dependency rule** — each layer may only import from layers below it:
+
+```
+apps/ → application/, core/, infrastructure/, shared/
+application/ → core/, shared/
+core/ → shared/ only
+infrastructure/ → shared/ only
+shared/ → standard library only
+```
+
+Boundaries are enforced by [import-linter](https://import-linter.readthedocs.io/) — run `lint-imports` locally or check CI.
 
 ---
 
@@ -171,11 +272,11 @@ Ally/
 
 * **Python 3.9+** - Core programming language
 * **LiveKit API** - For real-time communication
-* **OpenAI API** - For GPT-4o capabilities
+* **Ollama** - For ollama:qwen3-vl:235b-instruct-cloud capabilities
 * **Deepgram API** - For speech-to-text functionality
 * **ElevenLabs API** - For text-to-speech synthesis
-* **Groq API** - For fallback vision processing
-* **Google APIs** - For Places, Calendar, Contacts, and Gmail functionality
+* **ollama:qwen3-vl:235b-instruct-cloud API** - For fallback vision processing
+* **geopy** - For OpenStreetMap Nominatim places search (free, no API key)
 
 ### Installation
 
@@ -192,10 +293,13 @@ cd Ally-Clone-Assignment
 <summary><b>2. Set up environment</b></summary>
 
 ```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 pip install -U pip
+pip install -e ".[dev]"    # Editable install with dev extras
+# — or —
 pip install -r requirements.txt
+pip install -r requirements-extras.txt  # optional
 ```
 </details>
 
@@ -208,20 +312,23 @@ LIVEKIT_URL=your_livekit_url
 LIVEKIT_API_KEY=your_livekit_key
 LIVEKIT_API_SECRET=your_livekit_secret
 DEEPGRAM_API_KEY=your_deepgram_key
-OPENAI_API_KEY=your_openai_key
+OLLAMA_API_KEY=your_ollama_api_key
 ELEVEN_API_KEY=your_elevenlabs_key
 
 # Vision configuration
-VISION_PROVIDER=groq
-.
-# Groq API configuration
-GROQ_API_KEY=your_groq_api_key  # Get your API key from https://console.groq.com/keys
-GROQ_MODEL_ID=meta-llama/llama-4-scout-17b-16e-instruct
+VISION_PROVIDER=ollama
+
+# Ollama API configuration
+OLLAMA_VL_API_KEY=your_ollama_api_key  # Get your API key from Ollama
+OLLAMA_VL_MODEL_ID=ollama:qwen3-vl:235b-instruct-cloud
    
-# Google Places API configuration
-GPLACES_API_KEY=your_google_places_api_key  # Get your API key from Google Cloud Console https://console.cloud.google.com/google/maps-apis/credentials
-GMAIL_MAIL=your_gmail_address
-GMAIL_APP_PASSWORD=your_gmail_app_password
+# Email configuration (IMAP/SMTP – works with any provider)
+GMAIL_MAIL=your_email_address
+GMAIL_APP_PASSWORD=your_app_password
+IMAP_HOST=imap.gmail.com
+IMAP_PORT=993
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=465
 
 # Tavus virtual avatar configuration (optional)
 ENABLE_AVATAR=false
@@ -229,67 +336,71 @@ TAVUS_API_KEY=your_tavus_api_key
 TAVUS_REPLICA_ID=your_replica_id
 TAVUS_PERSONA_ID=your_persona_id
 TAVUS_AVATAR_NAME=ally-vision-avatar
+
+# =========================================================================
+# SPATIAL PERCEPTION CONFIGURATION (NEW)
+# =========================================================================
+
+# Enable/disable spatial perception
+SPATIAL_PERCEPTION_ENABLED=true
+
+# Object Detection (optional - uses mock detector by default)
+SPATIAL_USE_YOLO=false
+YOLO_MODEL_PATH=models/yolov8n.onnx
+YOLO_CONF_THRESHOLD=0.5
+
+# Depth Estimation (optional - uses simple estimator by default)
+SPATIAL_USE_MIDAS=false
+MIDAS_MODEL_PATH=models/midas_small.onnx
+MIDAS_MODEL_TYPE=MiDaS_small
+
+# Enable/disable pipeline components
+ENABLE_SEGMENTATION=true
+ENABLE_DEPTH=true
+
+# Distance thresholds (meters)
+CRITICAL_DISTANCE_M=1.0
+NEAR_DISTANCE_M=2.0
+FAR_DISTANCE_M=5.0
+
+# Low-latency mode for critical warnings
+LOW_LATENCY_WARNINGS=true
+
+# =========================================================================
+# QR / AR TAG SCANNING CONFIGURATION (NEW)
+# =========================================================================
+ENABLE_QR_SCANNING=true
+QR_CACHE_ENABLED=true
+QR_AUTO_DETECT=true
+QR_CACHE_TTL_SECONDS=86400
+# QR_CACHE_DIR=       # leave empty for default (qr_cache/)
+
 ```
 </details>
 
 <details>
-<summary><b>4. Set up Google API credentials</b></summary>
+<summary><b>4. Local Services Setup (Calendar, Contacts, Email)</b></summary>
 
-1. Create a new project in the [Google Cloud Console](https://console.cloud.google.com/)
-2. Enable the required APIs:
-   - Google Places API Web Service
-   - Google Calendar API
-   - People API (Contacts)
-   - Gmail API
-3. Create OAuth 2.0 credentials:
-   - Go to "Credentials" and click "Create Credentials" > "OAuth client ID"
-   - Select "Desktop app" as the application type
-   - Give it a name and click "Create"
-   - Download the JSON file
-4. **Important**: Rename the downloaded file to `credentials.json` and place it in the project root directory
-5. Create API key for Places API:
-   - Go to "Credentials" and click "Create Credentials" > "API Key"
-   - Restrict the key to only the Google Places API
-   - Copy this key to your `.env` file as `GPLACES_API_KEY`
-6. When you first run the application and try to use calendar or email features, it will:
-   - Open a browser window for authentication
-   - Ask you to sign in to your Google account
-   - Request permission to access your calendar, contacts, and email
-   - After granting permission, it will create a `token.json` file for future use
+**Calendar & Contacts** use local JSON files — no external setup required.
+
+- `calendar_events.json` is created automatically in the project root on first use.
+- `contacts.json` is created automatically. Populate it manually:
+  ```json
+  [
+    {"name": "John Doe", "emails": ["john@example.com"], "phone_numbers": ["123-456-7890"]}
+  ]
+  ```
+
+**Email (IMAP/SMTP):**
+1. Set `GMAIL_MAIL` and `GMAIL_APP_PASSWORD` in `.env`.
+2. If using a provider other than Gmail, also set `IMAP_HOST`, `IMAP_PORT`, `SMTP_HOST`, `SMTP_PORT`.
+3. For Gmail, generate an App Password at https://myaccount.google.com/apppasswords (requires 2FA).
+
+No OAuth, no Google Cloud Console project needed.
 </details>
 
 <details>
-<summary><b>5. Special Setup Instructions for Blind Users</b></summary>
-
-### Important: One-Time Authentication Process
-
-For blind users, the Google OAuth authentication process requires sighted assistance **only once** during initial setup:
-
-1. **Initial Setup (One-Time with Assistance)**:
-   - After installing the application, the first time you use any Google service (calendar, contacts, email), 
-     the system will need authentication
-   - A browser window will open with Google's authentication page
-   - **This step requires sighted assistance** to complete the login and permission granting
-   - The assistant should:
-     - Help navigate to the URL provided in the console
-     - Log in to the blind user's Google account
-     - Grant the requested permissions
-     - Confirm when the "Authentication successful" message appears
-
-2. **After Initial Setup (No Assistance Needed)**:
-   - The system creates a `token.json` file that stores authentication securely
-   - This token remains valid indefinitely with regular use
-   - No further visual authentication is typically needed
-   - Re-authentication is only required if access is explicitly revoked or unused for months
-
-3. **Long-Term Solution (Optional)**:
-   - For completely independent use, a developer can modify the application to use Service Account authentication
-   - This alternative method doesn't require browser authentication but needs more technical setup
-   - Contact the support email below if you need help implementing this solution
-</details>
-
-<details>
-<summary><b>6. Virtual Avatar Setup (Optional)</b></summary>
+<summary><b>5. Virtual Avatar Setup (Optional)</b></summary>
 
 ### Tavus Virtual Avatar Integration
 
@@ -346,10 +457,39 @@ The avatar will automatically handle the audio output when enabled, creating a s
 
 | Step | Command | Description |
 |:-----|:--------|:------------|
-| 1 | `python app.py download-files` | Download dependencies |
-| 2a | `python app.py start` | Start in standard mode |
-| 2b | `python app.py dev` | Start in development mode |
-| 3 | Connect via [LiveKit playground](https://agents-playground.livekit.io/) | Begin interaction |
+| 1 | `python -m apps.realtime.entrypoint download-files` | Download dependencies |
+| 2a | `python -m apps.realtime.entrypoint start` | Start in standard mode |
+| 2b | `python -m apps.realtime.entrypoint dev` | Start in development mode |
+| 3 | `uvicorn apps.api.server:app --host 0.0.0.0 --port 8000` | Start REST API |
+| 4 | Connect via [LiveKit playground](https://agents-playground.livekit.io/) | Begin interaction |
+
+### Docker
+
+```bash
+# Using root Dockerfile
+docker build -t voice-vision-assistant .
+docker run -p 8000:8000 -p 8081:8081 --env-file .env voice-vision-assistant
+
+# Using canonical Dockerfile (smaller layer)
+docker build -f deployments/docker/Dockerfile -t voice-vision-assistant .
+docker run -p 8000:8000 -p 8081:8081 --env-file .env voice-vision-assistant
+```
+
+### Running Tests
+
+```bash
+# All 429+ tests
+python -m pytest tests/ -v --tb=short
+
+# Unit tests only
+python -m pytest tests/unit/ -v
+
+# With coverage
+python -m pytest tests/ --cov=core --cov=application --cov=infrastructure --cov=shared --cov=apps --cov-report=term-missing
+
+# Check architectural boundaries
+lint-imports
+```
 
 ---
 
@@ -362,16 +502,27 @@ The avatar will automatically handle the audio output when enabled, creating a s
 * **TTS:** ElevenLabs for natural-sounding text-to-speech
 
 #### 🧠 Language Processing
-* **Primary LLM:** OpenAI GPT-4o for conversational intelligence
+* **Primary LLM:** Ollama ollama:qwen3-vl:235b-instruct-cloud for conversational intelligence
 * **Function Routing:** Dynamic selection of appropriate capabilities
 
 #### 👁️ Vision Processing
-* **People Detection:** Llama-4-Scout-17B to determine presence of people
-* **Scene Analysis:** GPT-4o for scenes without people, Llama for scenes with people
+* **People Detection:** ollama:qwen3-vl:235b-instruct-cloud to determine presence of people
+* **Scene Analysis:** ollama:qwen3-vl:235b-instruct-cloud for scenes without people, ollama:qwen3-vl:235b-instruct-cloud for scenes with people
 
-#### 🌎 Location Services
-* **Places Search:** Google Places API for finding businesses and points of interest
-* **Relevant Results:** Provides address, ratings, opening hours, and other details
+#### � Spatial Perception Pipeline (NEW)
+* **Object Detection:** YOLO/ONNX-based real-time obstacle detection
+* **Edge-Aware Segmentation:** Boundary-preserving object masks
+* **Depth Estimation:** MiDaS/simple heuristic depth maps
+* **Spatial Fusion:** Combined detection + segmentation + depth
+* **Navigation Output:** Priority-sorted obstacles with TTS-ready cues
+
+```
+Pipeline: FRAME → DETECT → SEGMENT → DEPTH → FUSE → NAVIGATION
+```
+
+#### �🌎 Location Services
+* **Places Search:** OpenStreetMap Nominatim for finding businesses and points of interest (free, no API key)
+* **Relevant Results:** Provides address, type, and coordinates
 * **Accessibility Focus:** Tailored information relevant for blind and visually impaired users
 
 ---
@@ -380,11 +531,11 @@ The avatar will automatically handle the audio output when enabled, creating a s
 
 ### Privacy-Preserving Vision
 
-**Challenge:** GPT-4o sometimes refuses to describe people in images due to privacy guardrails.
+**Challenge:** ollama:qwen3-vl:235b-instruct-cloud sometimes refuses to describe people in images due to privacy guardrails.
 
 **Solution:**
-1. Llama model first checks for presence of people in images
-2. Route to appropriate model based on content (GPT-4o for no people, Llama for people)
+1. ollama:qwen3-vl:235b-instruct-cloud model first checks for presence of people in images
+2. Route to appropriate model based on content (ollama:qwen3-vl:235b-instruct-cloud for no people, ollama:qwen3-vl:235b-instruct-cloud for people)
 3. Response normalization for consistent user experience
 
 ### Performance Optimization
@@ -413,12 +564,70 @@ The avatar will automatically handle the audio output when enabled, creating a s
 | Planned Feature | Description |
 |:----------------|:------------|
 | 🖼️ Advanced preprocessing | Enhanced image optimization pipeline |
-| 🗺️ Location integration | Google Maps integration for location context |
+| 🗺️ Location integration | OpenStreetMap integration for location context |
 | 🌤️ Environmental data | Weather, distance, and temporal information |
-| 📱 Code recognition | QR and barcode detection and processing |
+| 📱 Code recognition | QR code detection and processing |
 | ⚡ Performance upgrades | Response caching for improved speed |
 | 🎞️ Sequential analysis | Multi-image sequence processing |
 | 🎙️ Voice personalization | Customizable voice profile selection |
+| 🎯 Advanced depth models | Integration with ZoeDepth, Metric3D |
+| 🚶 Motion tracking | Temporal smoothing for walking navigation |
+| 📡 Hardware acceleration | TensorRT/CoreML optimization |
+
+---
+
+## 🆕 Spatial Perception Architecture
+
+### Overview
+
+The spatial perception module provides real-time obstacle detection and micro-navigation for blind users:
+
+```
+┌─────────────┐     ┌──────────────┐     ┌────────────────┐     ┌─────────────┐
+│   Camera    │────▶│   Object     │────▶│   Edge-Aware   │────▶│    Depth    │
+│   Frame     │     │  Detection   │     │  Segmentation  │     │  Estimation │
+└─────────────┘     └──────────────┘     └────────────────┘     └─────────────┘
+                                                                       │
+                    ┌──────────────┐     ┌────────────────┐            │
+                    │  Navigation  │◀────│    Spatial     │◀───────────┘
+                    │   Output     │     │    Fusion      │
+                    └──────────────┘     └────────────────┘
+```
+
+### Components
+
+| Component | Description | Output |
+|:----------|:------------|:-------|
+| **ObjectDetector** | Detects objects using YOLO/mock | Bounding boxes, classes, scores |
+| **EdgeAwareSegmenter** | Refines object boundaries | Binary masks with confidence |
+| **DepthEstimator** | Estimates per-pixel depth | Depth map (metric/relative) |
+| **SpatialFuser** | Combines all spatial data | ObstacleRecords with distance/direction |
+| **MicroNavFormatter** | Generates navigation cues | Short TTS cue, verbose description, JSON |
+
+### Priority Thresholds
+
+| Distance | Priority | Response |
+|:---------|:---------|:---------|
+| < 1.0m | 🔴 Critical | "Stop! [Object] very close [direction]" |
+| 1.0-2.0m | 🟠 Near Hazard | "Caution, [object] [distance] [direction]" |
+| 2.0-5.0m | 🟡 Far Hazard | "[Object] [distance] [direction]" |
+| > 5.0m | 🟢 Safe | Path clear or low priority |
+
+### Example Output
+
+```json
+{
+  "id": "obj_1",
+  "class": "chair",
+  "distance_m": 1.52,
+  "direction": "slightly left",
+  "direction_deg": -12.0,
+  "priority": "near",
+  "action_recommendation": "step right"
+}
+```
+
+**TTS Output:** "Caution, Chair 1.5 meters slightly left – step right"
 
 ---
 
@@ -431,8 +640,7 @@ This project is proprietary and confidential. All rights reserved.
 ## 👏 Acknowledgments
 
 * **LiveKit** - WebRTC infrastructure
-* **OpenAI** - GPT-4o capabilities  
-* **Groq** - Llama model API access
+* **Ollama** - ollama:qwen3-vl:235b-instruct-cloud capabilities  
 * **Deepgram** - Speech recognition technology
 * **ElevenLabs** - Voice synthesis technology
 
@@ -451,16 +659,23 @@ For issues or questions, please contact:
 
 ## 🔧 Troubleshooting
 
-### Google API Authentication Issues
+### Calendar / Contacts / Email Issues
 
 | Issue | Solution |
 |:------|:---------|
-| "credentials.json file not found" | Ensure you've renamed the downloaded OAuth credentials file to `credentials.json` and placed it in the project root directory |
-| "Token has been expired or revoked" | The application handles token refreshing automatically. Once authenticated, you typically won't need to log in again unless you explicitly revoke access in your Google account or don't use the application for an extended period (months). If re-authentication is ever needed, sighted assistance would be required only for that one-time process. |
-| Authentication window doesn't open | Run the application from a terminal with GUI access. If using SSH, ensure X11 forwarding is enabled |
-| Calendar events not showing | Check that you've enabled the Calendar API in Google Cloud Console and granted the necessary permissions |
-| Contacts not found | Verify that you've enabled the People API and that contacts exist in your Google Contacts |
-| Email sending fails | Make sure you've enabled "Less secure app access" in your Google account or generated an App Password if using 2FA |
+| Calendar events not showing | Check that `calendar_events.json` exists in the project root and contains valid JSON |
+| Contacts not found | Populate `contacts.json` in the project root with your contacts |
+| Email sending fails | Check SMTP credentials in `.env`. For Gmail use an App Password (2FA required) |
+| Email reading fails | Check IMAP credentials and ensure IMAP is enabled in your mail provider settings |
+
+### QR / AR Scanning Issues
+
+| Issue | Solution |
+|:------|:---------|
+| QR scanning not available | Install pyzbar: `pip install pyzbar`. On Windows also install the zbar DLL (or rely on the OpenCV fallback) |
+| No QR detected | Ensure the QR code fills at least 15 % of the frame and has good contrast |
+| AR markers not detected | ArUco detection requires OpenCV ≥ 4.7 with the `aruco` module |
+| Cache not persisting | Check the `qr_cache/` directory exists and is writable |
 
 ### General Issues
 

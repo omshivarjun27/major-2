@@ -1,0 +1,33 @@
+# ================================================================
+# requirements-extras.txt — Optional dependencies
+# ================================================================
+# Install with: pip install -r requirements-extras.txt
+#
+# Groups:
+#   [ocr]    — EasyOCR + pytesseract
+#   [gpu]    — PyTorch GPU + CUDA
+#   [dev]    — Testing + linting
+#   [claude] — Anthropic Claude API
+# ================================================================
+
+# -- OCR --
+easyocr>=1.7.0
+pytesseract>=0.3.10
+
+# -- Claude / Anthropic --
+anthropic>=0.40.0
+
+# -- Dev / Testing --
+pytest>=7.0.0
+pytest-asyncio>=0.23.0
+pytest-cov>=4.0.0
+httpx>=0.26.0
+
+# -- GPU (uncomment for CUDA support) --
+# torch>=2.0.0
+# torchvision>=0.15.0
+
+# -- Advanced models (uncomment as needed) --
+# ultralytics>=8.0.0
+# timm>=0.9.0
+# transformers>=4.35.0

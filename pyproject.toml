@@ -1,0 +1,169 @@
+# ================================================================
+# pyproject.toml — Voice-Vision Assistant for Blind
+# ================================================================
+# Central project configuration: metadata, package discovery,
+# tool settings (pytest, ruff, import-linter).
+#
+# Install as editable package:  pip install -e ".[dev]"
+# Run tests:                    pytest
+# Lint imports:                 lint-imports
+# ================================================================
+
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "voice-vision-assistant"
+version = "1.0.0"
+description = "AI-powered Voice & Vision Assistant for Blind and Visually Impaired Users"
+readme = "README.md"
+license = {text = "Proprietary"}
+requires-python = ">=3.10"
+
+# Core runtime dependencies — kept in sync with requirements.txt.
+# For flexible installs use:  pip install -r requirements.txt
+dependencies = [
+    "livekit-agents[deepgram,elevenlabs,tavus]>=1.0.0",
+    "python-dotenv>=1.0.0",
+    "librosa>=0.10.0",
+    "numpy>=1.20.0",
+    "livekit-plugins-deepgram>=1.0.0",
+    "livekit-plugins-openai>=1.0.0",
+    "livekit-plugins-silero>=1.0.0",
+    "livekit-plugins-elevenlabs>=1.0.0",
+    "livekit-plugins-tavus>=1.0.0",
+    "livekit>=1.0.0",
+    "livekit-api>=1.0.0",
+    "langchain-community",
+    "duckduckgo-search",
+    "ollama",
+    "opencv-python",
+    "Pillow>=9.0.0",
+    "easyocr>=1.7.0",
+    "pytesseract>=0.3.10",
+    "geopy>=2.4.0",
+    "icalendar>=5.0.0",
+    "imapclient>=3.0.0",
+    "pyzbar>=0.1.9",
+    "qrcode[pil]>=7.4",
+    "httpx>=0.26.0",
+    "onnxruntime>=1.15.0",
+    "scipy>=1.10.0",
+    "scikit-image>=0.21.0",
+    "fastapi>=0.109.0",
+    "uvicorn>=0.27.0",
+    "pydantic>=2.5.0",
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.23.0",
+    "faiss-cpu>=1.7.4",
+    "sentence-transformers>=2.2.0",
+    "cryptography>=41.0.0",
+]
+
+[project.optional-dependencies]
+ocr = [
+    "easyocr>=1.7.0",
+    "pytesseract>=0.3.10",
+]
+claude = [
+    "anthropic>=0.40.0",
+]
+gpu = [
+    "torch>=2.0.0",
+    "torchvision>=0.15.0",
+]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.23.0",
+    "pytest-cov>=4.0.0",
+    "httpx>=0.26.0",
+    "ruff>=0.4.0",
+    "import-linter>=2.0",
+]
+
+# ================================================================
+# Package discovery — all five architectural layers
+# ================================================================
+
+[tool.setuptools.packages.find]
+include = [
+    "core",
+    "core.*",
+    "application",
+    "application.*",
+    "infrastructure",
+    "infrastructure.*",
+    "shared",
+    "shared.*",
+    "apps",
+    "apps.*",
+]
+
+# ================================================================
+# pytest
+# ================================================================
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+timeout = 120
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks integration tests requiring external services",
+]
+
+# ================================================================
+# ruff
+# ================================================================
+
+[tool.ruff]
+target-version = "py310"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+ignore = ["E501"]  # line length handled by formatter
+
+[tool.ruff.lint.isort]
+known-first-party = ["core", "application", "infrastructure", "shared", "apps"]
+
+# ================================================================
+# import-linter — Architectural boundary enforcement
+# ================================================================
+# Dependency rule:
+#   apps/          → application/, core/, infrastructure/, shared/
+#   application/   → core/, shared/
+#   core/          → shared/  (NO infrastructure, NO application)
+#   infrastructure/→ shared/  (NO core, NO application)
+#   shared/        → stdlib   (NO project imports)
+#
+# Run:  lint-imports
+# ================================================================
+
+[tool.importlinter]
+root_packages = ["core", "application", "infrastructure", "shared", "apps"]
+
+[[tool.importlinter.contracts]]
+name = "shared must not import any project packages"
+type = "forbidden"
+source_modules = ["shared"]
+forbidden_modules = ["core", "application", "infrastructure", "apps"]
+
+[[tool.importlinter.contracts]]
+name = "core must not import application, infrastructure, or apps"
+type = "forbidden"
+source_modules = ["core"]
+forbidden_modules = ["application", "infrastructure", "apps"]
+
+[[tool.importlinter.contracts]]
+name = "infrastructure must not import core, application, or apps"
+type = "forbidden"
+source_modules = ["infrastructure"]
+forbidden_modules = ["core", "application", "apps"]
+
+[[tool.importlinter.contracts]]
+name = "application must not import infrastructure or apps"
+type = "forbidden"
+source_modules = ["application"]
+forbidden_modules = ["infrastructure", "apps"]

@@ -1,0 +1,921 @@
+{
+  "executive_summary": [
+    "1. OCR ENGINE BROKEN IN PRODUCTION: Neither EasyOCR nor pytesseract are in the main requirements.txt (only in requirements-extras.txt which may not be installed). The log error 'No OCR backend available' confirms this. Every 'read text' request fails silently.",
+    "2. SPATIAL PERCEPTION DEFAULTS TO MOCK DETECTORS: YOLO and MiDaS are disabled by default (SPATIAL_USE_YOLO=false, SPATIAL_USE_MIDAS=false), so the system runs MockObjectDetector which returns hardcoded fake detections. Real obstacle detection is non-functional — a critical safety hazard for blind users.",
+    "3. STALE-FRAME CACHE IN SPATIAL MOCK: The src/tools/spatial.py MockObjectDetector caches detections by image dimensions and returns stale results for same-sized frames — the system may claim 'Path clear' while obstacles appear, or report ghost objects. The vqa_engine/perception.py mock has the same class but without caching (inconsistency).",
+    "4. NO CAMERA WATCHDOG RESTART LOGIC: The Watchdog monitors camera health but never restarts the capture pipeline when camera_stall > 2000ms. It only logs and fires alert callbacks — no automatic recovery, no user-facing spoken alert wired in production.",
+    "5. LLM ENDPOINT DEFAULTS TO localhost:11434 (Ollama): The LLM_BASE_URL is hardcoded to 'http://localhost:11434/v1'. In cloud/Docker deployments without Ollama, every LLM call fails. There is no fallback or health check.",
+    "6. CI SMOKE TEST DOES NOT VERIFY END-TO-END PIPELINE: The GitHub Actions CI runs pytest unit tests but never starts the Docker container, feeds a synthetic frame, or asserts that /perception/frame or /health returns a valid response. Integration coverage is effectively zero."
+  ],
+
+  "root_causes": [
+    {
+      "id": "RC-01",
+      "short_name": "OCR backends not installed by default",
+      "evidence": {
+        "files": ["requirements.txt", "requirements-extras.txt", "ocr_engine/__init__.py:L48-L53"],
+        "log_lines": ["OCR error: No OCR backend available (install easyocr or pytesseract)"],
+        "config_values": ["easyocr and pytesseract are only in requirements-extras.txt, not requirements.txt"]
+      },
+      "impacted_features": ["OCR text reading", "Braille OCR pipeline", "read_text function tool"],
+      "probability": "HIGH",
+      "reason": "Log explicitly confirms no backend. requirements.txt omits both packages. Docker RUN installs extras with '|| true' which swallows failures."
+    },
+    {
+      "id": "RC-02",
+      "short_name": "Spatial perception uses mock detectors — real models disabled",
+      "evidence": {
+        "files": ["src/config.py:L48-L49", "src/tools/spatial.py:L120-L154", "src/tools/visual.py:L126-L139"],
+        "config_values": ["SPATIAL_USE_YOLO=false", "SPATIAL_USE_MIDAS=false", "ENABLE_DEPTH=false (config default)", "ENABLE_SEGMENTATION=false"],
+        "log_lines": ["SpatialProcessor init (mock mode)"]
+      },
+      "impacted_features": ["Object detection", "Depth estimation", "Micro-navigation", "Obstacle warnings", "Safety-critical alerts"],
+      "probability": "HIGH",
+      "reason": "Config defaults disable all real ML models. MockObjectDetector returns hardcoded chair/table/person detections. SimpleDepthEstimator returns a linear gradient. No real sensing occurs."
+    },
+    {
+      "id": "RC-03",
+      "short_name": "Mock detector caches stale detections by image dimensions",
+      "evidence": {
+        "files": ["src/tools/spatial.py:L136-L155 (MockObjectDetector._cached_detections, _last_dims)"],
+        "config_values": []
+      },
+      "impacted_features": ["All spatial perception (when using mocks)", "Navigation safety"],
+      "probability": "HIGH",
+      "reason": "If two consecutive frames have the same dimensions (nearly always true for a fixed camera), the mock returns the same cached Detection list, making scene-change detection impossible."
+    },
+    {
+      "id": "RC-04",
+      "short_name": "LLM base URL hardcoded to localhost Ollama",
+      "evidence": {
+        "files": ["src/main.py:L47-L49"],
+        "config_values": ["LLM_BASE_URL = 'http://localhost:11434/v1'", "LLM_API_KEY = 'ollama'"]
+      },
+      "impacted_features": ["Vision LLM analysis", "VQA reasoning", "All LLM-dependent tool responses"],
+      "probability": "HIGH",
+      "reason": "In Docker/cloud deployment Ollama is absent. No env-var override for LLM_BASE_URL. openai.LLM calls will timeout with ConnectionRefusedError."
+    },
+    {
+      "id": "RC-05",
+      "short_name": "Watchdog detects stalls but has no recovery action",
+      "evidence": {
+        "files": ["watchdog.py:L183-L254 (_run_checks)", "src/main.py:L1555-L1560"]
+      },
+      "impacted_features": ["Camera recovery", "Worker restart", "Continuous processing resilience"],
+      "probability": "HIGH",
+      "reason": "Watchdog._run_checks fires alert callbacks but no production callback is registered that restarts the capture pipeline or speaks a warning to the user."
+    },
+    {
+      "id": "RC-06",
+      "short_name": "YOLO/MiDaS model files not bundled or downloaded",
+      "evidence": {
+        "files": ["src/config.py:L48 (YOLO_MODEL_PATH='')", "requirements.txt:L52-L56 (torch/ultralytics commented out)"],
+        "config_values": ["YOLO_MODEL_PATH='' (empty)", "MIDAS_MODEL_PATH='' (empty)"]
+      },
+      "impacted_features": ["Real object detection", "Real depth estimation"],
+      "probability": "HIGH",
+      "reason": "Even if SPATIAL_USE_YOLO=true, there is no model file. torch and ultralytics are commented out in requirements.txt. No download script exists."
+    },
+    {
+      "id": "RC-07",
+      "short_name": "SimpleDepthEstimator produces synthetic gradient, not real depth",
+      "evidence": {
+        "files": ["src/tools/spatial.py:L344-L395 (SimpleDepthEstimator)"]
+      },
+      "impacted_features": ["Depth estimation", "Distance reporting to user", "Critical/near/safe classification"],
+      "probability": "HIGH",
+      "reason": "estimate_depth() returns np.linspace from max to min depth — a linear vertical gradient regardless of scene content. All distance values reported to the user are fabricated."
+    },
+    {
+      "id": "RC-08",
+      "short_name": "No CI smoke test for container + synthetic frame",
+      "evidence": {
+        "files": [".github/workflows/ci.yml"]
+      },
+      "impacted_features": ["Deployment reliability", "Regression detection"],
+      "probability": "MEDIUM",
+      "reason": "CI builds the Docker image but does not run it. No test sends a frame to /perception/frame or /health."
+    },
+    {
+      "id": "RC-09",
+      "short_name": "Face engine enabled by default but no consent flow wired",
+      "evidence": {
+        "files": ["src/config.py:L152 (FACE_ENGINE_ENABLED=true)", "api_server.py:L80-L120"],
+        "config_values": ["FACE_CONSENT_REQUIRED=true", "FACE_REGISTRATION_ENABLED=false"]
+      },
+      "impacted_features": ["Face detection", "Privacy compliance"],
+      "probability": "MEDIUM",
+      "reason": "Face engine is enabled but registration is off, so face detection runs but cannot match identities. The /face/consent API exists but is not integrated into the agent session — no prompt asks users for consent before processing starts."
+    },
+    {
+      "id": "RC-10",
+      "short_name": "Memory engine has no on-device encryption at rest",
+      "evidence": {
+        "files": ["memory_engine/config.py", "requirements.txt:L89 (cryptography listed but optional)"],
+        "config_values": ["FACE_ENCRYPTION_ENABLED=false"]
+      },
+      "impacted_features": ["Privacy for stored embeddings and RAG data"],
+      "probability": "MEDIUM",
+      "reason": "cryptography is in requirements.txt but FACE_ENCRYPTION_ENABLED defaults to false. No encryption is applied to FAISS indexes or memory backups."
+    },
+    {
+      "id": "RC-11",
+      "short_name": "QR scanning triggers despite anti-noise rules when QR_AUTO_DETECT=true",
+      "evidence": {
+        "files": ["src/config.py:L88 (QR_AUTO_DETECT=true)"],
+        "log_lines": ["Agent system prompt says NEVER auto-trigger QR scanning"]
+      },
+      "impacted_features": ["QR scanning noise", "User experience"],
+      "probability": "MEDIUM",
+      "reason": "Config enables auto-detect but the system prompt forbids it. No code path actually auto-triggers QR from general vision queries, but the config flag is misleading and could be wired later without noticing the conflict."
+    },
+    {
+      "id": "RC-12",
+      "short_name": "Dockerfile uses || true for extras install, masking failures",
+      "evidence": {
+        "files": ["Dockerfile:L20"]
+      },
+      "impacted_features": ["Docker deployment of OCR, advanced models"],
+      "probability": "MEDIUM",
+      "reason": "'pip install -r requirements-extras.txt || true' silently ignores all install failures. If easyocr or pytesseract fails to install, the container runs without OCR."
+    },
+    {
+      "id": "RC-13",
+      "short_name": "Two distinct MockObjectDetector classes with different behaviors",
+      "evidence": {
+        "files": ["src/tools/spatial.py:L120-L155", "vqa_engine/perception.py:L92-L127"]
+      },
+      "impacted_features": ["Test consistency", "Detection accuracy in mock mode"],
+      "probability": "LOW",
+      "reason": "spatial.py mock caches by dimensions; perception.py mock does not. Different detection counts and class names. Depending on which pipeline (VQA vs src/tools) handles a frame, results differ."
+    },
+    {
+      "id": "RC-14",
+      "short_name": "proactive_cadence_s too aggressive at 2s with debounce window of 5s",
+      "evidence": {
+        "files": ["src/config.py:L135 (PROACTIVE_CADENCE_S=2.0)", "src/config.py:L125 (DEBOUNCE_WINDOW_SECONDS=5.0)"]
+      },
+      "impacted_features": ["Alert noise", "User fatigue"],
+      "probability": "LOW",
+      "reason": "With mock detectors always returning the same objects, the debouncer suppresses most announcements, but when debounce expires the same stale detection is announced again repeatedly."
+    },
+    {
+      "id": "RC-15",
+      "short_name": "No model warm-up — first inference suffers cold-start latency",
+      "evidence": {
+        "files": ["vqa_engine/perception.py (no warm_up method)", "ocr_engine/__init__.py (_EasyOCRBackend._ensure_reader lazy init)"]
+      },
+      "impacted_features": ["First-query latency", "EasyOCR first-read 180MB download"],
+      "probability": "MEDIUM",
+      "reason": "EasyOCR model downloads on first call (~180MB). YOLO/MiDaS load lazily. First user query may take 30+ seconds."
+    }
+  ],
+
+  "scenarios_summary": {
+    "total": 1020,
+    "buckets": [
+      {
+        "bucket": "Perception - Object Detection",
+        "count": 120,
+        "description": "Object detection under varying conditions: lighting, distance, occlusion, motion blur, reflective surfaces, indoor/outdoor, crowds",
+        "sample_scenarios": [
+          {
+            "id": "PER-001",
+            "title": "Detect single obstacle in well-lit indoor scene",
+            "category": "Perception",
+            "expected_behavior": "System detects chair 1.5m ahead and announces 'Chair 1.5 meters ahead'",
+            "acceptance_criterion": "Detection confidence > 0.5, distance error < 0.5m, latency < 200ms",
+            "reproduction_steps": ["Feed 640x480 JPEG of room with single chair at known distance", "Call /perception/frame", "Assert detection list contains 'chair' with bbox"],
+            "test_data": "Synthetic: OpenCV-rendered room scene with single object at calibrated depth"
+          },
+          {
+            "id": "PER-002",
+            "title": "Detect multiple obstacles in dim lighting",
+            "category": "Perception",
+            "expected_behavior": "System detects at least top-3 hazards, reports closest first",
+            "acceptance_criterion": "At least 2 detections with confidence > 0.3",
+            "reproduction_steps": ["Feed gamma-reduced (dark) synthetic image with 5 objects", "Assert >= 2 detections returned"],
+            "test_data": "Synthetic: 640x480 scene with gamma=0.3 darkening"
+          },
+          {
+            "id": "PER-003",
+            "title": "Detect glass door (transparent obstacle)",
+            "category": "Perception",
+            "expected_behavior": "System warns about glass door ahead even with low contrast",
+            "acceptance_criterion": "Detection of 'door' or 'glass' class, or fallback to depth-based warning",
+            "reproduction_steps": ["Feed real or synthetic image of glass door", "Assert at least depth-based warning"],
+            "test_data": "Real image dataset: glass door samples from accessibility test sets"
+          },
+          {
+            "id": "PER-004",
+            "title": "No false positives in empty corridor",
+            "category": "Perception",
+            "expected_behavior": "System reports 'Path clear'",
+            "acceptance_criterion": "Zero detections or all detections > 5m, response is 'Path clear'",
+            "reproduction_steps": ["Feed synthetic empty hallway image", "Assert response contains 'clear'"],
+            "test_data": "Synthetic: empty corridor rendering"
+          },
+          {
+            "id": "PER-005",
+            "title": "Handle camera motion blur during walking",
+            "category": "Perception",
+            "expected_behavior": "System either detects objects or falls back to 'Proceed with caution'",
+            "acceptance_criterion": "No crash, response within 500ms, either valid detection or safe fallback",
+            "reproduction_steps": ["Apply Gaussian blur kernel (15,15) to synthetic scene", "Submit for detection"],
+            "test_data": "Synthetic: motion-blurred scene at various kernel sizes"
+          }
+        ]
+      },
+      {
+        "bucket": "Perception - Depth Estimation",
+        "count": 80,
+        "description": "Depth accuracy at various ranges, with mono vs stereo, indoor/outdoor, and reflective/transparent surfaces"
+      },
+      {
+        "bucket": "Text Reading (OCR)",
+        "count": 100,
+        "description": "OCR under varying fonts, sizes, lighting, curved surfaces, handwritten text, multilingual, medicine labels, street signs",
+        "sample_scenarios": [
+          {
+            "id": "OCR-001",
+            "title": "Read printed medicine label in good lighting",
+            "category": "OCR",
+            "expected_behavior": "System reads drug name and dosage aloud",
+            "acceptance_criterion": "full_text contains drug name, confidence > 0.7, latency < 1.5s",
+            "reproduction_steps": ["Feed 640x480 image of medicine bottle label", "Call read_text tool", "Assert full_text contains expected drug name"],
+            "test_data": "Synthetic: rendered text image with known content"
+          },
+          {
+            "id": "OCR-002",
+            "title": "OCR fails gracefully when no backend installed",
+            "category": "OCR",
+            "expected_behavior": "System returns 'Text reading not available' with install hint",
+            "acceptance_criterion": "No crash, error message contains install instructions",
+            "reproduction_steps": ["Uninstall easyocr and pytesseract", "Call OCRPipeline.process()", "Assert result.error contains install help"],
+            "test_data": "Any image"
+          },
+          {
+            "id": "OCR-003",
+            "title": "Read text from curved bottle surface",
+            "category": "OCR",
+            "expected_behavior": "System attempts OCR, may return partial text with lower confidence",
+            "acceptance_criterion": "At least 50% of characters correct, no crash",
+            "reproduction_steps": ["Feed image of curved text surface", "Assert some text returned or graceful degradation"],
+            "test_data": "Real: bottle/can photographs"
+          }
+        ]
+      },
+      {
+        "bucket": "Audio - STT/TTS",
+        "count": 80,
+        "description": "STT accuracy with noise, accents, whisper, TTS latency, Deepgram connection failures, ElevenLabs rate limits"
+      },
+      {
+        "bucket": "Multimodal Failure Modes",
+        "count": 100,
+        "description": "Camera disconnects, LLM timeouts, STT failures, TTS failures, simultaneous multi-module failures, OOM kills",
+        "sample_scenarios": [
+          {
+            "id": "MFM-001",
+            "title": "Camera disconnects mid-session",
+            "category": "Multimodal Failure",
+            "expected_behavior": "Watchdog detects stall, announces 'Camera unavailable. Proceed with caution.'",
+            "acceptance_criterion": "Alert spoken within 3s of disconnect, no crash",
+            "reproduction_steps": ["Start agent session", "Disconnect camera track after 10s", "Assert watchdog triggers alert within 3s"],
+            "test_data": "LiveKit mock: drop video track after N frames"
+          },
+          {
+            "id": "MFM-002",
+            "title": "LLM endpoint unreachable (Ollama down)",
+            "category": "Multimodal Failure",
+            "expected_behavior": "Agent returns failsafe message, does not hang",
+            "acceptance_criterion": "Response within 2s containing 'proceed with caution', no hang",
+            "reproduction_steps": ["Set LLM_BASE_URL to invalid host", "Send user query", "Assert failsafe response"],
+            "test_data": "No special data needed"
+          },
+          {
+            "id": "MFM-003",
+            "title": "Out of memory during model inference",
+            "category": "Multimodal Failure",
+            "expected_behavior": "Model fallback to mock or graceful error",
+            "acceptance_criterion": "No process crash, user gets safe response",
+            "reproduction_steps": ["Limit container memory to 256MB", "Trigger YOLO detection", "Assert graceful degradation"],
+            "test_data": "Standard test image"
+          }
+        ]
+      },
+      {
+        "bucket": "Privacy & Consent",
+        "count": 60,
+        "description": "Face consent opt-in/out flows, memory deletion, embedding encryption, retention policy enforcement",
+        "sample_scenarios": [
+          {
+            "id": "PRV-001",
+            "title": "Face detection without consent should not store embeddings",
+            "category": "Privacy",
+            "expected_behavior": "Face detected but no embedding stored unless consent granted",
+            "acceptance_criterion": "No .npy file created, face_embeddings store empty",
+            "reproduction_steps": ["Enable face engine", "Do NOT grant consent via /face/consent", "Send frame with face", "Assert no embeddings stored"],
+            "test_data": "Synthetic face image"
+          }
+        ]
+      },
+      {
+        "bucket": "Network Partitioning / Offline Mode",
+        "count": 80,
+        "description": "Internet loss, LiveKit disconnect, partial connectivity, QR cache offline-first, DuckDuckGo search failure"
+      },
+      {
+        "bucket": "Hardware Constraints",
+        "count": 60,
+        "description": "CPU-only inference, low-RAM (512MB), no GPU, Raspberry Pi, throttled CPU"
+      },
+      {
+        "bucket": "Mobility Scenarios",
+        "count": 80,
+        "description": "Walking, stairs, escalators, crossing streets, entering vehicles, crowded areas",
+        "sample_scenarios": [
+          {
+            "id": "MOB-001",
+            "title": "Descending stairs with handrail",
+            "category": "Mobility",
+            "expected_behavior": "System detects stairs and reports 'Stairs ahead, 1.5 meters. Handrail on right.'",
+            "acceptance_criterion": "Detection includes 'stairs' class, direction correct",
+            "reproduction_steps": ["Feed image of stairs with handrail", "Assert stair detection with depth and direction"],
+            "test_data": "Real or synthetic stair image"
+          }
+        ]
+      },
+      {
+        "bucket": "Accessibility-Specific",
+        "count": 60,
+        "description": "Crowded scenes, hands holding objects, braille plates, curved paper, low-contrast signs, tactile markers"
+      },
+      {
+        "bucket": "QR/AR Scanning",
+        "count": 60,
+        "description": "Various QR content types, AR markers, damaged codes, low-res, angled, offline cache hits/misses"
+      },
+      {
+        "bucket": "Braille Engine",
+        "count": 40,
+        "description": "Grade 1 braille recognition, various plate materials, lighting, angle, partial occlusion"
+      },
+      {
+        "bucket": "Integration & API",
+        "count": 60,
+        "description": "FastAPI endpoints, LiveKit session lifecycle, concurrent sessions, API error responses"
+      },
+      {
+        "bucket": "Performance & Latency",
+        "count": 40,
+        "description": "End-to-end latency targets, cold start, warm inference, batched requests, memory leaks over time"
+      }
+    ],
+    "generator_algorithm": {
+      "description": "Deterministic scenario generator for expanding to 1000+ scenarios from templates",
+      "templates": [
+        {
+          "template_id": "T-DETECT",
+          "pattern": "Detect {object} at {distance}m in {lighting} with {occlusion} at {angle} degrees",
+          "variables": {
+            "object": ["person", "chair", "table", "car", "bicycle", "dog", "stroller", "bollard", "curb", "stairs", "door", "wall", "tree", "sign", "trash-bin", "fire-hydrant", "bench", "wheelchair", "scooter", "pole"],
+            "distance": [0.3, 0.5, 1.0, 1.5, 2.0, 3.0, 5.0, 8.0],
+            "lighting": ["bright-sun", "overcast", "indoor-fluorescent", "dim-indoor", "nighttime", "backlit"],
+            "occlusion": ["none", "partial-25pct", "partial-50pct", "heavy-75pct"],
+            "angle": [0, 15, 30, 45, 60]
+          },
+          "generates": "20 * 8 * 6 * 4 * 5 = 19200 combos; sample 200 via seed=42 hash modulo"
+        },
+        {
+          "template_id": "T-OCR",
+          "pattern": "Read {text_type} text in {language} on {surface} under {lighting} at {distance}m",
+          "variables": {
+            "text_type": ["printed", "handwritten", "digital-display", "embossed", "engraved"],
+            "language": ["en", "es", "fr", "zh", "ar", "hi"],
+            "surface": ["flat-paper", "curved-bottle", "metal-sign", "fabric", "screen", "braille-plate"],
+            "lighting": ["bright", "dim", "glare", "shadow"],
+            "distance": [0.2, 0.3, 0.5, 1.0]
+          },
+          "generates": "5 * 6 * 6 * 4 * 4 = 2880 combos; sample 100 via seed=42"
+        },
+        {
+          "template_id": "T-FAILURE",
+          "pattern": "{module} fails with {failure_type} while user is {activity}",
+          "variables": {
+            "module": ["camera", "STT", "TTS", "LLM", "detection", "depth", "OCR", "QR", "face", "memory"],
+            "failure_type": ["timeout", "crash", "OOM", "network-error", "corrupted-input", "permission-denied"],
+            "activity": ["walking", "standing", "crossing-street", "on-stairs", "in-elevator", "in-meeting"]
+          },
+          "generates": "10 * 6 * 6 = 360 combos; sample 80"
+        }
+      ],
+      "seed": 42,
+      "total_deterministic_pool": 22440,
+      "sampling_strategy": "SHA256(template_id + variable_combo_index + seed) mod N < target_count ÷ total_combos"
+    }
+  },
+
+  "fixes": [
+    {
+      "id": "FIX-01",
+      "root_cause": "RC-01",
+      "priority": "CRITICAL",
+      "title": "Fix missing OCR backend — add install + runtime detection + fallback",
+      "description": "Move easyocr and pytesseract from requirements-extras.txt to requirements.txt, fix Dockerfile, add runtime probe with spoken fallback.",
+      "patches": [
+        {
+          "file": "requirements.txt",
+          "description": "Add OCR backends to main requirements",
+          "diff": "--- a/requirements.txt\n+++ b/requirements.txt\n@@ after 'Pillow>=9.0.0' line @@\n+# OCR backends (at least one required for text reading)\n+easyocr>=1.7.0\n+pytesseract>=0.3.10\n"
+        },
+        {
+          "file": "Dockerfile",
+          "description": "Remove || true from extras install so failures are visible",
+          "diff": "--- a/Dockerfile\n+++ b/Dockerfile\n@@ -20 @@\n-RUN pip install --no-cache-dir -r requirements.txt \\\n-    && pip install --no-cache-dir -r requirements-extras.txt || true\n+RUN pip install --no-cache-dir -r requirements.txt \\\n+    && pip install --no-cache-dir -r requirements-extras.txt\n"
+        },
+        {
+          "file": "ocr_engine/__init__.py",
+          "description": "Add startup log of OCR backend status",
+          "action": "After the TESSERACT_AVAILABLE block, add:\n\nlogger.info('OCR backends: easyocr=%s tesseract=%s', EASYOCR_AVAILABLE, TESSERACT_AVAILABLE)\nif not EASYOCR_AVAILABLE and not TESSERACT_AVAILABLE:\n    logger.error('NO OCR BACKEND AVAILABLE. Install easyocr>=1.7.0 or pytesseract>=0.3.10 + tesseract binary.')"
+        }
+      ],
+      "new_dependencies": [
+        "pip install easyocr==1.7.2",
+        "pip install pytesseract==0.3.13",
+        "sudo apt-get install -y tesseract-ocr libtesseract-dev"
+      ],
+      "verification_commands": [
+        "python -c \"from ocr_engine import OCRPipeline; p = OCRPipeline(); print('OCR ready:', p.is_ready)\"",
+        "pytest tests/test_ocr_pipeline.py -v"
+      ],
+      "ci_checks": [
+        "Add to ci.yml test job: python -c 'import easyocr; import pytesseract'"
+      ]
+    },
+    {
+      "id": "FIX-02",
+      "root_cause": "RC-05",
+      "priority": "CRITICAL",
+      "title": "Add camera watchdog restart logic with spoken alert",
+      "description": "Wire Watchdog alert callback to: (1) try restarting the video stream, (2) speak a user warning via TTS, (3) log the event.",
+      "patches": [
+        {
+          "file": "src/main.py",
+          "description": "Register watchdog alert callback in entrypoint() that restarts capture and speaks warning",
+          "code_snippet": "# After: await userdata._watchdog.start()\n\nasync def _on_watchdog_alert(component: str, message: str):\n    \"\"\"Handle camera/worker stall: restart capture, notify user.\"\"\"\n    logger.warning('Watchdog alert [%s]: %s', component, message)\n    if component == 'camera':\n        # Attempt to restart the persistent video stream\n        try:\n            if userdata.visual_processor._persistent_stream:\n                try:\n                    await userdata.visual_processor._persistent_stream.aclose()\n                except Exception:\n                    pass\n                userdata.visual_processor._persistent_stream = None\n                userdata.visual_processor._cached_video_track = None\n                logger.info('Camera stream reset by watchdog')\n        except Exception as exc:\n            logger.error('Camera restart failed: %s', exc)\n        # Speak warning to user\n        try:\n            if hasattr(agent_session, 'say'):\n                await agent_session.say(\n                    'Camera appears disconnected. Trying to reconnect. Please proceed with caution.'\n                )\n        except Exception:\n            pass\n\nuserdata._watchdog.on_alert(_on_watchdog_alert)\n"
+        }
+      ],
+      "new_dependencies": [],
+      "verification_commands": [
+        "pytest tests/test_live_pipeline.py -v -k watchdog"
+      ],
+      "ci_checks": [
+        "Add unit test: simulate camera stall > 2000ms, assert alert callback fires and stream is reset"
+      ]
+    },
+    {
+      "id": "FIX-03",
+      "root_cause": "RC-08",
+      "priority": "HIGH",
+      "title": "Add CI smoke test: container + synthetic frame → /health + /perception",
+      "description": "Add a GitHub Actions job that builds the Docker image, starts it, waits for /health, sends a synthetic frame, and asserts a JSON scene-graph response."
+    },
+    {
+      "id": "FIX-04",
+      "root_cause": "RC-02, RC-06",
+      "priority": "HIGH",
+      "title": "Provide real model auto-download and configuration",
+      "description": "Add a scripts/download_models.py that fetches YOLOv8n.onnx and MiDaS-small.onnx, update config defaults.",
+      "patches": [
+        {
+          "file": "scripts/download_models.py (NEW)",
+          "code_snippet": "#!/usr/bin/env python3\n\"\"\"Download ML models for spatial perception.\"\"\"\nimport os, urllib.request, hashlib\n\nMODELS = [\n    {\n        'name': 'yolov8n.onnx',\n        'url': 'https://github.com/ultralytics/assets/releases/download/v8.1.0/yolov8n.onnx',\n        'sha256': None,  # Fill after first download\n        'env_var': 'YOLO_MODEL_PATH',\n    },\n    {\n        'name': 'midas_v21_small_256.onnx',\n        'url': 'https://github.com/isl-org/MiDaS/releases/download/v3_1/midas_v21_small_256.onnx',\n        'sha256': None,\n        'env_var': 'MIDAS_MODEL_PATH',\n    },\n]\n\nMODEL_DIR = os.path.join(os.path.dirname(__file__), '..', 'models')\nos.makedirs(MODEL_DIR, exist_ok=True)\n\nfor m in MODELS:\n    dest = os.path.join(MODEL_DIR, m['name'])\n    if os.path.exists(dest):\n        print(f'  [skip] {m[\"name\"]} already exists')\n        continue\n    print(f'  Downloading {m[\"name\"]}...')\n    urllib.request.urlretrieve(m['url'], dest)\n    print(f'  Saved to {dest}')\n\nprint('\\nDone. Set these environment variables:')\nfor m in MODELS:\n    print(f'  {m[\"env_var\"]}=models/{m[\"name\"]}')\n"
+        },
+        {
+          "file": "src/config.py",
+          "description": "Change defaults so YOLO/MiDaS are enabled when model files exist",
+          "action": "Change SPATIAL_USE_YOLO default to auto-detect: os.path.exists(os.environ.get('YOLO_MODEL_PATH', 'models/yolov8n.onnx'))"
+        }
+      ],
+      "new_dependencies": [
+        "pip install onnxruntime==1.17.1"
+      ],
+      "verification_commands": [
+        "python scripts/download_models.py",
+        "SPATIAL_USE_YOLO=true YOLO_MODEL_PATH=models/yolov8n.onnx python -c \"from src.tools.spatial import YOLODetector; d = YOLODetector('models/yolov8n.onnx'); print(d.is_ready())\""
+      ]
+    },
+    {
+      "id": "FIX-05",
+      "root_cause": "RC-03",
+      "priority": "HIGH",
+      "title": "Remove dimension-based cache from MockObjectDetector",
+      "description": "The mock detector in src/tools/spatial.py caches by (width, height) — remove caching so every frame gets fresh (mock) detections.",
+      "patches": [
+        {
+          "file": "src/tools/spatial.py",
+          "description": "Remove _cached_detections and _last_dims from MockObjectDetector.detect()",
+          "action": "Remove lines: 'if (width, height) == self._last_dims and self._cached_detections: return self._cached_detections' and 'self._last_dims = (width, height)' and 'self._cached_detections = [...]'. Always compute fresh detections."
+        }
+      ]
+    },
+    {
+      "id": "FIX-06",
+      "root_cause": "RC-04",
+      "priority": "HIGH",
+      "title": "Make LLM endpoint configurable via environment variables",
+      "description": "Allow LLM_BASE_URL and LLM_API_KEY to be set from env vars.",
+      "patches": [
+        {
+          "file": "src/main.py",
+          "description": "Replace hardcoded LLM URL with env-var lookup",
+          "diff": "--- a/src/main.py\n+++ b/src/main.py\n@@ L47-49 @@\n-LLM_MODEL = _CFG.get('OLLAMA_VL_MODEL_ID', 'qwen3-vl:235b-instruct-cloud')\n-LLM_BASE_URL = 'http://localhost:11434/v1'\n-LLM_API_KEY = 'ollama'\n+LLM_MODEL = _CFG.get('OLLAMA_VL_MODEL_ID', 'qwen3-vl:235b-instruct-cloud')\n+LLM_BASE_URL = os.environ.get('LLM_BASE_URL', _CFG.get('LLM_BASE_URL', 'http://localhost:11434/v1'))\n+LLM_API_KEY = os.environ.get('LLM_API_KEY', _CFG.get('LLM_API_KEY', 'ollama'))\n"
+        },
+        {
+          "file": ".env.example",
+          "description": "Add LLM_BASE_URL to example",
+          "action": "Add lines:\n# LLM endpoint (defaults to local Ollama)\nLLM_BASE_URL=http://localhost:11434/v1\nLLM_API_KEY=ollama"
+        }
+      ]
+    },
+    {
+      "id": "FIX-07",
+      "root_cause": "RC-12",
+      "priority": "MEDIUM",
+      "title": "Fix Dockerfile || true masking install failures",
+      "description": "Remove || true so Docker build fails fast on missing dependencies.",
+      "patches": [
+        {
+          "file": "Dockerfile",
+          "diff": "--- a/Dockerfile\n+++ b/Dockerfile\n@@ -20 @@\n-    && pip install --no-cache-dir -r requirements-extras.txt || true\n+    && pip install --no-cache-dir -r requirements-extras.txt\n"
+        }
+      ]
+    },
+    {
+      "id": "FIX-08",
+      "root_cause": "RC-07",
+      "priority": "HIGH",
+      "title": "Add MiDaS depth estimator auto-enable when model present",
+      "description": "SimpleDepthEstimator returns a synthetic gradient. Wire MiDaS as default when model file exists.",
+      "patches": [
+        {
+          "file": "src/tools/visual.py",
+          "description": "In _init_spatial_processor, auto-detect MiDaS model file",
+          "action": "Before create_spatial_processor call, add:\nimport os\nmidas_path = os.environ.get('MIDAS_MODEL_PATH', 'models/midas_v21_small_256.onnx')\nif os.path.exists(midas_path):\n    use_midas = True\n    logger.info('MiDaS model found: %s', midas_path)"
+        }
+      ]
+    },
+    {
+      "id": "FIX-09",
+      "root_cause": "RC-15",
+      "priority": "MEDIUM",
+      "title": "Add model warm-up on startup",
+      "description": "Run a dummy inference through each loaded model during entrypoint() to eliminate cold-start latency.",
+      "patches": [
+        {
+          "file": "src/main.py",
+          "description": "After VQA engine init, add warm-up call",
+          "code_snippet": "# After: logger.info('VQA Engine initialized...')\ntry:\n    from PIL import Image as PILImage\n    dummy = PILImage.new('RGB', (320, 240), color=(128, 128, 128))\n    await userdata._vqa_pipeline.process(dummy)\n    logger.info('VQA pipeline warm-up complete')\nexcept Exception as e:\n    logger.warning('VQA warm-up failed (non-fatal): %s', e)\n"
+        }
+      ]
+    },
+    {
+      "id": "FIX-10",
+      "root_cause": "RC-09",
+      "priority": "MEDIUM",
+      "title": "Wire face consent check into agent session startup",
+      "description": "Before face detection processes any frame, check consent status. If not granted, skip face pipeline.",
+      "patches": [
+        {
+          "file": "src/main.py",
+          "description": "In entrypoint, only enable face processing if consent file exists and is true",
+          "code_snippet": "# After face engine imports, before processing:\nif face_engine_available:\n    consent_file = 'data/face_consent.json'\n    import json, os\n    consent_granted = False\n    if os.path.exists(consent_file):\n        with open(consent_file) as f:\n            consent_granted = json.load(f).get('consent', False)\n    if not consent_granted:\n        logger.info('Face detection: consent not granted, disabling face pipeline')\n        # Don't wire face detector into orchestrator"
+        }
+      ]
+    }
+  ],
+
+  "mitigations": [
+    {
+      "id": "MIT-01",
+      "failure": "OCR backend missing at runtime",
+      "field_behavior": "User says 'read this' and gets no response or a cryptic error. Blind user can't read medicine labels.",
+      "mitigation": {
+        "description": "3-tier fallback: EasyOCR → Tesseract → MSER heuristic → spoken install hint",
+        "code": "# In read_text tool (src/main.py):\nif result.error and 'No OCR backend' in result.error:\n    # Speak helpful message instead of raw error\n    return (\n        'Text reading is not set up on this device. '\n        'Please ask someone to install the text reading software, '\n        'or try again on a device with OCR installed.'\n    )"
+      }
+    },
+    {
+      "id": "MIT-02",
+      "failure": "Camera stall / disconnect",
+      "field_behavior": "User walking, camera freezes. System serves stale frames or goes silent. Dangerous.",
+      "mitigation": {
+        "description": "Watchdog detects stall > 2000ms, resets video stream, speaks warning, logs event.",
+        "code": "# See FIX-02 for full implementation.\n# Key logic:\n# 1. Reset persistent_stream and cached_video_track\n# 2. Speak: 'Camera appears disconnected. Trying to reconnect.'\n# 3. If reconnect fails within 5s, speak: 'Camera offline. Please check device.'\n# 4. Set a flag to prevent stale-frame queries from returning old data"
+      }
+    },
+    {
+      "id": "MIT-03",
+      "failure": "LiveKit disconnect / network partition",
+      "field_behavior": "Agent session closes, user hears nothing. No reconnection.",
+      "mitigation": {
+        "description": "Wrap agent startup in retry loop (already exists for connect, extend to session recovery).",
+        "code": "# In entrypoint, add session-close handler:\n@ctx.room.on('disconnected')\nasync def _on_disconnect():\n    logger.warning('LiveKit room disconnected')\n    # Attempt reconnect\n    for attempt in range(3):\n        try:\n            await asyncio.sleep(2 * (attempt + 1))\n            await ctx.connect()\n            logger.info('Reconnected to LiveKit room')\n            return\n        except Exception as e:\n            logger.error('Reconnect attempt %d failed: %s', attempt + 1, e)\n    logger.error('Failed to reconnect after 3 attempts')"
+      }
+    },
+    {
+      "id": "MIT-04",
+      "failure": "STT failure (Deepgram connection error)",
+      "field_behavior": "User speaks but nothing happens. No error feedback.",
+      "mitigation": {
+        "description": "Add STT error handler that speaks 'I didn't catch that. Please try again.' via TTS.",
+        "code": "# In AgentSession configuration:\n# The livekit-agents framework should surface STT errors.\n# Wrap the session with an error handler:\ntry:\n    # normal STT pipeline\nexcept Exception as stt_err:\n    logger.error('STT error: %s', stt_err)\n    if hasattr(agent_session, 'say'):\n        await agent_session.say(\"I didn't catch that. Please try again.\")"
+      }
+    },
+    {
+      "id": "MIT-05",
+      "failure": "Model OOM (out of memory)",
+      "field_behavior": "Process killed, user abandoned. On edge devices with 512MB-2GB RAM.",
+      "mitigation": {
+        "description": "Monitor memory before inference. If >80% used, skip heavy models and fall back to mock/lite.",
+        "code": "import psutil\ndef memory_guard(threshold_pct=80.0):\n    mem = psutil.virtual_memory()\n    if mem.percent >= threshold_pct:\n        logger.warning('Memory pressure: %.1f%% used. Switching to lightweight models.', mem.percent)\n        return True  # signal to use mock/lite\n    return False\n\n# Before YOLO inference:\nif memory_guard():\n    # Fall back to mock detector\n    return await MockObjectDetector().detect(image)"
+      }
+    },
+    {
+      "id": "MIT-06",
+      "failure": "LLM endpoint unreachable",
+      "field_behavior": "User query hangs for 30s timeout. No response.",
+      "mitigation": {
+        "description": "Add 3s timeout to LLM calls. On timeout, return quick-answer from scene graph or static fallback.",
+        "code": "# In _analyze_with_ollama:\ntry:\n    response = await asyncio.wait_for(\n        userdata.ollama_handler.model_choice_with_analysis(image, question),\n        timeout=3.0\n    )\nexcept asyncio.TimeoutError:\n    logger.warning('LLM timeout after 3s, using fallback')\n    return 'I can\\'t analyze this right now — proceed with caution.'"
+      }
+    }
+  ],
+
+  "test_harness": {
+    "overview": "Reproducible local + CI test harness using Docker Compose, pytest, synthetic data generators",
+    "tools": [
+      "Docker Compose 2.x",
+      "pytest 7.x + pytest-asyncio",
+      "ffmpeg (synthetic video generation)",
+      "Pillow (synthetic image generation)",
+      "httpx (API testing)"
+    ],
+    "docker_compose_yml": "version: '3.8'\nservices:\n  assistant:\n    build: .\n    ports:\n      - '8000:8000'\n      - '8081:8081'\n    environment:\n      - SPATIAL_PERCEPTION_ENABLED=true\n      - SPATIAL_USE_YOLO=false\n      - ENABLE_QR_SCANNING=true\n      - LLM_BASE_URL=http://mock-llm:8080/v1\n      - LLM_API_KEY=test\n    depends_on:\n      - mock-llm\n    healthcheck:\n      test: ['CMD', 'python', '-c', 'import httpx; r=httpx.get(\"http://localhost:8000/health\"); assert r.status_code==200']\n      interval: 10s\n      timeout: 5s\n      retries: 5\n  mock-llm:\n    image: python:3.11-slim\n    command: python -c \"from http.server import HTTPServer, BaseHTTPRequestHandler; import json; class H(BaseHTTPRequestHandler):\\n  def do_POST(self):\\n    self.send_response(200)\\n    self.send_header('Content-Type','application/json')\\n    self.end_headers()\\n    self.wfile.write(json.dumps({'choices':[{'message':{'content':'Path clear.'}}]}).encode())\\nHTTPServer(('',8080),H).serve_forever()\"\n    ports:\n      - '8080:8080'\n",
+    "makefile_target": "test-smoke:\n\tdocker compose -f docker-compose.test.yml up -d --build\n\tsleep 15  # wait for healthcheck\n\tpython -c \"\nimport httpx, json, sys\nr = httpx.get('http://localhost:8000/health')\nassert r.status_code == 200, f'Health check failed: {r.status_code}'\ndata = r.json()\nprint('Health:', json.dumps(data, indent=2))\nassert data['status'] == 'ok'\nprint('SMOKE TEST PASSED')\n\"\n\tdocker compose -f docker-compose.test.yml down",
+    "example_pytest_tests": [
+      {
+        "file": "tests/test_smoke_api.py",
+        "code": "import pytest\nimport httpx\nfrom PIL import Image\nimport io\nimport base64\n\n@pytest.fixture\ndef synthetic_frame():\n    \"\"\"Generate a 640x480 synthetic room image.\"\"\"\n    import numpy as np\n    img = Image.fromarray(np.random.randint(0, 255, (480, 640, 3), dtype=np.uint8))\n    return img\n\n@pytest.mark.asyncio\nasync def test_health_endpoint():\n    async with httpx.AsyncClient(base_url='http://localhost:8000') as client:\n        r = await client.get('/health')\n        assert r.status_code == 200\n        data = r.json()\n        assert data['status'] == 'ok'\n\n@pytest.mark.asyncio\nasync def test_ocr_pipeline_available():\n    from ocr_engine import OCRPipeline\n    pipe = OCRPipeline()\n    assert pipe.is_ready, 'OCR pipeline should have at least one backend'\n\n@pytest.mark.asyncio\nasync def test_perception_returns_detections(synthetic_frame):\n    from vqa_engine import create_perception_pipeline\n    pipeline = create_perception_pipeline(use_mock=True)\n    result = await pipeline.process(synthetic_frame)\n    assert len(result.detections) > 0\n    assert result.detections[0].class_name in ('person', 'chair', 'table')\n"
+      },
+      {
+        "file": "tests/test_camera_watchdog.py",
+        "code": "import pytest\nimport asyncio\nfrom watchdog import Watchdog, WatchdogConfig\n\n@pytest.mark.asyncio\nasync def test_camera_stall_alert():\n    alerts = []\n    async def mock_alert(comp, msg):\n        alerts.append((comp, msg))\n    \n    wd = Watchdog(WatchdogConfig(\n        camera_stall_threshold_ms=100,\n        check_interval_ms=50,\n    ))\n    wd.register_component('camera')\n    wd.register_component('orchestrator')\n    wd.on_alert(mock_alert)\n    \n    # Simulate active session\n    wd.heartbeat('orchestrator')\n    wd.heartbeat('camera')\n    \n    await wd.start()\n    # Wait for stall detection\n    await asyncio.sleep(0.3)\n    await wd.stop()\n    \n    assert len(alerts) > 0, 'Should have fired camera stall alert'\n    assert alerts[0][0] == 'camera'\n"
+      },
+      {
+        "file": "tests/test_ocr_fallback.py",
+        "code": "import pytest\nfrom ocr_engine.engine import get_ocr_status, get_install_instructions\n\ndef test_ocr_status_reports_backends():\n    status = get_ocr_status()\n    assert 'easyocr_available' in status\n    assert 'tesseract_available' in status\n    assert 'any_backend_available' in status\n\ndef test_install_instructions_not_empty():\n    instructions = get_install_instructions()\n    assert 'easyocr' in instructions.lower() or 'tesseract' in instructions.lower()\n"
+      }
+    ]
+  },
+
+  "perf_recommendations": {
+    "latency_sla": {
+      "perception_loop": "<200ms on-device (end-to-end detect + depth + fuse)",
+      "ocr_pipeline": "<1500ms (preprocess + inference)",
+      "stt_to_llm": "<100ms",
+      "llm_to_tts": "<100ms",
+      "total_e2e": "<500ms (spatial) / <2000ms (OCR) / <3000ms (VQA with LLM)"
+    },
+    "model_recommendations": {
+      "object_detection": {
+        "primary": "YOLOv8n ONNX (6.2 MB, <50ms on CPU, 80+ classes)",
+        "fallback": "YOLOv8-pico or MobileNet-SSD for Raspberry Pi",
+        "install": "pip install onnxruntime==1.17.1; python scripts/download_models.py"
+      },
+      "depth_estimation": {
+        "primary": "MiDaS v2.1 small (256x256 ONNX, ~50ms CPU)",
+        "fallback": "Disparity from stereo if dual-camera available",
+        "install": "Download midas_v21_small_256.onnx via scripts/download_models.py"
+      },
+      "ocr": {
+        "primary": "EasyOCR 1.7.2 (GPU optional, accurate)",
+        "fallback": "Tesseract 5.x (CPU, fast, lower accuracy on complex layouts)",
+        "edge": "CRNN-lite ONNX model for ultra-low-latency"
+      },
+      "stt": "Deepgram Nova-3 (current, good)",
+      "tts": "ElevenLabs Turbo v2.5 (current, good latency)"
+    },
+    "memory_cpu_recommendations": {
+      "minimum": "2 CPU cores, 2 GB RAM, no GPU (mock models + Tesseract OCR)",
+      "recommended": "4 CPU cores, 4 GB RAM, optional GPU (YOLOv8n ONNX + MiDaS small + EasyOCR)",
+      "optimal": "8 CPU cores, 8 GB RAM, GPU (full pipeline + real-time continuous processing)"
+    },
+    "warm_up_batching": {
+      "warm_up": "Run dummy 320x240 inference through each model at startup (adds ~2s to boot, saves 5-30s on first query)",
+      "batching": "For continuous processing, batch frames: process every 3rd frame at 10 FPS capture → 3.3 inference/sec. Skip intermediate frames with ring buffer."
+    }
+  },
+
+  "observability": {
+    "metrics": [
+      {"name": "ally_frame_capture_rate_fps", "type": "gauge", "description": "Live frame capture rate in frames/sec"},
+      {"name": "ally_perception_latency_ms", "type": "histogram", "buckets": [50, 100, 200, 300, 500, 1000], "description": "Per-frame perception pipeline latency"},
+      {"name": "ally_ocr_latency_ms", "type": "histogram", "buckets": [100, 500, 1000, 1500, 3000], "description": "OCR pipeline total latency"},
+      {"name": "ally_ocr_success_total", "type": "counter", "description": "Successful OCR reads"},
+      {"name": "ally_ocr_failure_total", "type": "counter", "labels": ["error_type"], "description": "OCR failures by type"},
+      {"name": "ally_stt_latency_ms", "type": "histogram", "description": "Deepgram STT round-trip latency"},
+      {"name": "ally_tts_latency_ms", "type": "histogram", "description": "ElevenLabs TTS generation latency"},
+      {"name": "ally_detection_count", "type": "histogram", "description": "Number of objects detected per frame"},
+      {"name": "ally_missed_hazard_rate", "type": "gauge", "description": "Estimated missed-hazard rate based on frame staleness and detection gaps"},
+      {"name": "ally_camera_stall_total", "type": "counter", "description": "Camera stall events detected by watchdog"},
+      {"name": "ally_llm_timeout_total", "type": "counter", "description": "LLM request timeouts"},
+      {"name": "ally_e2e_query_latency_ms", "type": "histogram", "buckets": [100, 250, 500, 1000, 2000, 5000], "description": "User query to spoken response latency"}
+    ],
+    "alert_thresholds": [
+      {"metric": "ally_perception_latency_ms p95", "threshold": ">500ms", "action": "Switch to lighter model"},
+      {"metric": "ally_camera_stall_total rate", "threshold": ">1/min", "action": "Investigate camera hardware"},
+      {"metric": "ally_ocr_failure_total rate", "threshold": ">50% of attempts", "action": "Check OCR backend health"},
+      {"metric": "ally_e2e_query_latency_ms p99", "threshold": ">3000ms", "action": "Investigate bottleneck (STT/LLM/TTS)"}
+    ],
+    "structured_logging_schema": {
+      "format": "JSON lines",
+      "fields": {
+        "timestamp": "ISO-8601",
+        "level": "INFO|WARNING|ERROR",
+        "logger": "string (e.g., 'ally-vision-agent', 'ocr-engine')",
+        "event": "string (e.g., 'frame_captured', 'detection_complete', 'ocr_result')",
+        "frame_id": "string",
+        "session_id": "string",
+        "latency_ms": "float",
+        "detections_count": "int",
+        "error": "string|null",
+        "component": "string"
+      },
+      "example": "{\"timestamp\":\"2026-02-12T10:30:00Z\",\"level\":\"INFO\",\"logger\":\"vqa-perception\",\"event\":\"detection_complete\",\"frame_id\":\"frm_00000042\",\"session_id\":\"sess_abc123\",\"latency_ms\":45.2,\"detections_count\":3,\"error\":null,\"component\":\"yolo_detector\"}"
+    }
+  },
+
+  "privacy": {
+    "consent_checks": [
+      {
+        "feature": "Face detection & embedding storage",
+        "default": "DISABLED (FACE_REGISTRATION_ENABLED=false)",
+        "consent_flow": "User must explicitly opt in via voice command ('enable face recognition') or /face/consent API",
+        "retention": "Embeddings deleted on opt-out. No automatic retention > 30 days unless explicitly configured.",
+        "storage": "data/face_consent.json stores consent state; embeddings in .npy files are encrypted if FACE_ENCRYPTION_ENABLED=true"
+      },
+      {
+        "feature": "Memory engine (RAG cache)",
+        "default": "DISABLED (MEMORY_ENABLED=false)",
+        "consent_flow": "/memory/consent endpoint. Voice: 'enable memory' / 'disable memory'",
+        "retention": "Auto-expiry configurable (default 7 days). User can delete all via /memory/delete_all",
+        "storage": "FAISS index + JSON metadata in data/memory_index/"
+      },
+      {
+        "feature": "Raw media saving",
+        "default": "DISABLED (RAW_MEDIA_SAVE=false)",
+        "consent_flow": "Explicit env-var opt-in only",
+        "retention": "No auto-expiry — requires manual deletion"
+      }
+    ],
+    "encryption": {
+      "at_rest": "AES-256 via cryptography library when FACE_ENCRYPTION_ENABLED=true. FAISS indexes currently unencrypted — recommend encrypting.",
+      "in_transit": "LiveKit uses DTLS/SRTP. API server should use HTTPS in production (currently HTTP)."
+    },
+    "onboarding_prompts": [
+      "Welcome to Ally Vision Assistant. For your privacy: I don't store any personal data by default. Would you like me to remember faces? Say 'yes' to enable, or 'no' to keep it off.",
+      "Memory feature: I can remember past conversations to give better answers. This data stays on your device. Say 'enable memory' to turn it on.",
+      "You can say 'forget everything' at any time to delete all stored data."
+    ],
+    "compliance_checklist": [
+      "GDPR Article 7: Consent clearly obtained before face/memory processing",
+      "GDPR Article 17: Right to erasure implemented via /face/forget_all and /memory/delete_all",
+      "GDPR Article 20: Data portability — export endpoint for stored data (TODO: implement)",
+      "CCPA: Disclosure of data categories collected (face embeddings, conversation history)",
+      "ADA/Section 508: Ensure all consent prompts are voice-accessible",
+      "No covert recognition: Face embeddings never processed without explicit opt-in",
+      "Data minimization: Only store what is needed; auto-expiry on memory entries",
+      "Local-first: All data stored on-device by default; cloud sync is opt-in"
+    ]
+  },
+
+  "roadmap": {
+    "short_term_days": {
+      "timeframe": "1-3 days",
+      "items": [
+        {
+          "task": "FIX-01: Install OCR backends in requirements.txt and Dockerfile",
+          "effort": "LOW (2 hours)",
+          "safety_impact": "HIGH — enables text reading for medicine bottles, signs"
+        },
+        {
+          "task": "FIX-02: Wire watchdog alert callback with camera restart + spoken warning",
+          "effort": "LOW (3 hours)",
+          "safety_impact": "CRITICAL — prevents silent failures when camera disconnects"
+        },
+        {
+          "task": "FIX-05: Remove stale-frame cache from MockObjectDetector",
+          "effort": "LOW (1 hour)",
+          "safety_impact": "HIGH — prevents ghost detections"
+        },
+        {
+          "task": "FIX-06: Make LLM_BASE_URL configurable via env var",
+          "effort": "LOW (1 hour)",
+          "safety_impact": "HIGH — enables cloud deployment"
+        },
+        {
+          "task": "FIX-07: Remove || true from Dockerfile extras install",
+          "effort": "LOW (30 min)",
+          "safety_impact": "MEDIUM — catches broken installs early"
+        }
+      ]
+    },
+    "medium_term_weeks": {
+      "timeframe": "1-3 weeks",
+      "items": [
+        {
+          "task": "FIX-04: Add model download script + auto-detect YOLO/MiDaS",
+          "effort": "MEDIUM (2-3 days)",
+          "safety_impact": "CRITICAL — replaces mock detectors with real perception"
+        },
+        {
+          "task": "FIX-03: CI smoke test with Docker container + synthetic frame",
+          "effort": "MEDIUM (1-2 days)",
+          "safety_impact": "HIGH — prevents deployment regressions"
+        },
+        {
+          "task": "FIX-08: MiDaS depth auto-enable when model present",
+          "effort": "MEDIUM (1-2 days)",
+          "safety_impact": "CRITICAL — enables real distance measurement"
+        },
+        {
+          "task": "FIX-09: Model warm-up at startup",
+          "effort": "LOW (2 hours)",
+          "safety_impact": "MEDIUM — eliminates cold-start latency"
+        },
+        {
+          "task": "FIX-10: Wire face consent into session startup",
+          "effort": "LOW (3 hours)",
+          "safety_impact": "MEDIUM — privacy compliance"
+        },
+        {
+          "task": "Implement Prometheus metrics exporter",
+          "effort": "MEDIUM (2 days)",
+          "safety_impact": "MEDIUM — enables production monitoring"
+        },
+        {
+          "task": "Add structured JSON logging throughout pipeline",
+          "effort": "MEDIUM (2 days)",
+          "safety_impact": "MEDIUM — enables faster incident triage"
+        }
+      ]
+    },
+    "long_term_quarter": {
+      "timeframe": "1-3 months",
+      "items": [
+        {
+          "task": "Replace all mock detectors with validated real models (YOLOv8n + MiDaS + optional SAM-lite)",
+          "effort": "HIGH (2-3 weeks)",
+          "safety_impact": "CRITICAL"
+        },
+        {
+          "task": "Implement full 1000+ scenario test suite with synthetic data generators",
+          "effort": "HIGH (2-3 weeks)",
+          "safety_impact": "HIGH"
+        },
+        {
+          "task": "Add on-device encryption for all stored data (FAISS, memories, embeddings)",
+          "effort": "MEDIUM (1 week)",
+          "safety_impact": "HIGH (privacy)"
+        },
+        {
+          "task": "Implement data portability export endpoint (GDPR Article 20)",
+          "effort": "MEDIUM (3-4 days)",
+          "safety_impact": "MEDIUM (compliance)"
+        },
+        {
+          "task": "Edge optimization: quantized INT8 models, ARM NEON acceleration, batched inference",
+          "effort": "HIGH (2-3 weeks)",
+          "safety_impact": "HIGH (performance on Raspberry Pi / Jetson)"
+        },
+        {
+          "task": "Haptic feedback integration for wearable devices (vibration patterns for obstacle proximity)",
+          "effort": "HIGH (3-4 weeks)",
+          "safety_impact": "HIGH (accessibility)"
+        },
+        {
+          "task": "Offline-first mode: local STT (Whisper) + local TTS (Piper) when network unavailable",
+          "effort": "HIGH (2-3 weeks)",
+          "safety_impact": "CRITICAL (reliability)"
+        },
+        {
+          "task": "Multi-language OCR and TTS support (top 10 languages)",
+          "effort": "MEDIUM (1-2 weeks)",
+          "safety_impact": "HIGH (accessibility)"
+        }
+      ]
+    }
+  }
+}

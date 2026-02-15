@@ -1,0 +1,1 @@
+# infrastructure/ — External system adapters

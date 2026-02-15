@@ -1,0 +1,75 @@
+# ================================================================
+# .dockerignore — Voice-Vision Assistant for Blind
+# ================================================================
+# Keeps Docker build context small for the root Dockerfile (COPY . .)
+# The canonical Dockerfile at deployments/docker/Dockerfile uses
+# selective COPY and doesn't need this file.
+# ================================================================
+
+# Version control
+.git/
+.github/
+.gitignore
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.egg
+.eggs/
+build/
+dist/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ally_env/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+.benchmarks/
+
+# Runtime artifacts
+.runtime/
+.import_linter_cache/
+telemetry/
+logs/
+*.log
+
+# Data files (created at runtime)
+qr_cache/
+calendar_events.json
+contacts.json
+identities.json
+
+# Documentation (not needed in container)
+docs/
+*.md
+!README.md
+
+# Research & scripts (not needed in container)
+research/
+scripts/
+
+# Docker files (avoid recursive context)
+Dockerfile
+docker-compose*.yml
+deployments/
+
+# Environment files
+.env
+.env.example
+
+# ML models and binaries (handled separately or via volume mount)
+# Uncomment if models are too large for build context:
+# models/
