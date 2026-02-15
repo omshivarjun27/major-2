@@ -7,7 +7,7 @@
 | 1 | **Critical** | Security | Hardcoded API keys (LiveKit, Deepgram, ElevenLabs, Ollama, Tavus, encryption key) in `.env` | Scrubbed to placeholders; matches `.env.example` |
 | 2 | **High** | Privacy | 21 unencrypted `fid_*.npy` face embedding files at repo root — biometric PII on disk | Deleted all 21 files; `.gitignore` already blocks re-commit |
 | 3 | **Medium** | Code Quality | PydanticDeprecated warnings — `class Config` deprecated in Pydantic v2 | Migrated to `model_config = ConfigDict(populate_by_name=True)` |
-| 4 | **Medium** | Naming | `google_places.py` misleading filename (uses OSM Nominatim) | Renamed to `places_search.py` with backward-compatible alias |
+| 4 | **Medium** | Naming | `google_places.py` was a misleading filename (uses OSM Nominatim) | Module removed entirely (places search feature dropped) |
 | 5 | **Medium** | Repro | `repro/harness.py` was a stub — didn't run actual pipeline | Enhanced with synthetic frame builder, per-frame comparison, p50/p95 latency |
 | 6 | **Medium** | CI | No secrets-scanning CI job | Added `secrets-scan` job to `.github/workflows/ci.yml` |
 

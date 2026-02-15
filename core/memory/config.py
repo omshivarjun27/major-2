@@ -36,7 +36,7 @@ class MemoryConfig:
     telemetry_enabled: bool = False
     
     # Embedding models
-    text_embedding_model: str = "all-MiniLM-L6-v2"
+    text_embedding_model: str = "qwen3-embedding:4b"
     image_embedding_enabled: bool = False
     image_embedding_model: str = "clip-ViT-B-32"
     audio_embedding_enabled: bool = False
@@ -86,7 +86,7 @@ class MemoryConfig:
             encryption_key_env=os.environ.get("MEMORY_ENCRYPTION_KEY_ENV", "MEMORY_ENCRYPTION_KEY"),
             save_raw_media=get_bool("MEMORY_SAVE_RAW", False),
             telemetry_enabled=get_bool("MEMORY_TELEMETRY", False),
-            text_embedding_model=os.environ.get("EMBEDDING_MODEL", "all-MiniLM-L6-v2"),
+            text_embedding_model=os.environ.get("EMBEDDING_MODEL", "qwen3-embedding:4b"),
             image_embedding_enabled=get_bool("IMAGE_EMBEDDING_ENABLED", False),
             image_embedding_model=os.environ.get("IMAGE_EMBEDDING_MODEL", "clip-ViT-B-32"),
             audio_embedding_enabled=get_bool("AUDIO_EMBEDDING_ENABLED", False),

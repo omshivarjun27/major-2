@@ -194,11 +194,11 @@ TEMPLATES = [
         "variables": {
             "service": [
                 "Deepgram-STT", "ElevenLabs-TTS", "Ollama-LLM",
-                "LiveKit-server", "DuckDuckGo-search", "Google-Places",
+                "LiveKit-server", "DuckDuckGo-search",
             ],
             "action": [
                 "scene-describe", "read-text", "navigate",
-                "search-internet", "find-nearby", "remember",
+                "search-internet", "remember",
             ],
         },
         "target": 80,

@@ -128,12 +128,17 @@ class TestTextEmbedderLazyLoad:
         assert embedder._ready is False
     
     def test_dimension_property_triggers_load(self):
-        """Accessing dimension should trigger model load."""
-        pytest.importorskip("sentence_transformers")
+        """Accessing dimension should trigger client load."""
+        pytest.importorskip("ollama")
+        from unittest.mock import patch, MagicMock
         from core.memory.embeddings import TextEmbedder
         
-        embedder = TextEmbedder()
-        dim = embedder.dimension
+        mock_ollama = MagicMock()
+        mock_ollama.embed.return_value = {"embeddings": [[0.1] * 128]}
         
-        assert dim > 0
-        assert embedder.is_ready
+        with patch("core.memory.embeddings._get_ollama_client", return_value=mock_ollama):
+            embedder = TextEmbedder()
+            dim = embedder.dimension
+        
+            assert dim > 0
+            assert embedder.is_ready

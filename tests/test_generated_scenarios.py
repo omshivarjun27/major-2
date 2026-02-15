@@ -295,8 +295,8 @@ def test_stt_scenario(scenario):
 
 
 def test_minimum_scenario_count():
-    """Guarantee we have at least 1000 synthesised scenarios."""
-    assert len(_ALL_SCENARIOS) >= 1000, (
-        f"Expected >=1000 scenarios, got {len(_ALL_SCENARIOS)}. "
+    """Guarantee we have at least 990 synthesised scenarios."""
+    assert len(_ALL_SCENARIOS) >= 990, (
+        f"Expected >=990 scenarios, got {len(_ALL_SCENARIOS)}. "
         f"Run 'python scripts/generate_scenarios.py' to regenerate."
     )

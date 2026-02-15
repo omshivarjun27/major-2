@@ -121,7 +121,7 @@ _sentence_model = None
 def _get_sentence_model():
     global _sentence_model
     if _sentence_model is None:
-        _sentence_model = SentenceTransformer('all-MiniLM-L6-v2')  # ← 2-5s blocking
+        _sentence_model = SentenceTransformer('qwen3-embedding:4b')  # ← 2-5s blocking
     return _sentence_model
 ```
 Called lazily, so the first `embed()` call stalls the event loop for seconds.

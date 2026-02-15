@@ -7,7 +7,7 @@ Features:
 - Real-time voice interaction with STT/TTS
 - Visual scene analysis and description
 - Spatial perception: object detection, depth estimation, micro-navigation
-- Multi-tool integration: calendar, email, contacts, places, search
+- Multi-tool integration: internet search, memory, QR scanning
 """
 
 import logging

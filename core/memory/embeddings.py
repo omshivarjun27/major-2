@@ -3,7 +3,7 @@ Memory Engine - Embeddings Module
 ==================================
 
 Text, image, and audio embedding generation using lightweight models.
-Supports sentence-transformers for text and optional CLIP for images.
+Supports Ollama embedding models for text and optional CLIP for images.
 """
 
 import logging
@@ -15,25 +15,24 @@ import numpy as np
 
 logger = logging.getLogger("memory-embeddings")
 
-# Lazy import for sentence-transformers
-_sentence_model = None
+# Lazy import for Ollama client
+_ollama_client = None
 _clip_model = None
 _clip_processor = None
 
 
-def _get_sentence_model(model_name: str = "all-MiniLM-L6-v2"):
-    """Lazy load sentence-transformers model."""
-    global _sentence_model
-    if _sentence_model is None:
+def _get_ollama_client():
+    """Lazy load Ollama client for embeddings."""
+    global _ollama_client
+    if _ollama_client is None:
         try:
-            from sentence_transformers import SentenceTransformer
-            logger.info(f"Loading sentence-transformers model: {model_name}")
-            _sentence_model = SentenceTransformer(model_name)
-            logger.info(f"Model loaded. Embedding dimension: {_sentence_model.get_sentence_embedding_dimension()}")
+            import ollama
+            _ollama_client = ollama
+            logger.info("Ollama client loaded for embeddings")
         except ImportError:
-            logger.error("sentence-transformers not installed. Run: pip install sentence-transformers")
+            logger.error("ollama not installed. Run: pip install ollama")
             raise
-    return _sentence_model
+    return _ollama_client
 
 
 class BaseEmbedder(ABC):
@@ -63,24 +62,42 @@ class BaseEmbedder(ABC):
 
 
 class TextEmbedder(BaseEmbedder):
-    """Text embedding using sentence-transformers.
+    """Text embedding using Ollama embedding models.
     
-    Default model: all-MiniLM-L6-v2 (384 dimensions, ~23MB)
-    Fast and efficient for semantic similarity.
+    Default model: qwen3-embedding:4b
+    Uses Ollama's embedding API for efficient local inference.
     """
     
-    def __init__(self, model_name: str = "all-MiniLM-L6-v2"):
+    def __init__(self, model_name: str = "qwen3-embedding:4b"):
         self._model_name = model_name
-        self._model = None
+        self._client = None
         self._ready = False
-        self._dimension = 384  # Default for MiniLM
+        self._dimension = None  # Auto-detected on first embed
     
-    def _ensure_model(self):
-        """Ensure model is loaded."""
-        if self._model is None:
-            self._model = _get_sentence_model(self._model_name)
-            self._dimension = self._model.get_sentence_embedding_dimension()
+    def _ensure_client(self):
+        """Ensure Ollama client is loaded and model dimension is detected."""
+        if self._client is None:
+            self._client = _get_ollama_client()
+            # Probe dimension with a test embedding
+            try:
+                response = self._client.embed(model=self._model_name, input="test")
+                embeddings = response.get("embeddings", response.get("embedding", []))
+                if embeddings:
+                    first = embeddings[0] if isinstance(embeddings[0], list) else embeddings
+                    self._dimension = len(first)
+                    logger.info(f"Ollama embedding model '{self._model_name}' loaded. Dimension: {self._dimension}")
+                else:
+                    self._dimension = 0
+                    logger.warning(f"Could not detect dimension for model '{self._model_name}'")
+            except Exception as e:
+                logger.warning(f"Could not probe model dimension: {e}. Will detect on first real embed.")
+                self._dimension = 0
             self._ready = True
+    
+    def _normalize(self, vec: np.ndarray) -> np.ndarray:
+        """L2-normalize a vector."""
+        norm = np.linalg.norm(vec)
+        return vec / norm if norm > 0 else vec
     
     def embed(self, text: str) -> np.ndarray:
         """Generate embedding for a single text string.
@@ -91,7 +108,7 @@ class TextEmbedder(BaseEmbedder):
         Returns:
             Normalized embedding vector
         """
-        self._ensure_model()
+        self._ensure_client()
         start = time.time()
         
         # Clean and truncate text if needed
@@ -99,12 +116,20 @@ class TextEmbedder(BaseEmbedder):
         if len(text) > 512:
             text = text[:512]
         
-        embedding = self._model.encode(text, normalize_embeddings=True)
+        response = self._client.embed(model=self._model_name, input=text)
+        embeddings = response.get("embeddings", response.get("embedding", []))
+        vec = embeddings[0] if isinstance(embeddings[0], list) else embeddings
+        
+        embedding = self._normalize(np.array(vec, dtype=np.float32))
+        
+        # Update dimension if not yet set
+        if self._dimension is None or self._dimension == 0:
+            self._dimension = len(vec)
         
         elapsed_ms = (time.time() - start) * 1000
         logger.debug(f"Text embedding generated in {elapsed_ms:.1f}ms")
         
-        return np.array(embedding, dtype=np.float32)
+        return embedding
     
     def embed_batch(self, texts: List[str], batch_size: int = 8) -> np.ndarray:
         """Generate embeddings for batch of texts.
@@ -116,28 +141,36 @@ class TextEmbedder(BaseEmbedder):
         Returns:
             Array of normalized embedding vectors (N x dim)
         """
-        self._ensure_model()
+        self._ensure_client()
         start = time.time()
         
         # Clean texts
         cleaned = [t.strip()[:512] for t in texts]
         
-        embeddings = self._model.encode(
-            cleaned,
-            batch_size=batch_size,
-            normalize_embeddings=True,
-            show_progress_bar=False,
-        )
+        # Ollama embed API supports batch input
+        response = self._client.embed(model=self._model_name, input=cleaned)
+        raw = response.get("embeddings", response.get("embedding", []))
+        
+        embeddings = []
+        for vec in raw:
+            v = np.array(vec, dtype=np.float32)
+            embeddings.append(self._normalize(v))
+        
+        result = np.array(embeddings, dtype=np.float32)
+        
+        # Update dimension if not yet set
+        if (self._dimension is None or self._dimension == 0) and len(embeddings) > 0:
+            self._dimension = len(embeddings[0])
         
         elapsed_ms = (time.time() - start) * 1000
         logger.debug(f"Batch embedding ({len(texts)} texts) in {elapsed_ms:.1f}ms")
         
-        return np.array(embeddings, dtype=np.float32)
+        return result
     
     @property
     def dimension(self) -> int:
         """Return embedding dimension."""
-        self._ensure_model()
+        self._ensure_client()
         return self._dimension
     
     @property

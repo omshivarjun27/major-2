@@ -78,15 +78,9 @@ Detect and identify known faces in the camera feed.
 
 ---
 
-## 7. Calendar & Communication
+## 7. Internet Search
 
-Manage events and contacts via voice commands.
-
----
-
-## 8. Internet & Places Search
-
-Search the web or find nearby places.
+Search the web for real-time information.
 
 ---
 

@@ -50,12 +50,3 @@ class TestOfflineBehavior:
         config = get_config()
         assert isinstance(config, dict)
         assert "VISION_PROVIDER" in config
-
-    def test_places_search_without_network(self):
-        """Places search should handle network errors gracefully."""
-        try:
-            from infrastructure.llm.google_places import PlacesSearch
-            searcher = PlacesSearch()
-            assert hasattr(searcher, "search_places")
-        except ImportError:
-            pytest.skip("Places search not available")

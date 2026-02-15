@@ -29,10 +29,6 @@ graph TD
     %% Simplified branches
     QueryType -->|"Visual"| VisualProcess["Visual Analysis"]
     QueryType -->|"Search"| SearchProcess["Internet Search"]
-    QueryType -->|"Places"| PlacesProcess["Places Search"]
-    QueryType -->|"Calendar"| CalendarProcess["Calendar Management"]
-    QueryType -->|"Contact"| ContactProcess["Contact Management"]
-    QueryType -->|"Email"| EmailProcess["Email Management"]
     QueryType -->|"QR/AR"| QRProcess["QR / AR Scan"]
     QueryType -->|"General"| TextProcess["Direct Text Response"]
     
@@ -40,22 +36,6 @@ graph TD
     VisualProcess --> ModelChoice{"Model Selection"}
     ModelChoice -->|"ollama:qwen3-vl:235b-instruct-cloud"| ollama:qwen3-vl:235b-instruct-cloudAnalysis["ollama:qwen3-vl:235b-instruct-cloud Analysis Stream"]
     ModelChoice -->|"ollama:qwen3-vl:235b-instruct-cloud"| ollama:qwen3-vl:235b-instruct-cloudAnalysis2["ollama:qwen3-vl:235b-instruct-cloud Analysis"]
-    
-    %% Places path
-    PlacesProcess --> OSMNominatim["OpenStreetMap Nominatim"]
-    OSMNominatim --> PlacesResults["Location Details"]
-    
-    %% Calendar path
-    CalendarProcess --> LocalCalendar["Local JSON Calendar"]
-    LocalCalendar --> CalendarResults["Event Management"]
-    
-    %% Contact path
-    ContactProcess --> LocalContacts["Local JSON Contacts"]
-    LocalContacts --> ContactResults["Contact Information"]
-    
-    %% Email path
-    EmailProcess --> IMAP["IMAP/SMTP Email"]
-    IMAP --> EmailResults["Email Management"]
     
     %% QR/AR path
     QRProcess --> QRScanner["QR Scanner + AR Handler"]
@@ -66,10 +46,6 @@ graph TD
     ollama:qwen3-vl:235b-instruct-cloudAnalysis --> Response["TTS Processing"]
     ollama:qwen3-vl:235b-instruct-cloudAnalysis2 --> Response
     SearchProcess --> Response
-    PlacesResults --> Response
-    CalendarResults --> Response
-    ContactResults --> Response
-    EmailResults --> Response
     QRResults --> Response
     TextProcess --> Response
     Response --> Deliver["Voice Response to User"]
@@ -82,10 +58,9 @@ graph TD
     classDef api fill:#fff1f0,stroke:#f5222d,stroke-width:1px
     
     class User,Deliver interface
-    class Router,VisualProcess,ollama:qwen3-vl:235b-instruct-cloudAnalysis,ollama:qwen3-vl:235b-instruct-cloudAnalysis2,SearchProcess,TextProcess,PlacesProcess,CalendarProcess,ContactProcess,EmailProcess process
+    class Router,VisualProcess,ollama:qwen3-vl:235b-instruct-cloudAnalysis,ollama:qwen3-vl:235b-instruct-cloudAnalysis2,SearchProcess,TextProcess process
     class QueryType,ModelChoice decision
-    class Response,PlacesResults,CalendarResults,ContactResults,EmailResults output
-    class OSMNominatim,LocalCalendar,LocalContacts,IMAP api
+    class Response output
 ```
 
 ---
@@ -136,7 +111,7 @@ graph TD
 ### 🧠 Memory Engine (Privacy-First)
 * **MEMORY_ENABLED=false by default** — opt-in only
 * **Persistent Consent:** `/memory/consent` endpoint with file-backed storage
-* **RAG Pipeline:** FAISS indexer + sentence-transformers embeddings + Claude/Ollama reasoning
+* **RAG Pipeline:** FAISS indexer + Ollama embeddings (qwen3-embedding:4b) + Claude/Ollama reasoning
 * **Retention Policies:** Auto-expiry, user-initiated deletion, raw media controls
 
 ### 🐳 Docker & CI/CD (NEW)
@@ -148,10 +123,6 @@ graph TD
 * **Voice Interaction:** Natural conversation using speech
 * **Visual Understanding:** Camera-based vision to describe surroundings
 * **Internet Search:** Real-time information lookup
-* **Location Search:** Find nearby businesses, restaurants, and points of interest
-* **Calendar Management:** Add and view calendar events
-* **Contact Management:** Find contact information from local contacts store
-* **Email Management:** Read emails and send messages
 * **QR/AR Scanning:** Decode QR codes and AR tags with contextual deep linking
 * **Braille Reading:** Capture → decode → speak braille text from camera frames
 * **Seamless Integration:** Coordinated operation between components
@@ -220,7 +191,7 @@ Voice-Vision-Assistant-for-Blind/
 │   └── pipelines/                 # Debouncer, watchdog, worker pool, TTS, …
 │
 ├── infrastructure/                # External system adapters
-│   ├── llm/                       # Ollama, internet search, Google Places
+│   ├── llm/                       # Ollama, internet search
 │   ├── speech/                    # Deepgram (STT), ElevenLabs (TTS)
 │   └── tavus/                     # Virtual avatar adapter
 │
@@ -229,7 +200,7 @@ Voice-Vision-Assistant-for-Blind/
 │   ├── logging/                   # Structured logging
 │   ├── schemas/                   # Shared data structures & ABCs
 │   ├── debug/                     # Debug visualizer & session logger
-│   └── utils/                     # Encryption, calendar, contacts, helpers
+│   └── utils/                     # Encryption, timing, helpers
 │
 ├── tests/                         # Test suite (429+ tests)
 │   ├── unit/                      # Fast isolated tests
@@ -276,7 +247,6 @@ Boundaries are enforced by [import-linter](https://import-linter.readthedocs.io/
 * **Deepgram API** - For speech-to-text functionality
 * **ElevenLabs API** - For text-to-speech synthesis
 * **ollama:qwen3-vl:235b-instruct-cloud API** - For fallback vision processing
-* **geopy** - For OpenStreetMap Nominatim places search (free, no API key)
 
 ### Installation
 
@@ -321,14 +291,6 @@ VISION_PROVIDER=ollama
 # Ollama API configuration
 OLLAMA_VL_API_KEY=your_ollama_api_key  # Get your API key from Ollama
 OLLAMA_VL_MODEL_ID=ollama:qwen3-vl:235b-instruct-cloud
-   
-# Email configuration (IMAP/SMTP – works with any provider)
-GMAIL_MAIL=your_email_address
-GMAIL_APP_PASSWORD=your_app_password
-IMAP_HOST=imap.gmail.com
-IMAP_PORT=993
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=465
 
 # Tavus virtual avatar configuration (optional)
 ENABLE_AVATAR=false
@@ -379,28 +341,7 @@ QR_CACHE_TTL_SECONDS=86400
 </details>
 
 <details>
-<summary><b>4. Local Services Setup (Calendar, Contacts, Email)</b></summary>
-
-**Calendar & Contacts** use local JSON files — no external setup required.
-
-- `calendar_events.json` is created automatically in the project root on first use.
-- `contacts.json` is created automatically. Populate it manually:
-  ```json
-  [
-    {"name": "John Doe", "emails": ["john@example.com"], "phone_numbers": ["123-456-7890"]}
-  ]
-  ```
-
-**Email (IMAP/SMTP):**
-1. Set `GMAIL_MAIL` and `GMAIL_APP_PASSWORD` in `.env`.
-2. If using a provider other than Gmail, also set `IMAP_HOST`, `IMAP_PORT`, `SMTP_HOST`, `SMTP_PORT`.
-3. For Gmail, generate an App Password at https://myaccount.google.com/apppasswords (requires 2FA).
-
-No OAuth, no Google Cloud Console project needed.
-</details>
-
-<details>
-<summary><b>5. Virtual Avatar Setup (Optional)</b></summary>
+<summary><b>4. Virtual Avatar Setup (Optional)</b></summary>
 
 ### Tavus Virtual Avatar Integration
 
@@ -520,10 +461,6 @@ lint-imports
 Pipeline: FRAME → DETECT → SEGMENT → DEPTH → FUSE → NAVIGATION
 ```
 
-#### �🌎 Location Services
-* **Places Search:** OpenStreetMap Nominatim for finding businesses and points of interest (free, no API key)
-* **Relevant Results:** Provides address, type, and coordinates
-* **Accessibility Focus:** Tailored information relevant for blind and visually impaired users
 
 ---
 
@@ -658,15 +595,6 @@ For issues or questions, please contact:
 </div>
 
 ## 🔧 Troubleshooting
-
-### Calendar / Contacts / Email Issues
-
-| Issue | Solution |
-|:------|:---------|
-| Calendar events not showing | Check that `calendar_events.json` exists in the project root and contains valid JSON |
-| Contacts not found | Populate `contacts.json` in the project root with your contacts |
-| Email sending fails | Check SMTP credentials in `.env`. For Gmail use an App Password (2FA required) |
-| Email reading fails | Check IMAP credentials and ensure IMAP is enabled in your mail provider settings |
 
 ### QR / AR Scanning Issues
 

@@ -45,7 +45,7 @@ class MemoryConfig:
     
     # Embedding settings (for future RAG)
     use_embeddings: bool = False        # Enable embedding-based retrieval
-    embedding_model: str = "all-MiniLM-L6-v2"
+    embedding_model: str = "qwen3-embedding:4b"
 
 
 # ============================================================================

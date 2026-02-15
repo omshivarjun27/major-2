@@ -22,15 +22,6 @@ Pillow>=9.0.0
 easyocr>=1.7.0
 pytesseract>=0.3.10
 
-# For local places search (OpenStreetMap Nominatim)
-geopy>=2.4.0
-
-# For local calendar (iCalendar format)
-icalendar>=5.0.0
-
-# For IMAP email reading
-imapclient>=3.0.0
-
 # =========================================================================
 # QR / AR TAG SCANNING DEPENDENCIES
 # =========================================================================

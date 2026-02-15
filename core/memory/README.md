@@ -40,7 +40,7 @@ Set these environment variables in `.env`:
 | `MEMORY_RETENTION_DAYS` | `30` | Days to retain memories |
 | `MEMORY_MAX_VECTORS` | `5000` | Maximum indexed memories |
 | `MEMORY_INDEX_PATH` | `./data/memory_index/` | Index storage path |
-| `EMBEDDING_MODEL` | `all-MiniLM-L6-v2` | Sentence-transformer model |
+| `EMBEDDING_MODEL` | `qwen3-embedding:4b` | Text embedding model |
 | `RAG_K` | `5` | Memories to retrieve for RAG |
 | `ANTHROPIC_API_KEY` | _(empty)_ | Claude Opus 4.6 API key (optional) |
 

@@ -1,6 +1,6 @@
 {
   "generated_at": "deterministic_seed_42",
-  "total": 1006,
+  "total": 995,
   "scenarios": [
     {
       "id": "DET-0001",
@@ -13225,24 +13225,6 @@
       ]
     },
     {
-      "id": "NET-0655",
-      "title": "Deepgram-STT unreachable while user requests find-nearby",
-      "bucket": "Network Partitioning / Offline Mode",
-      "template_id": "T-NETWORK",
-      "variables": {
-        "service": "Deepgram-STT",
-        "action": "find-nearby"
-      },
-      "acceptance_criterion": "Failsafe spoken response within 3s; no hang or crash",
-      "data_spec": "Mock: set service URL to down host",
-      "expected_behavior": "System handles: Deepgram-STT unreachable while user requests find-nearby",
-      "reproduction_steps": [
-        "Configure test with {\"service\": \"Deepgram-STT\", \"action\": \"find-nearby\"}",
-        "Submit synthetic input matching data_spec",
-        "Assert acceptance: Failsafe spoken response within 3s; no hang or crash"
-      ]
-    },
-    {
       "id": "NET-0656",
       "title": "Deepgram-STT unreachable while user requests remember",
       "bucket": "Network Partitioning / Offline Mode",
@@ -13328,24 +13310,6 @@
       "expected_behavior": "System handles: ElevenLabs-TTS unreachable while user requests search-internet",
       "reproduction_steps": [
         "Configure test with {\"service\": \"ElevenLabs-TTS\", \"action\": \"search-internet\"}",
-        "Submit synthetic input matching data_spec",
-        "Assert acceptance: Failsafe spoken response within 3s; no hang or crash"
-      ]
-    },
-    {
-      "id": "NET-0661",
-      "title": "ElevenLabs-TTS unreachable while user requests find-nearby",
-      "bucket": "Network Partitioning / Offline Mode",
-      "template_id": "T-NETWORK",
-      "variables": {
-        "service": "ElevenLabs-TTS",
-        "action": "find-nearby"
-      },
-      "acceptance_criterion": "Failsafe spoken response within 3s; no hang or crash",
-      "data_spec": "Mock: set service URL to down host",
-      "expected_behavior": "System handles: ElevenLabs-TTS unreachable while user requests find-nearby",
-      "reproduction_steps": [
-        "Configure test with {\"service\": \"ElevenLabs-TTS\", \"action\": \"find-nearby\"}",
         "Submit synthetic input matching data_spec",
         "Assert acceptance: Failsafe spoken response within 3s; no hang or crash"
       ]
@@ -13441,24 +13405,6 @@
       ]
     },
     {
-      "id": "NET-0667",
-      "title": "Ollama-LLM unreachable while user requests find-nearby",
-      "bucket": "Network Partitioning / Offline Mode",
-      "template_id": "T-NETWORK",
-      "variables": {
-        "service": "Ollama-LLM",
-        "action": "find-nearby"
-      },
-      "acceptance_criterion": "Failsafe spoken response within 3s; no hang or crash",
-      "data_spec": "Mock: set service URL to down host",
-      "expected_behavior": "System handles: Ollama-LLM unreachable while user requests find-nearby",
-      "reproduction_steps": [
-        "Configure test with {\"service\": \"Ollama-LLM\", \"action\": \"find-nearby\"}",
-        "Submit synthetic input matching data_spec",
-        "Assert acceptance: Failsafe spoken response within 3s; no hang or crash"
-      ]
-    },
-    {
       "id": "NET-0668",
       "title": "Ollama-LLM unreachable while user requests remember",
       "bucket": "Network Partitioning / Offline Mode",
@@ -13544,24 +13490,6 @@
       "expected_behavior": "System handles: LiveKit-server unreachable while user requests search-internet",
       "reproduction_steps": [
         "Configure test with {\"service\": \"LiveKit-server\", \"action\": \"search-internet\"}",
-        "Submit synthetic input matching data_spec",
-        "Assert acceptance: Failsafe spoken response within 3s; no hang or crash"
-      ]
-    },
-    {
-      "id": "NET-0673",
-      "title": "LiveKit-server unreachable while user requests find-nearby",
-      "bucket": "Network Partitioning / Offline Mode",
-      "template_id": "T-NETWORK",
-      "variables": {
-        "service": "LiveKit-server",
-        "action": "find-nearby"
-      },
-      "acceptance_criterion": "Failsafe spoken response within 3s; no hang or crash",
-      "data_spec": "Mock: set service URL to down host",
-      "expected_behavior": "System handles: LiveKit-server unreachable while user requests find-nearby",
-      "reproduction_steps": [
-        "Configure test with {\"service\": \"LiveKit-server\", \"action\": \"find-nearby\"}",
         "Submit synthetic input matching data_spec",
         "Assert acceptance: Failsafe spoken response within 3s; no hang or crash"
       ]
@@ -13657,24 +13585,6 @@
       ]
     },
     {
-      "id": "NET-0679",
-      "title": "DuckDuckGo-search unreachable while user requests find-nearby",
-      "bucket": "Network Partitioning / Offline Mode",
-      "template_id": "T-NETWORK",
-      "variables": {
-        "service": "DuckDuckGo-search",
-        "action": "find-nearby"
-      },
-      "acceptance_criterion": "Failsafe spoken response within 3s; no hang or crash",
-      "data_spec": "Mock: set service URL to down host",
-      "expected_behavior": "System handles: DuckDuckGo-search unreachable while user requests find-nearby",
-      "reproduction_steps": [
-        "Configure test with {\"service\": \"DuckDuckGo-search\", \"action\": \"find-nearby\"}",
-        "Submit synthetic input matching data_spec",
-        "Assert acceptance: Failsafe spoken response within 3s; no hang or crash"
-      ]
-    },
-    {
       "id": "NET-0680",
       "title": "DuckDuckGo-search unreachable while user requests remember",
       "bucket": "Network Partitioning / Offline Mode",
@@ -13688,114 +13598,6 @@
       "expected_behavior": "System handles: DuckDuckGo-search unreachable while user requests remember",
       "reproduction_steps": [
         "Configure test with {\"service\": \"DuckDuckGo-search\", \"action\": \"remember\"}",
-        "Submit synthetic input matching data_spec",
-        "Assert acceptance: Failsafe spoken response within 3s; no hang or crash"
-      ]
-    },
-    {
-      "id": "NET-0681",
-      "title": "Google-Places unreachable while user requests scene-describe",
-      "bucket": "Network Partitioning / Offline Mode",
-      "template_id": "T-NETWORK",
-      "variables": {
-        "service": "Google-Places",
-        "action": "scene-describe"
-      },
-      "acceptance_criterion": "Failsafe spoken response within 3s; no hang or crash",
-      "data_spec": "Mock: set service URL to down host",
-      "expected_behavior": "System handles: Google-Places unreachable while user requests scene-describe",
-      "reproduction_steps": [
-        "Configure test with {\"service\": \"Google-Places\", \"action\": \"scene-describe\"}",
-        "Submit synthetic input matching data_spec",
-        "Assert acceptance: Failsafe spoken response within 3s; no hang or crash"
-      ]
-    },
-    {
-      "id": "NET-0682",
-      "title": "Google-Places unreachable while user requests read-text",
-      "bucket": "Network Partitioning / Offline Mode",
-      "template_id": "T-NETWORK",
-      "variables": {
-        "service": "Google-Places",
-        "action": "read-text"
-      },
-      "acceptance_criterion": "Failsafe spoken response within 3s; no hang or crash",
-      "data_spec": "Mock: set service URL to down host",
-      "expected_behavior": "System handles: Google-Places unreachable while user requests read-text",
-      "reproduction_steps": [
-        "Configure test with {\"service\": \"Google-Places\", \"action\": \"read-text\"}",
-        "Submit synthetic input matching data_spec",
-        "Assert acceptance: Failsafe spoken response within 3s; no hang or crash"
-      ]
-    },
-    {
-      "id": "NET-0683",
-      "title": "Google-Places unreachable while user requests navigate",
-      "bucket": "Network Partitioning / Offline Mode",
-      "template_id": "T-NETWORK",
-      "variables": {
-        "service": "Google-Places",
-        "action": "navigate"
-      },
-      "acceptance_criterion": "Failsafe spoken response within 3s; no hang or crash",
-      "data_spec": "Mock: set service URL to down host",
-      "expected_behavior": "System handles: Google-Places unreachable while user requests navigate",
-      "reproduction_steps": [
-        "Configure test with {\"service\": \"Google-Places\", \"action\": \"navigate\"}",
-        "Submit synthetic input matching data_spec",
-        "Assert acceptance: Failsafe spoken response within 3s; no hang or crash"
-      ]
-    },
-    {
-      "id": "NET-0684",
-      "title": "Google-Places unreachable while user requests search-internet",
-      "bucket": "Network Partitioning / Offline Mode",
-      "template_id": "T-NETWORK",
-      "variables": {
-        "service": "Google-Places",
-        "action": "search-internet"
-      },
-      "acceptance_criterion": "Failsafe spoken response within 3s; no hang or crash",
-      "data_spec": "Mock: set service URL to down host",
-      "expected_behavior": "System handles: Google-Places unreachable while user requests search-internet",
-      "reproduction_steps": [
-        "Configure test with {\"service\": \"Google-Places\", \"action\": \"search-internet\"}",
-        "Submit synthetic input matching data_spec",
-        "Assert acceptance: Failsafe spoken response within 3s; no hang or crash"
-      ]
-    },
-    {
-      "id": "NET-0685",
-      "title": "Google-Places unreachable while user requests find-nearby",
-      "bucket": "Network Partitioning / Offline Mode",
-      "template_id": "T-NETWORK",
-      "variables": {
-        "service": "Google-Places",
-        "action": "find-nearby"
-      },
-      "acceptance_criterion": "Failsafe spoken response within 3s; no hang or crash",
-      "data_spec": "Mock: set service URL to down host",
-      "expected_behavior": "System handles: Google-Places unreachable while user requests find-nearby",
-      "reproduction_steps": [
-        "Configure test with {\"service\": \"Google-Places\", \"action\": \"find-nearby\"}",
-        "Submit synthetic input matching data_spec",
-        "Assert acceptance: Failsafe spoken response within 3s; no hang or crash"
-      ]
-    },
-    {
-      "id": "NET-0686",
-      "title": "Google-Places unreachable while user requests remember",
-      "bucket": "Network Partitioning / Offline Mode",
-      "template_id": "T-NETWORK",
-      "variables": {
-        "service": "Google-Places",
-        "action": "remember"
-      },
-      "acceptance_criterion": "Failsafe spoken response within 3s; no hang or crash",
-      "data_spec": "Mock: set service URL to down host",
-      "expected_behavior": "System handles: Google-Places unreachable while user requests remember",
-      "reproduction_steps": [
-        "Configure test with {\"service\": \"Google-Places\", \"action\": \"remember\"}",
         "Submit synthetic input matching data_spec",
         "Assert acceptance: Failsafe spoken response within 3s; no hang or crash"
       ]
