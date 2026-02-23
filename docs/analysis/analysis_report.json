@@ -1,0 +1,24 @@
+{
+  "architecture_mode": "hybrid_cloud_local_gpu",
+  "gpu_enabled_if_available": true,
+  "cloud_llm": "qwen3.5:cloud",
+  "local_embedding": "qwen3-embedding:4b",
+  "generated_at": "2026-02-22T13:48:22Z",
+  "total_issues": 26,
+  "critical": 4,
+  "high": 6,
+  "medium": 11,
+  "low": 5,
+  "gpu_related_issues": 7,
+  "cloud_related_issues": 6,
+  "top_blockers": [
+    "ISSUE-001: Real API keys committed to .env",
+    "ISSUE-002: Both Dockerfiles run as root",
+    "ISSUE-003: QR payload injection risk",
+    "ISSUE-019: .env copied into Docker image",
+    "ISSUE-004: External service SPOFs (Deepgram, ElevenLabs, Ollama cloud)"
+  ],
+  "architectural_health": "fragile",
+  "hybrid_readiness": "partial",
+  "notes": "Build succeeds and 143/157 tests pass. Core functionality well-tested. Critical security issues (7 API keys committed) and SPOFs block production readiness."
+}

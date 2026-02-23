@@ -1,0 +1,56 @@
+{
+  "architecture_mode": "hybrid_cloud_local_gpu",
+  "gpu_enabled_if_available": true,
+  "cloud_llm": "qwen3.5:cloud",
+  "local_embedding": "qwen3-embedding:4b",
+  "generated_at": "2026-02-22T10:59:56.576871+00:00",
+  "languages": {
+    "python": {
+      "files": 202,
+      "loc": 39931
+    },
+    "yaml": {
+      "files": 4,
+      "loc": 262
+    },
+    "json": {
+      "files": 6,
+      "loc": 21376
+    },
+    "markdown": {
+      "files": 12,
+      "loc": 2735
+    },
+    "toml": {
+      "files": 1,
+      "loc": 148
+    },
+    "shell": {
+      "files": 3,
+      "loc": 245
+    },
+    "dockerfile": {
+      "files": 2,
+      "loc": 71
+    },
+    "text": {
+      "files": 2,
+      "loc": 95
+    },
+    "other": {
+      "files": 12,
+      "loc": 518198
+    }
+  },
+  "primary_language": "python",
+  "secondary_languages": [
+    "markdown",
+    "other",
+    "json",
+    "yaml",
+    "shell",
+    "dockerfile",
+    "text",
+    "toml"
+  ]
+}

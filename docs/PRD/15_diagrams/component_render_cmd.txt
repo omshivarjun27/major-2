@@ -1,0 +1,20 @@
+# Mermaid Diagram Render Commands
+#
+# Render all .mmd files in this directory to PNG/SVG using the Mermaid CLI.
+#
+# Prerequisites:
+#   npm install -g @mermaid-js/mermaid-cli
+#
+# Usage:
+#   Run from the project root directory.
+
+# Component diagram (system architecture)
+mmdc -i docs/PRD/15_diagrams/component_diagram.mmd -o docs/PRD/15_diagrams/component_diagram.png -t dark -w 2400 -H 1600
+mmdc -i docs/PRD/15_diagrams/component_diagram.mmd -o docs/PRD/15_diagrams/component_diagram.svg -t dark
+
+# Sequence diagram (voice → vision → speech flow)
+mmdc -i docs/PRD/15_diagrams/sequence_user_upload_to_speech.mmd -o docs/PRD/15_diagrams/sequence_user_upload_to_speech.png -t dark -w 2000 -H 2000
+mmdc -i docs/PRD/15_diagrams/sequence_user_upload_to_speech.mmd -o docs/PRD/15_diagrams/sequence_user_upload_to_speech.svg -t dark
+
+# Batch render all .mmd files
+# for f in docs/PRD/15_diagrams/*.mmd; do mmdc -i "$f" -o "${f%.mmd}.png" -t dark -w 2400; done

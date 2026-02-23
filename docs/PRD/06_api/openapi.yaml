@@ -1,0 +1,1825 @@
+openapi: "3.0.3"
+info:
+  title: "Voice & Vision Assistant for Blind — REST API"
+  version: "1.0.0"
+  description: |
+    REST API for the Voice & Vision Assistant for Blind, a real-time accessibility
+    system combining computer vision, NLP, and audio processing.
+
+    **Architecture:** Hybrid Cloud + Local GPU. Cloud inference uses qwen3.5:cloud
+    (via Ollama cloud runtime) for LLM reasoning. Local GPU inference uses
+    qwen3-embedding:4b for text embeddings, YOLO v8n for object detection,
+    MiDaS v2.1 for depth estimation, EasyOCR for text recognition, and face
+    detection models. All local models run on an NVIDIA RTX 4060 (8GB VRAM)
+    with CUDA acceleration, with a peak VRAM usage of ~3.1GB.
+
+    **Auth:** Bearer token required for debug endpoints only (via DEBUG_AUTH_TOKEN
+    environment variable). No user authentication — the system is a single-user
+    assistive device.
+
+    **Memory:** The memory subsystem requires explicit user consent (opt-in) before
+    storing any data. MEMORY_ENABLED defaults to false.
+
+    **Note:** Real-time voice/vision interaction is handled via LiveKit WebRTC agent
+    (port 8081), not covered by this REST API specification. The WebRTC agent uses
+    Deepgram for STT, ElevenLabs for TTS, and LiveKit for audio/video transport.
+
+servers:
+  - url: http://localhost:8000
+    description: Development server
+  - url: https://api.production.example.com
+    description: Production placeholder
+
+tags:
+  - name: System
+    description: Health checks and configuration
+  - name: Memory
+    description: Privacy-first RAG memory engine (store, search, query, consent)
+  - name: QR
+    description: QR code and barcode scanning with offline cache
+  - name: Braille
+    description: Braille dot pattern recognition and OCR
+  - name: Face
+    description: Face detection consent and embeddings
+  - name: Audio
+    description: Audio subsystem health and SSL status
+  - name: Debug
+    description: Perception pipeline debugging and system diagnostics
+  - name: Session
+    description: Session lifecycle management
+  - name: Export
+    description: Full system data export and import
+
+paths:
+  # ─────────────── System ───────────────
+  /health:
+    get:
+      tags: [System]
+      summary: System health check
+      description: Returns overall system health status including component readiness.
+      operationId: getHealth
+      x-gpu-usage: "No GPU usage"
+      x-cloud-calls: []
+      x-async-behavior: "Synchronous response"
+      responses:
+        "200":
+          description: System health status
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessEnvelope"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          status:
+                            type: string
+                            enum: [healthy, degraded, unhealthy]
+                          uptime_seconds:
+                            type: number
+                          version:
+                            type: string
+                          components:
+                            type: object
+                            additionalProperties:
+                              type: string
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  /config:
+    get:
+      tags: [System]
+      summary: Get runtime configuration
+      description: Returns current runtime configuration values and feature flags.
+      operationId: getConfig
+      x-gpu-usage: "No GPU usage"
+      x-cloud-calls: []
+      x-async-behavior: "Synchronous response"
+      responses:
+        "200":
+          description: Current configuration
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessEnvelope"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          spatial_perception_enabled:
+                            type: boolean
+                          memory_enabled:
+                            type: boolean
+                          qr_scanning_enabled:
+                            type: boolean
+                          face_detection_enabled:
+                            type: boolean
+                          gpu_available:
+                            type: boolean
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  # ─────────────── QR Scanning ───────────────
+  /qr/scan:
+    post:
+      tags: [QR]
+      summary: Scan image for QR codes
+      description: |
+        Scans a base64-encoded image for QR codes and barcodes. Uses pyzbar
+        (primary) or OpenCV (fallback) with multi-stage retry including
+        preprocessing and multi-scale scanning. Returns classified content
+        with contextual spoken message.
+      operationId: scanQR
+      x-gpu-usage: "No GPU usage — CPU-based pyzbar/OpenCV"
+      x-cloud-calls: []
+      x-async-behavior: "Synchronous processing with multi-stage retry"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [image_base64]
+              properties:
+                image_base64:
+                  type: string
+                  description: Base64-encoded image data
+      responses:
+        "200":
+          description: QR scan results
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessEnvelope"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          detections:
+                            type: array
+                            items:
+                              $ref: "#/components/schemas/QRDetection"
+                          content_type:
+                            type: string
+                          spoken_message:
+                            type: string
+                          cached:
+                            type: boolean
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  /qr/cache:
+    get:
+      tags: [QR]
+      summary: Get QR cache contents
+      description: Returns all cached QR scan results with TTL information.
+      operationId: getQRCache
+      x-gpu-usage: "No GPU usage"
+      x-cloud-calls: []
+      x-async-behavior: "Synchronous response"
+      responses:
+        "200":
+          description: Cached QR results
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessEnvelope"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          entries:
+                            type: array
+                            items:
+                              type: object
+                          total:
+                            type: integer
+                          ttl_seconds:
+                            type: integer
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  /qr/history:
+    get:
+      tags: [QR]
+      summary: Get QR scan history
+      description: Returns historical log of QR scans performed.
+      operationId: getQRHistory
+      x-gpu-usage: "No GPU usage"
+      x-cloud-calls: []
+      x-async-behavior: "Synchronous response"
+      responses:
+        "200":
+          description: QR scan history
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessEnvelope"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          scans:
+                            type: array
+                            items:
+                              type: object
+                          total:
+                            type: integer
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  /qr/debug:
+    get:
+      tags: [QR]
+      summary: QR scanner debug info
+      description: Returns QR scanner internal state for debugging.
+      operationId: getQRDebug
+      x-gpu-usage: "No GPU usage"
+      x-cloud-calls: []
+      x-async-behavior: "Synchronous response"
+      responses:
+        "200":
+          description: QR debug information
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessEnvelope"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          scanner_ready:
+                            type: boolean
+                          backend:
+                            type: string
+                          cache_entries:
+                            type: integer
+                          last_scan_time:
+                            type: string
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  # ─────────────── Face ───────────────
+  /face/consent:
+    post:
+      tags: [Face]
+      summary: Set face detection consent
+      description: |
+        Records user consent for face detection features. Consent is persisted
+        to data/face_consent.json. Face detection is disabled by default.
+      operationId: setFaceConsent
+      x-gpu-usage: "No GPU usage"
+      x-cloud-calls: []
+      x-async-behavior: "Synchronous response"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [enabled]
+              properties:
+                enabled:
+                  type: boolean
+                  description: Whether to enable face detection
+                reason:
+                  type: string
+                  description: Optional reason for consent decision
+      responses:
+        "200":
+          description: Consent recorded
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessEnvelope"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          consent_recorded:
+                            type: boolean
+                          face_detection_enabled:
+                            type: boolean
+                          timestamp:
+                            type: string
+                            format: date-time
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  /face/embeddings:
+    post:
+      tags: [Face]
+      summary: Generate face embeddings
+      description: |
+        Detects faces in a base64-encoded image and generates identity embeddings.
+        Requires face detection consent to be enabled.
+      operationId: generateFaceEmbeddings
+      x-gpu-usage: "GPU: Yes — face detection model (~300MB VRAM)"
+      x-cloud-calls: []
+      x-async-behavior: "Synchronous processing via thread pool"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [image_base64]
+              properties:
+                image_base64:
+                  type: string
+                  description: Base64-encoded image data
+      responses:
+        "200":
+          description: Face embeddings generated
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessEnvelope"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          faces_detected:
+                            type: integer
+                          embeddings:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                bbox:
+                                  type: array
+                                  items:
+                                    type: integer
+                                embedding:
+                                  type: array
+                                  items:
+                                    type: number
+                                confidence:
+                                  type: number
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  # ─────────────── Memory ───────────────
+  /memory/store:
+    post:
+      tags: [Memory]
+      summary: Store a multimodal memory
+      description: |
+        Ingests a multimodal memory (transcript, scene graph, image, audio) into the
+        FAISS vector index. Generates a summary and 384-dimensional embedding using
+        qwen3-embedding:4b on the local GPU (~2GB VRAM). Requires memory consent.
+      operationId: storeMemory
+      x-gpu-usage: "GPU: Yes — qwen3-embedding:4b for embedding generation (~2GB VRAM)"
+      x-cloud-calls: []
+      x-async-behavior: "Embedding generation runs synchronously (known issue ISSUE-022)"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MemoryStoreRequest"
+      responses:
+        "200":
+          description: Memory stored successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessEnvelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/MemoryStoreResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  /memory/search:
+    post:
+      tags: [Memory]
+      summary: Search memories by similarity
+      description: |
+        Searches the FAISS vector index for memories similar to the query.
+        Generates a query embedding using qwen3-embedding:4b on the local GPU,
+        then performs L2 distance search. Returns top-k results with scores.
+      operationId: searchMemory
+      x-gpu-usage: "GPU: Yes — qwen3-embedding:4b for query embedding (~2GB VRAM)"
+      x-cloud-calls: []
+      x-async-behavior: "Embedding generation runs synchronously (known issue ISSUE-022)"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MemorySearchRequest"
+      responses:
+        "200":
+          description: Search results
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessEnvelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/MemorySearchResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  /memory/query:
+    post:
+      tags: [Memory]
+      summary: RAG-based memory query
+      description: |
+        Performs retrieval-augmented generation (RAG) over stored memories.
+        First embeds the query with qwen3-embedding:4b (local GPU), retrieves
+        top-k similar memories from FAISS, then uses qwen3.5:cloud (via Ollama
+        cloud runtime) for reasoning over the retrieved context. Returns a
+        natural language answer with citations.
+      operationId: queryMemory
+      x-gpu-usage: "GPU: Yes — qwen3-embedding:4b for query embedding (~2GB VRAM)"
+      x-cloud-calls: ["qwen3.5:cloud"]
+      x-async-behavior: "Cloud LLM call is async with timeout; embedding is synchronous"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MemoryQueryRequest"
+      responses:
+        "200":
+          description: RAG query result
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessEnvelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/MemoryQueryResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  /memory/consent:
+    post:
+      tags: [Memory]
+      summary: Set memory consent preferences
+      description: |
+        Records user consent preferences for the memory subsystem. Memory is
+        disabled by default (MEMORY_ENABLED=false). Consent is persisted to
+        file-backed storage. All memory operations check consent before proceeding.
+      operationId: setMemoryConsent
+      x-gpu-usage: "No GPU usage"
+      x-cloud-calls: []
+      x-async-behavior: "Synchronous response"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MemoryConsentRequest"
+      responses:
+        "200":
+          description: Consent recorded
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessEnvelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/MemoryConsentResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  # ─────────────── Braille ───────────────
+  /braille/read:
+    post:
+      tags: [Braille]
+      summary: Read braille from image
+      description: |
+        End-to-end braille OCR pipeline: deskew, segment dots, classify cells,
+        produce text. Performs quality checks (brightness, contrast, focus, angle)
+        before processing. Uses a PyTorch classification model on the local GPU.
+      operationId: readBraille
+      x-gpu-usage: "GPU: Yes — braille classification model"
+      x-cloud-calls: []
+      x-async-behavior: "Synchronous processing via thread pool"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [image_base64]
+              properties:
+                image_base64:
+                  type: string
+                  description: Base64-encoded image of braille text
+      responses:
+        "200":
+          description: Braille reading result
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessEnvelope"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          text:
+                            type: string
+                          confidence:
+                            type: number
+                          grade:
+                            type: integer
+                          cells_detected:
+                            type: integer
+                          quality_checks:
+                            type: object
+                            properties:
+                              brightness:
+                                type: string
+                              contrast:
+                                type: string
+                              focus:
+                                type: string
+                              angle:
+                                type: string
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  /braille/debug:
+    get:
+      tags: [Braille]
+      summary: Braille OCR debug info
+      description: Returns braille OCR engine internal state for debugging.
+      operationId: getBrailleDebug
+      x-gpu-usage: "No GPU usage"
+      x-cloud-calls: []
+      x-async-behavior: "Synchronous response"
+      responses:
+        "200":
+          description: Braille debug information
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessEnvelope"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          engine_ready:
+                            type: boolean
+                          model_loaded:
+                            type: boolean
+                          last_read_time:
+                            type: string
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  # ─────────────── Audio ───────────────
+  /audio/health:
+    get:
+      tags: [Audio]
+      summary: Audio subsystem health
+      description: Returns health status of the audio processing subsystem.
+      operationId: getAudioHealth
+      x-gpu-usage: "No GPU usage"
+      x-cloud-calls: []
+      x-async-behavior: "Synchronous response"
+      responses:
+        "200":
+          description: Audio health status
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessEnvelope"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          status:
+                            type: string
+                          stt_connected:
+                            type: boolean
+                          tts_connected:
+                            type: boolean
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  /audio/ssl:
+    get:
+      tags: [Audio]
+      summary: Audio SSL certificate status
+      description: Returns SSL certificate status for audio service connections.
+      operationId: getAudioSSL
+      x-gpu-usage: "No GPU usage"
+      x-cloud-calls: []
+      x-async-behavior: "Synchronous response"
+      responses:
+        "200":
+          description: SSL status
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessEnvelope"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          ssl_enabled:
+                            type: boolean
+                          certificate_valid:
+                            type: boolean
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  # ─────────────── Debug ───────────────
+  /debug/perception:
+    post:
+      tags: [Debug]
+      summary: Run perception pipeline on image
+      description: |
+        Runs the full perception pipeline (object detection, segmentation, depth
+        estimation) on a base64-encoded image. Returns detections, obstacles,
+        scene summary, and depth info. Uses YOLO (~200MB), MiDaS (~100MB), and
+        EasyOCR (~500MB) on local GPU.
+      operationId: debugPerception
+      x-gpu-usage: "GPU: Yes — YOLO v8n (~200MB), MiDaS v2.1 (~100MB), EasyOCR (~500MB VRAM)"
+      x-cloud-calls: []
+      x-async-behavior: "Inference runs in thread pool; results assembled async"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PerceptionFrameRequest"
+      responses:
+        "200":
+          description: Perception pipeline results
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessEnvelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/PerceptionFrameResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  /debug/stale:
+    get:
+      tags: [Debug]
+      summary: Get stale frame information
+      description: Returns information about stale frames detected by the freshness checker.
+      operationId: debugStale
+      x-gpu-usage: "No GPU usage"
+      x-cloud-calls: []
+      x-async-behavior: "Synchronous response"
+      responses:
+        "200":
+          description: Stale frame information
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessEnvelope"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          stale_count:
+                            type: integer
+                          max_age_ms:
+                            type: number
+                          last_fresh_frame:
+                            type: string
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  /debug/camera:
+    get:
+      tags: [Debug]
+      summary: Camera debug information
+      description: Returns camera state and frame buffer diagnostics.
+      operationId: debugCamera
+      x-gpu-usage: "No GPU usage"
+      x-cloud-calls: []
+      x-async-behavior: "Synchronous response"
+      responses:
+        "200":
+          description: Camera debug information
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessEnvelope"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          camera_active:
+                            type: boolean
+                          frame_buffer_size:
+                            type: integer
+                          last_frame_timestamp:
+                            type: string
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  /debug/orchestrator:
+    get:
+      tags: [Debug]
+      summary: Frame orchestrator debug info
+      description: Returns frame orchestrator state, configuration, and processing telemetry.
+      operationId: debugOrchestrator
+      x-gpu-usage: "No GPU usage"
+      x-cloud-calls: []
+      x-async-behavior: "Synchronous response"
+      responses:
+        "200":
+          description: Orchestrator debug information
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessEnvelope"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          config:
+                            type: object
+                          frames_processed:
+                            type: integer
+                          avg_latency_ms:
+                            type: number
+                          telemetry_history:
+                            type: array
+                            items:
+                              type: object
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  /debug/workers:
+    get:
+      tags: [Debug]
+      summary: Worker pool debug info
+      description: Returns worker pool status including active threads and queue depth.
+      operationId: debugWorkers
+      x-gpu-usage: "No GPU usage"
+      x-cloud-calls: []
+      x-async-behavior: "Synchronous response"
+      responses:
+        "200":
+          description: Worker pool debug information
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessEnvelope"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          active_threads:
+                            type: integer
+                          max_threads:
+                            type: integer
+                          queue_depth:
+                            type: integer
+                          tasks_completed:
+                            type: integer
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  /debug/frame-manager:
+    get:
+      tags: [Debug]
+      summary: Frame manager debug info
+      description: Returns LiveFrameManager buffer state and frame statistics.
+      operationId: debugFrameManager
+      x-gpu-usage: "No GPU usage"
+      x-cloud-calls: []
+      x-async-behavior: "Synchronous response"
+      responses:
+        "200":
+          description: Frame manager debug information
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessEnvelope"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          buffer_size:
+                            type: integer
+                          max_buffer_size:
+                            type: integer
+                          frames_received:
+                            type: integer
+                          frames_dropped:
+                            type: integer
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  /debug/frame-rate:
+    get:
+      tags: [Debug]
+      summary: Frame rate statistics
+      description: Returns current frame processing rate and timing statistics.
+      operationId: debugFrameRate
+      x-gpu-usage: "No GPU usage"
+      x-cloud-calls: []
+      x-async-behavior: "Synchronous response"
+      responses:
+        "200":
+          description: Frame rate statistics
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessEnvelope"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          current_fps:
+                            type: number
+                          target_fps:
+                            type: number
+                          avg_processing_ms:
+                            type: number
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  /debug/watchdog:
+    get:
+      tags: [Debug]
+      summary: Watchdog status
+      description: Returns watchdog monitoring state and any detected stalls.
+      operationId: debugWatchdog
+      x-gpu-usage: "No GPU usage"
+      x-cloud-calls: []
+      x-async-behavior: "Synchronous response"
+      responses:
+        "200":
+          description: Watchdog status
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessEnvelope"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          running:
+                            type: boolean
+                          last_heartbeat:
+                            type: string
+                          stalls_detected:
+                            type: integer
+                          recoveries_triggered:
+                            type: integer
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  # ─────────────── Session ───────────────
+  /session/create:
+    post:
+      tags: [Session]
+      summary: Create a new session
+      description: Creates a new interaction session and returns its identifier.
+      operationId: createSession
+      x-gpu-usage: "No GPU usage"
+      x-cloud-calls: []
+      x-async-behavior: "Synchronous response"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                device_id:
+                  type: string
+                  description: Device identifier
+                session_type:
+                  type: string
+                  description: Type of session (e.g., interactive, debug)
+      responses:
+        "200":
+          description: Session created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessEnvelope"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          session_id:
+                            type: string
+                          created_at:
+                            type: string
+                            format: date-time
+                          device_id:
+                            type: string
+                          session_type:
+                            type: string
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  /session/list:
+    get:
+      tags: [Session]
+      summary: List active sessions
+      description: Returns a list of active and recent sessions.
+      operationId: listSessions
+      x-gpu-usage: "No GPU usage"
+      x-cloud-calls: []
+      x-async-behavior: "Synchronous response"
+      responses:
+        "200":
+          description: Session list
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessEnvelope"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          sessions:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                session_id:
+                                  type: string
+                                created_at:
+                                  type: string
+                                  format: date-time
+                                device_id:
+                                  type: string
+                                session_type:
+                                  type: string
+                          total:
+                            type: integer
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  # ─────────────── Export / Import ───────────────
+  /export/full:
+    get:
+      tags: [Export]
+      summary: Export all system data
+      description: Exports all persistent data including memories, QR cache, face consent, and session logs.
+      operationId: exportFull
+      x-gpu-usage: "No GPU usage"
+      x-cloud-calls: []
+      x-async-behavior: "May take several seconds for large datasets"
+      responses:
+        "200":
+          description: Full data export
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessEnvelope"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          memories:
+                            type: array
+                            items:
+                              type: object
+                          qr_cache:
+                            type: array
+                            items:
+                              type: object
+                          face_consent:
+                            type: object
+                          sessions:
+                            type: array
+                            items:
+                              type: object
+                          exported_at:
+                            type: string
+                            format: date-time
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  /import/full:
+    post:
+      tags: [Export]
+      summary: Import system data
+      description: Imports previously exported system data, restoring memories, QR cache, and consent state.
+      operationId: importFull
+      x-gpu-usage: "No GPU usage"
+      x-cloud-calls: []
+      x-async-behavior: "May take several seconds for large datasets"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                memories:
+                  type: array
+                  items:
+                    type: object
+                qr_cache:
+                  type: array
+                  items:
+                    type: object
+                face_consent:
+                  type: object
+                sessions:
+                  type: array
+                  items:
+                    type: object
+      responses:
+        "200":
+          description: Data imported successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessEnvelope"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          memories_imported:
+                            type: integer
+                          qr_cache_imported:
+                            type: integer
+                          consent_restored:
+                            type: boolean
+                          imported_at:
+                            type: string
+                            format: date-time
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+components:
+  schemas:
+    # ─────────────── Envelopes ───────────────
+    SuccessEnvelope:
+      type: object
+      required: [status, data, meta]
+      properties:
+        status:
+          type: string
+          enum: [success]
+        data:
+          type: object
+        meta:
+          type: object
+          properties:
+            gpu_used:
+              type: boolean
+              description: Whether local GPU was used for this request
+            cloud_calls:
+              type: array
+              items:
+                type: string
+              description: List of cloud services called (e.g., qwen3.5:cloud)
+            processing_time_ms:
+              type: number
+              description: Total server-side processing time in milliseconds
+
+    ErrorEnvelope:
+      type: object
+      required: [status, error]
+      properties:
+        status:
+          type: string
+          enum: [error]
+        error:
+          type: object
+          required: [code, message, layer, retryable]
+          properties:
+            code:
+              type: string
+              description: Machine-readable error code
+              enum:
+                - VALIDATION_ERROR
+                - GPU_MEMORY_EXCEEDED
+                - CLOUD_TIMEOUT
+                - CLOUD_RATE_LIMIT
+                - MODEL_UNAVAILABLE
+                - INTERNAL_ERROR
+                - SERVICE_UNAVAILABLE
+            message:
+              type: string
+              description: Human-readable error description
+            layer:
+              type: string
+              description: Architectural layer where the error originated
+              enum:
+                - interface
+                - application
+                - domain
+                - local_gpu
+                - cloud
+                - storage
+            retryable:
+              type: boolean
+              description: Whether the client should retry the request
+
+    # ─────────────── Memory Schemas ───────────────
+    MemoryStoreRequest:
+      type: object
+      properties:
+        image_base64:
+          type: string
+          description: Base64-encoded image data
+        audio_base64:
+          type: string
+          description: Base64-encoded audio data
+        transcript:
+          type: string
+          maxLength: 10000
+          description: Text transcript of the interaction
+        scene_graph:
+          type: object
+          description: Scene graph data from perception pipeline
+        user_label:
+          type: string
+          maxLength: 200
+          description: User-provided label for the memory
+        device_id:
+          type: string
+          maxLength: 100
+          description: Device identifier
+        session_id:
+          type: string
+          maxLength: 100
+          description: Session identifier
+        save_raw:
+          type: boolean
+          default: false
+          description: Whether to persist raw media (image/audio)
+
+    MemoryStoreResponse:
+      type: object
+      required: [id, timestamp, expiry, summary, embedding_status]
+      properties:
+        id:
+          type: string
+          description: Unique memory identifier
+        timestamp:
+          type: string
+          format: date-time
+          description: Time the memory was stored
+        expiry:
+          type: string
+          format: date-time
+          description: When the memory will be auto-deleted
+        summary:
+          type: string
+          description: Generated summary of the memory
+        embedding_status:
+          type: string
+          enum: [PENDING, COMPLETED, FAILED]
+          description: Status of embedding generation
+        ingest_time_ms:
+          type: number
+          description: Time spent on ingestion processing
+        embedding_time_ms:
+          type: number
+          description: Time spent on embedding generation
+
+    MemorySearchRequest:
+      type: object
+      required: [query]
+      properties:
+        query:
+          type: string
+          minLength: 1
+          maxLength: 500
+          description: Natural language search query
+        k:
+          type: integer
+          minimum: 1
+          maximum: 50
+          default: 5
+          description: Number of results to return
+        time_window_days:
+          type: integer
+          minimum: 1
+          maximum: 365
+          description: Limit search to memories within this time window
+        session_id:
+          type: string
+          description: Filter by session identifier
+        include_scene_graph:
+          type: boolean
+          default: false
+          description: Include full scene graph data in results
+
+    MemorySearchResponse:
+      type: object
+      required: [query, results, total_searched, search_time_ms]
+      properties:
+        query:
+          type: string
+        results:
+          type: array
+          items:
+            $ref: "#/components/schemas/MemoryHit"
+        total_searched:
+          type: integer
+          description: Total number of vectors searched
+        search_time_ms:
+          type: number
+          description: Search duration in milliseconds
+
+    MemoryHit:
+      type: object
+      required: [id, timestamp, summary, score]
+      properties:
+        id:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        summary:
+          type: string
+        score:
+          type: number
+          minimum: 0
+          maximum: 1
+          description: Similarity score (0-1, higher is more similar)
+        scene_graph_ref:
+          type: string
+        user_label:
+          type: string
+        scene_graph:
+          type: object
+
+    MemoryQueryRequest:
+      type: object
+      required: [query]
+      properties:
+        query:
+          type: string
+          minLength: 1
+          maxLength: 500
+          description: Natural language query about stored memories
+        mode:
+          type: string
+          enum: [SHORT, VERBOSE]
+          default: SHORT
+          description: Response verbosity mode
+        k:
+          type: integer
+          minimum: 1
+          maximum: 20
+          default: 5
+          description: Number of memories to retrieve for context
+        time_window_days:
+          type: integer
+          minimum: 1
+          maximum: 365
+          description: Limit retrieval to memories within this time window
+        require_evidence:
+          type: boolean
+          default: true
+          description: Whether to require evidence before answering
+
+    MemoryQueryResponse:
+      type: object
+      required: [answer, confidence, has_evidence, retrieval_time_ms, reasoning_time_ms]
+      properties:
+        answer:
+          type: string
+          description: Natural language answer to the query
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+          description: Confidence in the answer
+        has_evidence:
+          type: boolean
+          description: Whether supporting evidence was found
+        citations:
+          type: array
+          items:
+            $ref: "#/components/schemas/MemoryCitation"
+          description: Memories cited in the answer
+        reasoning:
+          type: string
+          description: Explanation of the reasoning process
+        retrieval_time_ms:
+          type: number
+          description: Time spent on memory retrieval
+        reasoning_time_ms:
+          type: number
+          description: Time spent on LLM reasoning
+
+    MemoryCitation:
+      type: object
+      required: [memory_id, timestamp, relevance_score]
+      properties:
+        memory_id:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        relevance_score:
+          type: number
+          minimum: 0
+          maximum: 1
+        excerpt:
+          type: string
+
+    MemoryConsentRequest:
+      type: object
+      required: [opt_in]
+      properties:
+        opt_in:
+          type: boolean
+          description: Whether to opt in to memory storage
+        save_raw_media:
+          type: boolean
+          default: false
+          description: Whether to save raw image/audio data
+        reason:
+          type: string
+          maxLength: 500
+          description: Optional reason for consent decision
+        device_id:
+          type: string
+          description: Device identifier
+
+    MemoryConsentResponse:
+      type: object
+      required: [consent_recorded, timestamp, current_settings]
+      properties:
+        consent_recorded:
+          type: boolean
+        timestamp:
+          type: string
+          format: date-time
+        current_settings:
+          type: object
+          properties:
+            memory_enabled:
+              type: boolean
+            save_raw_media:
+              type: boolean
+
+    # ─────────────── Perception Schemas ───────────────
+    PerceptionFrameRequest:
+      type: object
+      required: [image_base64]
+      properties:
+        image_base64:
+          type: string
+          description: Base64-encoded image data
+        session_id:
+          type: string
+          description: Session identifier for tracking
+        run_segmentation:
+          type: boolean
+          default: true
+          description: Whether to run edge-aware segmentation
+        run_depth:
+          type: boolean
+          default: true
+          description: Whether to run depth estimation
+        max_detections:
+          type: integer
+          minimum: 1
+          maximum: 20
+          default: 5
+          description: Maximum number of objects to detect
+
+    PerceptionFrameResponse:
+      type: object
+      required: [session_id, timestamp, detections, obstacles, summary, has_critical, processing_time_ms]
+      properties:
+        session_id:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        detections:
+          type: array
+          items:
+            $ref: "#/components/schemas/DetectionSchema"
+        obstacles:
+          type: array
+          items:
+            $ref: "#/components/schemas/ObstacleSchema"
+        summary:
+          type: string
+          description: Human-readable scene summary
+        has_critical:
+          type: boolean
+          description: Whether any critical-priority obstacles were detected
+        processing_time_ms:
+          type: number
+          description: Total processing time in milliseconds
+        depth_info:
+          $ref: "#/components/schemas/DepthInfoSchema"
+        image_size:
+          type: array
+          items:
+            type: integer
+          minItems: 2
+          maxItems: 2
+          default: [640, 480]
+          description: Image dimensions [width, height]
+
+    DetectionSchema:
+      type: object
+      required: [id, class_name, confidence, bbox]
+      properties:
+        id:
+          type: string
+        class_name:
+          type: string
+          description: Detected object class (aliased as 'class' in serialization)
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+        bbox:
+          $ref: "#/components/schemas/BoundingBoxSchema"
+
+    BoundingBoxSchema:
+      type: object
+      required: [x, y, width, height]
+      properties:
+        x:
+          type: integer
+        y:
+          type: integer
+        width:
+          type: integer
+          minimum: 1
+        height:
+          type: integer
+          minimum: 1
+
+    ObstacleSchema:
+      type: object
+      required: [id, class_name, distance_m, direction, direction_deg, priority, confidence, action]
+      properties:
+        id:
+          type: string
+        class_name:
+          type: string
+          description: Detected object class (aliased as 'class' in serialization)
+        distance_m:
+          type: number
+          description: Estimated distance in meters
+        direction:
+          type: string
+          enum: [FAR_LEFT, LEFT, SLIGHTLY_LEFT, CENTER, SLIGHTLY_RIGHT, RIGHT, FAR_RIGHT]
+        direction_deg:
+          type: number
+          description: Direction angle in degrees (negative=left, positive=right)
+        priority:
+          type: string
+          enum: [CRITICAL, NEAR, FAR, SAFE]
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+        action:
+          type: string
+          description: Recommended action (e.g., "step right", "stop and reassess")
+        is_uncertain:
+          type: boolean
+          default: false
+
+    DepthInfoSchema:
+      type: object
+      properties:
+        min_depth:
+          type: number
+        max_depth:
+          type: number
+        is_metric:
+          type: boolean
+          description: Whether depth values are in metric units (meters)
+
+    # ─────────────── VQA Schemas ───────────────
+    VQAAskRequest:
+      type: object
+      required: [question]
+      properties:
+        question:
+          type: string
+          minLength: 1
+          maxLength: 500
+          description: Natural language question about the scene
+        session_id:
+          type: string
+        image_base64:
+          type: string
+          description: Optional base64-encoded image for context
+        use_image:
+          type: boolean
+          default: true
+        use_context:
+          type: boolean
+          default: true
+        max_tokens:
+          type: integer
+          minimum: 10
+          maximum: 500
+          default: 150
+
+    VQAAskResponse:
+      type: object
+      required: [answer, confidence, source, processing_time_ms]
+      properties:
+        answer:
+          type: string
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+        source:
+          type: string
+          enum: [LLM, CACHE, FALLBACK, ERROR]
+          description: Source of the answer
+        processing_time_ms:
+          type: number
+        tokens_used:
+          type: integer
+          default: 0
+        safety_prefix:
+          type: string
+          default: ""
+        obstacles_used:
+          type: integer
+          default: 0
+        session_id:
+          type: string
+
+    # ─────────────── QR Schemas ───────────────
+    QRDetection:
+      type: object
+      required: [raw_data, bbox]
+      properties:
+        raw_data:
+          type: string
+          description: Decoded QR code content
+        bbox:
+          type: array
+          items:
+            type: integer
+          minItems: 4
+          maxItems: 4
+          description: Bounding box [x, y, width, height]
+        confidence:
+          type: number
+          default: 1.0
+        format_type:
+          type: string
+          default: QR
+          description: Code format (QR, EAN13, CODE128, etc.)
+        timestamp:
+          type: number
+          description: Unix timestamp of detection
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: |
+        Bearer token authentication for debug endpoints only.
+        Set via DEBUG_AUTH_TOKEN environment variable.
+        Not required for non-debug endpoints.

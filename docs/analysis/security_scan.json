@@ -1,0 +1,113 @@
+{
+  "architecture_mode": "hybrid_cloud_local_gpu",
+  "gpu_enabled_if_available": true,
+  "cloud_llm": "qwen3.5:cloud",
+  "local_embedding": "qwen3-embedding:4b",
+  "generated_at": "2026-02-22T12:33:49.409314+00:00",
+  "vulnerable_packages": [],
+  "outdated_packages": [
+    {
+      "package": "torch.ao.quantization",
+      "note": "Deprecation warning: will be removed in torch 2.10"
+    }
+  ],
+  "hardcoded_secrets_detected": [
+    {
+      "file": ".env",
+      "line": 3,
+      "key": "LIVEKIT_API_KEY",
+      "severity": "CRITICAL",
+      "value_redacted": "APIv****d94p"
+    },
+    {
+      "file": ".env",
+      "line": 4,
+      "key": "LIVEKIT_API_SECRET",
+      "severity": "CRITICAL",
+      "value_redacted": "8C76****RTvA"
+    },
+    {
+      "file": ".env",
+      "line": 7,
+      "key": "DEEPGRAM_API_KEY",
+      "severity": "CRITICAL",
+      "value_redacted": "7877****2538"
+    },
+    {
+      "file": ".env",
+      "line": 8,
+      "key": "OLLAMA_API_KEY",
+      "severity": "CRITICAL",
+      "value_redacted": "6889****5Kyv"
+    },
+    {
+      "file": ".env",
+      "line": 9,
+      "key": "ELEVEN_API_KEY",
+      "severity": "CRITICAL",
+      "value_redacted": "sk_d****9c3f"
+    },
+    {
+      "file": ".env",
+      "line": 10,
+      "key": "ELEVENLABS_API_KEY",
+      "severity": "CRITICAL",
+      "value_redacted": "sk_d****9c3f"
+    },
+    {
+      "file": ".env",
+      "line": 25,
+      "key": "TAVUS_API_KEY",
+      "severity": "CRITICAL",
+      "value_redacted": "7fff****ad66"
+    }
+  ],
+  "insecure_patterns": [
+    {
+      "pattern": "Bare except clauses (E722)",
+      "count": 6,
+      "locations": [
+        "core/memory/rag_reasoner.py:178",
+        "core/memory/rag_reasoner.py:237",
+        "tests/realtime/calibrate_depth.py:189",
+        "tests/realtime/session_logger.py:298",
+        "tests/realtime/session_logger.py:321",
+        "tests/realtime/session_logger.py:335"
+      ],
+      "severity": "LOW",
+      "note": "Bare except can mask critical exceptions. Specify exception types."
+    },
+    {
+      "pattern": "No type checker configured",
+      "severity": "MEDIUM",
+      "note": "No mypy/pyright config found. Type errors may go undetected."
+    },
+    {
+      "pattern": "No pre-commit hooks",
+      "severity": "LOW",
+      "note": "No .pre-commit-config.yaml found. Secrets can be committed accidentally."
+    }
+  ],
+  "docker_issues": [
+    {
+      "file": "Dockerfile",
+      "issue": "Container runs as root (no USER instruction)",
+      "severity": "HIGH"
+    },
+    {
+      "file": "deployments/docker/Dockerfile",
+      "issue": "Container runs as root (no USER instruction)",
+      "severity": "HIGH"
+    },
+    {
+      "file": "Dockerfile",
+      "issue": "COPY . . copies everything including .env with secrets",
+      "severity": "HIGH"
+    },
+    {
+      "file": "Dockerfile",
+      "issue": "EXPOSE 8000 8081 \u2014 both ports exposed",
+      "severity": "INFO"
+    }
+  ]
+}

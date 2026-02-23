@@ -1,0 +1,21 @@
+Test_ID,Scenario,Layer,Cloud_Involved,GPU_Involved,Expected_Result,Pass_Fail_Criteria
+E2E-001,Health check returns healthy,Interface,No,No,GET /health returns status=healthy with uptime and version,HTTP 200 with status=healthy and all components reporting ready
+E2E-002,Memory store with valid transcript,Domain,No,Yes,POST /memory/store with transcript returns memory ID and COMPLETED embedding_status,HTTP 200 with valid memory ID and embedding_status=COMPLETED and embedding_time_ms > 0
+E2E-003,Memory search returns relevant results,Domain,No,Yes,POST /memory/search after storing a memory returns matching results with score > 0.5,HTTP 200 with results array length >= 1 and top result score > 0.5
+E2E-004,Memory query with RAG reasoning,Domain,Yes,Yes,POST /memory/query with stored context returns natural language answer with citations,HTTP 200 with non-empty answer and has_evidence=true and citations array length >= 1
+E2E-005,QR scan detects valid QR code,Domain,No,No,POST /qr/scan with base64 QR image returns decoded content and content_type,HTTP 200 with detections array length >= 1 and non-empty spoken_message
+E2E-006,Braille read extracts text,Domain,No,Yes,POST /braille/read with base64 braille image returns recognized text and confidence,HTTP 200 with non-empty text and confidence > 0.0 and quality_checks present
+E2E-007,Perception pipeline detects objects,Domain,No,Yes,POST /debug/perception with base64 image returns detections and obstacles,HTTP 200 with detections array and obstacles array and processing_time_ms < 500
+E2E-008,Face consent toggle,Domain,No,No,POST /face/consent with enabled=true then enabled=false correctly persists state,HTTP 200 with consent_recorded=true and face_detection_enabled matching request value
+E2E-009,Session create and list,Interface,No,No,POST /session/create then GET /session/list returns the created session,HTTP 200 on create with session_id then HTTP 200 on list with sessions containing the created ID
+E2E-010,Export/import data round-trip,Interface,No,No,GET /export/full then POST /import/full with exported data preserves all records,HTTP 200 on export with non-empty data then HTTP 200 on import with correct counts matching export
+E2E-011,Cloud timeout graceful degradation,Cloud,Yes,No,Mock qwen3.5:cloud with 60s delay and verify /memory/query returns fallback response,Response returned within timeout window with fallback answer from StubLLMClient and no server hang
+E2E-012,GPU OOM recovery,Local GPU,No,Yes,Artificially constrain VRAM and submit /debug/perception request,System falls back to CPU inference or returns error. Process does not crash. Subsequent requests succeed.
+E2E-013,Concurrent perception requests,Application,No,Yes,Submit 4 simultaneous /debug/perception requests with valid images,All 4 requests complete successfully within 4x single-request latency. No deadlock or data corruption.
+E2E-014,Memory consent gate blocks unauthorized store,Domain,No,No,POST /memory/store without prior consent returns error and no data persisted,HTTP error response with appropriate error code. FAISS index unchanged. No embedding generated.
+E2E-015,QR cache TTL expiry,Domain,No,No,Scan QR code then wait past TTL and scan again to verify fresh scan occurs,First scan returns cached=false. Second scan after TTL returns cached=false with fresh scan result.
+E2E-016,Config endpoint returns feature flags,Interface,No,No,GET /config returns current feature flag values,HTTP 200 with spatial_perception_enabled and memory_enabled and qr_scanning_enabled booleans present
+E2E-017,Audio health check,Interface,No,No,GET /audio/health returns audio subsystem status,HTTP 200 with status field and stt_connected and tts_connected booleans present
+E2E-018,Debug endpoints require auth token,Interface,No,No,GET /debug/perception without Bearer token returns 401 or 403,HTTP 401 or 403 when DEBUG_AUTH_TOKEN is set and request lacks valid Authorization header
+E2E-019,Memory search with time window filter,Domain,No,Yes,POST /memory/search with time_window_days=1 excludes older memories,HTTP 200 with results containing only memories within the specified time window
+E2E-020,QR cache returns cached entries,Domain,No,No,GET /qr/cache after scanning returns cached QR results with TTL info,HTTP 200 with entries array and total count and ttl_seconds matching configuration

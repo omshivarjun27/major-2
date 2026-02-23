@@ -1,0 +1,324 @@
+Voice-Vision-Assistant-for-Blind/
+├── ## Chat Customization Diagnostics.md
+├── .dockerignore
+├── .env
+├── .env.example
+├── .github
+│   └── workflows
+│       └── ci.yml
+├── .gitignore
+├── AGENTS.md
+├── Dockerfile
+├── MIGRATION_MAP.md
+├── README.md
+├── application
+│   ├── __init__.py
+│   ├── event_bus
+│   │   └── __init__.py
+│   ├── frame_processing
+│   │   ├── __init__.py
+│   │   ├── confidence_cascade.py
+│   │   ├── frame_orchestrator.py
+│   │   ├── freshness.py
+│   │   └── live_frame_manager.py
+│   ├── pipelines
+│   │   ├── __init__.py
+│   │   ├── audio_manager.py
+│   │   ├── cancellation.py
+│   │   ├── debouncer.py
+│   │   ├── frame_sampler.py
+│   │   ├── integration.py
+│   │   ├── perception_pool.py
+│   │   ├── perception_telemetry.py
+│   │   ├── pipeline_monitor.py
+│   │   ├── streaming_tts.py
+│   │   ├── watchdog.py
+│   │   └── worker_pool.py
+│   └── session_management
+│       └── __init__.py
+├── apps
+│   ├── __init__.py
+│   ├── api
+│   │   ├── __init__.py
+│   │   └── server.py
+│   ├── cli
+│   │   ├── __init__.py
+│   │   ├── session_logger.py
+│   │   └── visualizer.py
+│   └── realtime
+│       ├── __init__.py
+│       ├── agent.py
+│       └── entrypoint.py
+├── configs
+│   └── config.yaml
+├── core
+│   ├── __init__.py
+│   ├── action
+│   │   ├── __init__.py
+│   │   └── action_recognizer.py
+│   ├── audio
+│   │   ├── __init__.py
+│   │   ├── audio_event_detector.py
+│   │   ├── audio_fusion.py
+│   │   └── ssl.py
+│   ├── braille
+│   │   ├── __init__.py
+│   │   ├── braille_capture.py
+│   │   ├── braille_classifier.py
+│   │   ├── braille_ocr.py
+│   │   ├── braille_segmenter.py
+│   │   ├── embossing_guidance.py
+│   │   └── scenario_analysis.md
+│   ├── face
+│   │   ├── __init__.py
+│   │   ├── face_detector.py
+│   │   ├── face_embeddings.py
+│   │   ├── face_social_cues.py
+│   │   └── face_tracker.py
+│   ├── memory
+│   │   ├── README.md
+│   │   ├── __init__.py
+│   │   ├── api_endpoints.py
+│   │   ├── api_schema.py
+│   │   ├── cloud_sync.py
+│   │   ├── config.py
+│   │   ├── embeddings.py
+│   │   ├── event_detection.py
+│   │   ├── indexer.py
+│   │   ├── ingest.py
+│   │   ├── llm_client.py
+│   │   ├── maintenance.py
+│   │   ├── rag_reasoner.py
+│   │   ├── retriever.py
+│   │   └── scenario_analysis.md
+│   ├── ocr
+│   │   ├── __init__.py
+│   │   └── engine.py
+│   ├── qr
+│   │   ├── __init__.py
+│   │   ├── ar_tag_handler.py
+│   │   ├── cache_manager.py
+│   │   ├── qr_api.py
+│   │   ├── qr_decoder.py
+│   │   └── qr_scanner.py
+│   ├── reasoning
+│   │   └── __init__.py
+│   ├── speech
+│   │   ├── __init__.py
+│   │   ├── speech_handler.py
+│   │   ├── tts_handler.py
+│   │   ├── voice_ask_pipeline.py
+│   │   └── voice_router.py
+│   ├── vision
+│   │   ├── __init__.py
+│   │   ├── spatial.py
+│   │   ├── video_processing.py
+│   │   └── visual.py
+│   └── vqa
+│       ├── __init__.py
+│       ├── api_endpoints.py
+│       ├── api_schema.py
+│       ├── memory.py
+│       ├── orchestrator.py
+│       ├── perception.py
+│       ├── priority_scene.py
+│       ├── scene_graph.py
+│       ├── spatial_fuser.py
+│       └── vqa_reasoner.py
+├── data
+│   └── memory_backup
+│       └── backup_info.json
+├── deployments
+│   ├── compose
+│   │   └── docker-compose.test.yml
+│   └── docker
+│       └── Dockerfile
+├── docker-compose.test.yml
+├── identities.json
+├── infrastructure
+│   ├── __init__.py
+│   ├── llm
+│   │   ├── __init__.py
+│   │   ├── embeddings
+│   │   │   └── __init__.py
+│   │   ├── internet_search.py
+│   │   ├── ollama
+│   │   │   ├── __init__.py
+│   │   │   └── handler.py
+│   │   └── siliconflow
+│   │       └── __init__.py
+│   ├── monitoring
+│   │   └── __init__.py
+│   ├── speech
+│   │   ├── __init__.py
+│   │   ├── deepgram
+│   │   │   └── __init__.py
+│   │   └── elevenlabs
+│   │       ├── __init__.py
+│   │       └── tts_manager.py
+│   ├── storage
+│   │   └── __init__.py
+│   └── tavus
+│       ├── __init__.py
+│       └── adapter.py
+├── models
+│   ├── midas_v21_small_256.onnx
+│   └── yolov8n.onnx
+├── pyproject.toml
+├── reports
+│   └── replace-embedding-qwen3-4b-test-report.md
+├── requirements-extras.txt
+├── requirements.txt
+├── research
+│   ├── benchmarks
+│   │   ├── benchmark_realtime.py
+│   │   └── benchmark_results.json
+│   ├── experiments
+│   │   ├── __init__.py
+│   │   ├── harness.py
+│   │   ├── scenario_generator.py
+│   │   └── scenarios
+│   │       └── README.md
+│   └── reports
+│       ├── REMEDIATION_PLAN.json
+│       └── REMEDIATION_REPORT.json
+├── scripts
+│   ├── check_deps.py
+│   ├── check_deps.sh
+│   ├── download_models.py
+│   ├── generate_scenarios.py
+│   ├── install_ocr_deps.sh
+│   └── run_local_dev.sh
+├── shared
+│   ├── __init__.py
+│   ├── config
+│   │   ├── __init__.py
+│   │   └── settings.py
+│   ├── debug
+│   │   ├── __init__.py
+│   │   ├── session_logger.py
+│   │   └── visualizer.py
+│   ├── encryption.py
+│   ├── logging
+│   │   ├── __init__.py
+│   │   └── logging_config.py
+│   ├── logging_config.py
+│   ├── schemas
+│   │   └── __init__.py
+│   └── utils
+│       ├── __init__.py
+│       ├── encryption.py
+│       ├── helpers.py
+│       ├── runtime_diagnostics.py
+│       ├── startup_guards.py
+│       └── timing.py
+└── tests
+    ├── __init__.py
+    ├── fixtures
+    │   ├── __init__.py
+    │   ├── braille
+    │   │   ├── sample_a.png
+    │   │   ├── sample_ab.png
+    │   │   ├── sample_dots_6.png
+    │   │   ├── sample_empty.png
+    │   │   ├── sample_hello.png
+    │   │   └── sample_noisy.png
+    │   └── generate_braille_fixtures.py
+    ├── generated_scenarios.json
+    ├── integration
+    │   ├── __init__.py
+    │   ├── test_deepgram.py
+    │   ├── test_memory_search.py
+    │   ├── test_qr_flow.py
+    │   ├── test_rag_reasoner.py
+    │   ├── test_rag_reasoner_claude.py
+    │   ├── test_siliconflow.py
+    │   └── test_vqa_api.py
+    ├── performance
+    │   ├── __init__.py
+    │   ├── conftest.py
+    │   ├── test_access_control_fuzz.py
+    │   ├── test_benchmark_report.py
+    │   ├── test_consent_enforcement.py
+    │   ├── test_debug_access_control.py
+    │   ├── test_deterministic_replay.py
+    │   ├── test_encryption_at_rest.py
+    │   ├── test_graceful_degradation.py
+    │   ├── test_latency_sla.py
+    │   ├── test_memory_leak.py
+    │   ├── test_model_checksums.py
+    │   ├── test_model_download_retry.py
+    │   ├── test_offline_behavior.py
+    │   ├── test_pii_scrubbing.py
+    │   ├── test_resource_threshold.py
+    │   ├── test_secrets_scan.py
+    │   ├── test_sustained_fps.py
+    │   └── test_telemetry_optin.py
+    ├── realtime
+    │   ├── EVALUATION_FORMS.md
+    │   ├── SAFETY_PROTOCOLS.md
+    │   ├── TEST_PLAN.md
+    │   ├── __init__.py
+    │   ├── benchmark.py
+    │   ├── calibrate_depth.py
+    │   ├── metrics.py
+    │   ├── realtime_test.py
+    │   ├── replay_tool.py
+    │   └── session_logger.py
+    ├── test_action_engine.py
+    ├── test_audio_engine.py
+    ├── test_ci_smoke.py
+    ├── test_confidence_cascade.py
+    ├── test_continuous_processing.py
+    ├── test_debug_visualizer.py
+    ├── test_encryption.py
+    ├── test_face_engine.py
+    ├── test_generated_scenarios.py
+    ├── test_live_pipeline.py
+    ├── test_memory_extensions.py
+    ├── test_model_load.py
+    ├── test_ocr_pipeline.py
+    ├── test_orchestrator.py
+    ├── test_perception_telemetry.py
+    ├── test_priority_scene.py
+    ├── test_runtime_diagnostics.py
+    ├── test_session_logger.py
+    ├── test_shared_types.py
+    ├── test_smoke_api.py
+    ├── test_spatial.py
+    ├── test_speech_vqa_bridge.py
+    ├── test_startup_guards.py
+    ├── test_tavus_adapter.py
+    ├── test_tts_manager.py
+    └── unit
+        ├── __init__.py
+        ├── test_braille_segmenter.py
+        ├── test_cache_manager.py
+        ├── test_debug_endpoints.py
+        ├── test_embeddings.py
+        ├── test_fusion.py
+        ├── test_memory_ingest.py
+        ├── test_ocr_engine_fallbacks.py
+        ├── test_ocr_install_error.py
+        ├── test_perception.py
+        ├── test_qr_decoder.py
+        ├── test_qr_scanner.py
+        └── test_rag_reasoner_claude.py
+
+============================================================
+REPOSITORY STATISTICS
+============================================================
+Total files : 244
+Total folders: 65
+Total LOC   : 583061
+
+Files by language:
+  python            202 files     39931 LOC
+  markdown           12 files      2735 LOC
+  other              12 files    518198 LOC
+  json                6 files     21376 LOC
+  yaml                4 files       262 LOC
+  shell               3 files       245 LOC
+  dockerfile          2 files        71 LOC
+  text                2 files        95 LOC
+  toml                1 files       148 LOC

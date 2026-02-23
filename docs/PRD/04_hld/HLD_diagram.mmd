@@ -1,0 +1,72 @@
+flowchart TB
+    subgraph USERS["USERS"]
+        User["Blind / VI User"]
+    end
+
+    subgraph INTERFACE["INTERFACE LAYER"]
+        LiveKit["LiveKit WebRTC Agent<br/>Port 8081"]
+        REST["FastAPI REST Server<br/>Port 8000"]
+    end
+
+    subgraph APPLICATION["APPLICATION LAYER"]
+        FrameOrch["FrameOrchestrator"]
+        WorkerPool["WorkerPool / PerceptionPool"]
+        Debouncer["Debouncer"]
+        StreamTTS["StreamingTTSCoordinator"]
+        Watchdog["Watchdog + PipelineMonitor"]
+    end
+
+    subgraph DOMAIN["DOMAIN LAYER"]
+        VQA["VQA Engine<br/>Perception · SceneGraph · Fusion · Reasoning"]
+        Memory["Memory Engine<br/>Ingest · Embed · Index · Retrieve · RAG"]
+        OCR["OCR Engine<br/>3-Tier Fallback"]
+        QR["QR/AR Engine<br/>Scanner · Decoder · Cache"]
+        Speech["Speech Engine<br/>VoiceRouter · TTSHandler"]
+        Face["Face Engine"]
+        Braille["Braille Engine"]
+    end
+
+    subgraph LOCALGPU["LOCAL GPU SERVICES"]
+        Embedding["qwen3-embedding:4b<br/>~2GB VRAM"]
+        YOLO["YOLO v8n<br/>~200MB VRAM"]
+        MiDaS["MiDaS v2.1<br/>~100MB VRAM"]
+        EasyOCR["EasyOCR<br/>~500MB VRAM"]
+        FaceDet["Face Detection<br/>~300MB VRAM"]
+        QRDecode["pyzbar / OpenCV<br/>CPU"]
+    end
+
+    subgraph CLOUD["CLOUD SERVICES"]
+        LLM["qwen3.5:cloud<br/>Ollama Cloud Runtime"]
+        STT["Deepgram<br/>WebSocket STT"]
+        TTS["ElevenLabs<br/>HTTP/WS TTS"]
+        Transport["LiveKit<br/>WebRTC Transport"]
+        Avatar["Tavus<br/>Virtual Avatar"]
+        Search["DuckDuckGo<br/>Web Search"]
+    end
+
+    subgraph STORAGE["STORAGE"]
+        FAISS["FAISS Vector Index"]
+        QRCache["QR Offline Cache"]
+        Models["ONNX Model Weights"]
+        Config["Configuration"]
+    end
+
+    User --> LiveKit
+    User --> REST
+    LiveKit --> FrameOrch
+    REST --> FrameOrch
+    FrameOrch --> VQA
+    FrameOrch --> Speech
+    VQA --> YOLO
+    VQA --> MiDaS
+    Memory --> Embedding
+    Memory --> LLM
+    OCR --> EasyOCR
+    QR --> QRDecode
+    Face --> FaceDet
+    Speech --> STT
+    Speech --> TTS
+    VQA --> LLM
+    Memory --> FAISS
+    QR --> QRCache
+    VQA --> Models

@@ -1,0 +1,371 @@
+{
+  "architecture_mode": "hybrid_cloud_local_gpu",
+  "cloud_llm": "qwen3.5:cloud",
+  "local_embedding": "qwen3-embedding:4b",
+  "models": {
+    "Priority": {
+      "type": "string",
+      "source": "shared/schemas/__init__.py",
+      "kind": "enum",
+      "enum": ["CRITICAL", "NEAR_HAZARD", "FAR_HAZARD", "SAFE"],
+      "description": "Obstacle priority levels based on distance"
+    },
+    "Direction": {
+      "type": "string",
+      "source": "shared/schemas/__init__.py",
+      "kind": "enum",
+      "enum": ["FAR_LEFT", "LEFT", "SLIGHTLY_LEFT", "CENTER", "SLIGHTLY_RIGHT", "RIGHT", "FAR_RIGHT"],
+      "description": "Direction relative to user's centre of view"
+    },
+    "SizeCategory": {
+      "type": "string",
+      "source": "shared/schemas/__init__.py",
+      "kind": "enum",
+      "enum": ["SMALL", "MEDIUM", "LARGE"],
+      "description": "Relative size of detected object in frame"
+    },
+    "SpatialRelation": {
+      "type": "string",
+      "source": "shared/schemas/__init__.py",
+      "kind": "enum",
+      "enum": ["LEFT_OF", "RIGHT_OF", "ABOVE", "BELOW", "IN_FRONT_OF", "BEHIND", "NEAR", "BLOCKING"],
+      "description": "Spatial relationships between objects"
+    },
+    "IntentType": {
+      "type": "string",
+      "source": "core/speech/voice_router.py",
+      "kind": "enum",
+      "enum": [
+        "VISUAL_DESCRIBE", "VISUAL_IDENTIFY", "VISUAL_READ", "VISUAL_COLOR",
+        "SPATIAL_OBSTACLE", "SPATIAL_PATH", "SPATIAL_DISTANCE", "SPATIAL_DIRECTION", "SPATIAL_HAZARD",
+        "PRIORITY_SCAN", "QR_SCAN", "NAVIGATION_ROUTE", "TOGGLE_MODE",
+        "GENERAL_CHAT", "GENERAL_HELP", "GENERAL_COMMAND", "UNKNOWN"
+      ],
+      "description": "Types of detected voice intents"
+    },
+    "BoundingBox": {
+      "type": "object",
+      "source": "shared/schemas/__init__.py",
+      "kind": "dataclass",
+      "properties": {
+        "x1": {"type": "integer"},
+        "y1": {"type": "integer"},
+        "x2": {"type": "integer"},
+        "y2": {"type": "integer"}
+      },
+      "required": ["x1", "y1", "x2", "y2"],
+      "computed_properties": ["width", "height", "center", "area"]
+    },
+    "Detection": {
+      "type": "object",
+      "source": "shared/schemas/__init__.py",
+      "kind": "dataclass",
+      "gpu_related": true,
+      "properties": {
+        "id": {"type": "string"},
+        "class_name": {"type": "string"},
+        "confidence": {"type": "number"},
+        "bbox": {"$ref": "#/models/BoundingBox"}
+      },
+      "required": ["id", "class_name", "confidence", "bbox"]
+    },
+    "SegmentationMask": {
+      "type": "object",
+      "source": "shared/schemas/__init__.py",
+      "kind": "dataclass",
+      "gpu_related": true,
+      "properties": {
+        "detection_id": {"type": "string"},
+        "mask": {"type": "array", "description": "numpy ndarray"},
+        "boundary_confidence": {"type": "number"},
+        "edge_pixels": {"type": "array", "description": "numpy ndarray"}
+      },
+      "required": ["detection_id"]
+    },
+    "DepthMap": {
+      "type": "object",
+      "source": "shared/schemas/__init__.py",
+      "kind": "dataclass",
+      "gpu_related": true,
+      "properties": {
+        "depth_array": {"type": "array", "description": "numpy ndarray"},
+        "min_depth": {"type": "number"},
+        "max_depth": {"type": "number"},
+        "is_metric": {"type": "boolean"}
+      }
+    },
+    "PerceptionResult": {
+      "type": "object",
+      "source": "shared/schemas/__init__.py",
+      "kind": "dataclass",
+      "gpu_related": true,
+      "properties": {
+        "detections": {"type": "array", "items": {"$ref": "#/models/Detection"}},
+        "masks": {"type": "array", "items": {"$ref": "#/models/SegmentationMask"}},
+        "depth_map": {"$ref": "#/models/DepthMap"},
+        "image_size": {"type": "array", "items": {"type": "integer"}, "minItems": 2, "maxItems": 2},
+        "latency_ms": {"type": "number"},
+        "timestamp": {"type": "string"},
+        "frame_id": {"type": "string"},
+        "timestamp_epoch_ms": {"type": "number"}
+      },
+      "required": ["detections", "masks", "depth_map", "image_size", "latency_ms", "timestamp"]
+    },
+    "SceneNode": {
+      "type": "object",
+      "source": "core/vqa/scene_graph.py",
+      "kind": "dataclass",
+      "properties": {
+        "id": {"type": "string"},
+        "class_name": {"type": "string"},
+        "bbox": {"$ref": "#/models/BoundingBox"},
+        "centroid": {"type": "array", "items": {"type": "integer"}},
+        "depth": {"type": "number"},
+        "confidence": {"type": "number"},
+        "attributes": {"type": "object"},
+        "relations": {"type": "array"}
+      },
+      "required": ["id", "class_name", "bbox", "centroid", "depth", "confidence"]
+    },
+    "ObstacleRecord": {
+      "type": "object",
+      "source": "shared/schemas/__init__.py",
+      "kind": "dataclass",
+      "properties": {
+        "id": {"type": "string"},
+        "class_name": {"type": "string"},
+        "bbox": {"$ref": "#/models/BoundingBox"},
+        "centroid_px": {"type": "array", "items": {"type": "integer"}},
+        "distance_m": {"type": "number"},
+        "direction": {"$ref": "#/models/Direction"},
+        "direction_deg": {"type": "number"},
+        "mask_confidence": {"type": "number"},
+        "detection_confidence": {"type": "number"},
+        "priority": {"$ref": "#/models/Priority"},
+        "size_category": {"$ref": "#/models/SizeCategory"},
+        "action_recommendation": {"type": "string"}
+      },
+      "required": ["id", "class_name", "bbox", "centroid_px", "distance_m", "direction", "priority"]
+    },
+    "SceneGraph": {
+      "type": "object",
+      "source": "core/vqa/scene_graph.py",
+      "kind": "dataclass",
+      "properties": {
+        "nodes": {"type": "array", "items": {"$ref": "#/models/SceneNode"}},
+        "obstacles": {"type": "array", "items": {"$ref": "#/models/ObstacleRecord"}},
+        "image_size": {"type": "array", "items": {"type": "integer"}},
+        "timestamp": {"type": "string"},
+        "summary": {"type": "string"},
+        "frame_id": {"type": "string"},
+        "timestamp_epoch_ms": {"type": "number"}
+      },
+      "required": ["nodes", "obstacles", "image_size", "timestamp"]
+    },
+    "TrackedObject": {
+      "type": "object",
+      "source": "core/vqa/spatial_fuser.py",
+      "kind": "dataclass",
+      "properties": {
+        "id": {"type": "string"},
+        "class_name": {"type": "string"},
+        "first_seen": {"type": "number"},
+        "last_seen": {"type": "number"},
+        "bbox_history": {"type": "array"},
+        "depth_history": {"type": "array"},
+        "confidence_history": {"type": "array"},
+        "smoothed_depth": {"type": "number"},
+        "smoothed_confidence": {"type": "number"},
+        "velocity_estimate": {"type": "array"},
+        "hits": {"type": "integer"},
+        "misses": {"type": "integer"}
+      },
+      "required": ["id", "class_name", "first_seen", "last_seen"]
+    },
+    "FusedObstacle": {
+      "type": "object",
+      "source": "core/vqa/spatial_fuser.py",
+      "kind": "dataclass",
+      "properties": {
+        "id": {"type": "string"},
+        "class_name": {"type": "string"},
+        "bbox": {"$ref": "#/models/BoundingBox"},
+        "depth_m": {"type": "number"},
+        "depth_variance": {"type": "number"},
+        "fused_confidence": {"type": "number"},
+        "mask_confidence": {"type": "number"},
+        "is_uncertain": {"type": "boolean"},
+        "track_id": {"type": "string"}
+      },
+      "required": ["id", "class_name", "bbox", "depth_m"]
+    },
+    "FusedResult": {
+      "type": "object",
+      "source": "core/vqa/spatial_fuser.py",
+      "kind": "dataclass",
+      "properties": {
+        "obstacles": {"type": "array", "items": {"$ref": "#/models/FusedObstacle"}},
+        "tracks": {"type": "array", "items": {"$ref": "#/models/TrackedObject"}},
+        "frame_dt": {"type": "number"},
+        "timestamp": {"type": "number"},
+        "perception": {"$ref": "#/models/PerceptionResult"}
+      },
+      "required": ["obstacles", "tracks", "timestamp", "perception"]
+    },
+    "NavigationOutput": {
+      "type": "object",
+      "source": "shared/schemas/__init__.py",
+      "kind": "dataclass",
+      "properties": {
+        "short_cue": {"type": "string"},
+        "verbose_description": {"type": "string"},
+        "telemetry": {"type": "array"},
+        "has_critical": {"type": "boolean"}
+      },
+      "required": ["short_cue", "verbose_description", "has_critical"]
+    },
+    "MemoryStoreRequest": {
+      "type": "object",
+      "source": "core/memory/api_schema.py",
+      "kind": "pydantic",
+      "properties": {
+        "image_base64": {"type": "string"},
+        "audio_base64": {"type": "string"},
+        "transcript": {"type": "string"},
+        "scene_graph": {"type": "object"},
+        "user_label": {"type": "string"},
+        "device_id": {"type": "string"},
+        "session_id": {"type": "string"},
+        "save_raw": {"type": "boolean"}
+      }
+    },
+    "MemoryQueryRequest": {
+      "type": "object",
+      "source": "core/memory/api_schema.py",
+      "kind": "pydantic",
+      "properties": {
+        "query": {"type": "string"},
+        "mode": {"type": "string", "enum": ["SHORT", "VERBOSE"]},
+        "k": {"type": "integer"},
+        "time_window_days": {"type": "integer"},
+        "require_evidence": {"type": "boolean"}
+      },
+      "required": ["query"]
+    },
+    "MemoryQueryResponse": {
+      "type": "object",
+      "source": "core/memory/api_schema.py",
+      "kind": "pydantic",
+      "properties": {
+        "answer": {"type": "string"},
+        "confidence": {"type": "number"},
+        "has_evidence": {"type": "boolean"},
+        "citations": {"type": "array"},
+        "reasoning": {"type": "string"},
+        "retrieval_time_ms": {"type": "number"},
+        "reasoning_time_ms": {"type": "number"}
+      },
+      "required": ["answer", "confidence", "has_evidence", "retrieval_time_ms", "reasoning_time_ms"]
+    },
+    "MemoryHit": {
+      "type": "object",
+      "source": "core/memory/api_schema.py",
+      "kind": "pydantic",
+      "properties": {
+        "id": {"type": "string"},
+        "timestamp": {"type": "string"},
+        "summary": {"type": "string"},
+        "score": {"type": "number"},
+        "scene_graph_ref": {"type": "string"},
+        "user_label": {"type": "string"},
+        "scene_graph": {"type": "object"}
+      },
+      "required": ["id", "timestamp", "summary", "score"]
+    },
+    "IndexMetadata": {
+      "type": "object",
+      "source": "core/memory/indexer.py",
+      "kind": "dataclass",
+      "properties": {
+        "id": {"type": "string"},
+        "timestamp": {"type": "string"},
+        "expiry": {"type": "string"},
+        "summary": {"type": "string"},
+        "session_id": {"type": "string"},
+        "user_label": {"type": "string"},
+        "scene_graph_ref": {"type": "string"},
+        "vector_idx": {"type": "integer"}
+      },
+      "required": ["id", "timestamp", "expiry", "summary"]
+    },
+    "SearchResult": {
+      "type": "object",
+      "source": "core/memory/indexer.py",
+      "kind": "dataclass",
+      "properties": {
+        "id": {"type": "string"},
+        "score": {"type": "number"},
+        "metadata": {"$ref": "#/models/IndexMetadata"}
+      },
+      "required": ["id", "score", "metadata"]
+    },
+    "QRDetection": {
+      "type": "object",
+      "source": "core/qr/qr_scanner.py",
+      "kind": "dataclass",
+      "properties": {
+        "raw_data": {"type": "string"},
+        "bbox": {"type": "array", "items": {"type": "integer"}, "minItems": 4, "maxItems": 4},
+        "confidence": {"type": "number"},
+        "format_type": {"type": "string"},
+        "timestamp": {"type": "number"}
+      },
+      "required": ["raw_data", "bbox"]
+    },
+    "RouteResult": {
+      "type": "object",
+      "source": "core/speech/voice_router.py",
+      "kind": "dataclass",
+      "properties": {
+        "intent": {"$ref": "#/models/IntentType"},
+        "confidence": {"type": "number"},
+        "handler": {"type": "string"},
+        "query": {"type": "string"},
+        "processed_query": {"type": "string"},
+        "mode": {"type": "string"},
+        "metadata": {"type": "object"}
+      },
+      "required": ["intent", "confidence", "handler", "query", "processed_query"]
+    },
+    "PerceptionFrameRequest": {
+      "type": "object",
+      "source": "core/vqa/api_schema.py",
+      "kind": "pydantic",
+      "properties": {
+        "image_base64": {"type": "string"},
+        "session_id": {"type": "string"},
+        "run_segmentation": {"type": "boolean"},
+        "run_depth": {"type": "boolean"},
+        "max_detections": {"type": "integer"}
+      },
+      "required": ["image_base64"]
+    },
+    "PerceptionFrameResponse": {
+      "type": "object",
+      "source": "core/vqa/api_schema.py",
+      "kind": "pydantic",
+      "properties": {
+        "session_id": {"type": "string"},
+        "timestamp": {"type": "string"},
+        "detections": {"type": "array"},
+        "obstacles": {"type": "array"},
+        "summary": {"type": "string"},
+        "has_critical": {"type": "boolean"},
+        "processing_time_ms": {"type": "number"},
+        "depth_info": {"type": "object"},
+        "image_size": {"type": "array", "items": {"type": "integer"}}
+      },
+      "required": ["session_id", "timestamp", "detections", "obstacles", "summary", "has_critical", "processing_time_ms"]
+    }
+  }
+}

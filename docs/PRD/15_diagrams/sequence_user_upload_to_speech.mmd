@@ -1,0 +1,101 @@
+sequenceDiagram
+    participant U as Blind User
+    participant LK as LiveKit WebRTC
+    participant AG as Agent (agent.py)
+    participant DG as Deepgram STT (cloud)
+    participant VR as VoiceRouter
+    participant LFM as LiveFrameManager
+    participant FO as FrameOrchestrator
+    participant PP as PerceptionPipeline (local GPU)
+    participant SG as SceneGraphBuilder
+    participant SF as SpatialFuser
+    participant VQA as VQAReasoner
+    participant OL as OllamaHandler
+    participant CLOUD as qwen3.5:cloud (Ollama cloud runtime)
+    participant EL as ElevenLabs TTS (cloud)
+    participant ST as StreamingTTSCoordinator
+
+    Note over U,ST: Flow 1: Voice Query → Vision Analysis → Speech Response
+
+    U->>+LK: Voice + Camera stream (WebRTC)
+    
+    par Audio Path
+        LK->>+AG: Audio frames (real-time)
+        AG->>+DG: Audio stream (WebSocket)
+        DG-->>-AG: Transcribed text
+        AG->>+VR: classify_intent(text)
+        VR-->>-AG: RouteResult{intent, handler, confidence}
+    and Video Path
+        LK->>AG: Video frames (real-time)
+        AG->>+LFM: push_frame(frame)
+        LFM-->>-AG: TimestampedFrame
+    end
+
+    alt Intent = VISUAL_DESCRIBE / VISUAL_IDENTIFY
+        AG->>+FO: process_frame(frame)
+        
+        par Parallel Perception (Local GPU - ONNX CUDA EP)
+            FO->>+PP: detect(image)
+            PP-->>-FO: List[Detection]
+        and Depth Estimation (Local GPU)
+            FO->>+PP: estimate_depth(image)
+            PP-->>-FO: DepthMap
+        and OCR (if text visible)
+            FO->>+PP: ocr_read(image)
+            PP-->>-FO: OCR text
+        end
+        
+        FO->>+SG: build_scene_graph(detections, depth, masks)
+        SG-->>-FO: SceneGraph
+        FO->>+SF: fuse(perception_result)
+        SF-->>-FO: List[ObstacleRecord]
+        FO-->>-AG: FusedFrameResult
+
+        AG->>+VQA: answer(question, scene_data, image)
+        VQA->>+OL: chat_completion(prompt, image_b64)
+        OL->>+CLOUD: POST /v1/chat/completions (async HTTP)
+        
+        alt Success
+            CLOUD-->>-OL: LLM response
+            OL-->>-VQA: response text
+            VQA-->>-AG: VQA answer
+        else Timeout / Error
+            CLOUD--x OL: timeout (10s)
+            OL-->>VQA: fallback response
+            VQA-->>AG: "I couldn't analyze that clearly"
+        end
+    
+    else Intent = SPATIAL_OBSTACLE / SPATIAL_HAZARD
+        AG->>+FO: process_frame(frame)
+        FO->>+SF: fuse(perception_result)
+        SF-->>-FO: List[ObstacleRecord] sorted by priority
+        FO-->>-AG: FusedFrameResult
+
+        Note over AG: MicroNavFormatter generates TTS cue
+        AG->>AG: format_navigation_cue(obstacles)
+    
+    else Intent = GENERAL_CHAT
+        AG->>+OL: chat_completion(text)
+        OL->>+CLOUD: POST /v1/chat/completions (async HTTP)
+        CLOUD-->>-OL: response
+        OL-->>-AG: answer text
+    end
+
+    AG->>+ST: speak(response_text)
+    ST->>+EL: synthesize(text)
+    EL-->>-ST: audio stream
+    ST-->>-AG: audio chunks
+    AG->>LK: Audio response (WebRTC)
+    LK-->>-U: Spoken response
+
+    Note over U,ST: Error Recovery Path
+
+    rect rgb(255, 235, 235)
+        Note over AG,CLOUD: If LLM fails after 2 retries
+        AG->>AG: Use cached/template response
+        AG->>ST: speak(fallback_message)
+        ST->>EL: synthesize(fallback)
+        EL-->>ST: audio
+        ST-->>AG: audio chunks
+        AG->>LK: Fallback audio
+    end

@@ -1,0 +1,44 @@
+flowchart LR
+    subgraph LOCAL["LOCAL MACHINE (RTX 4060 · 8GB VRAM · CUDA)"]
+        subgraph EntryPoints["Entry Points"]
+            FastAPI["FastAPI REST<br/>Port 8000"]
+            Agent["LiveKit Agent<br/>Port 8081"]
+        end
+
+        subgraph Orchestration["Orchestration"]
+            FrameOrch["FrameOrchestrator"]
+            Workers["WorkerPool<br/>ThreadPoolExecutor"]
+        end
+
+        subgraph GPUInference["GPU Inference (~3.1GB VRAM)"]
+            YOLO["YOLO v8n · ONNX CUDA"]
+            MiDaS["MiDaS · ONNX CUDA"]
+            EasyOCR["EasyOCR · PyTorch CUDA"]
+            FaceDet["Face · PyTorch CUDA"]
+        end
+
+        subgraph LocalServices["Local Services"]
+            OllamaLocal["Ollama Local<br/>qwen3-embedding:4b"]
+            FAISS["FAISS Vector Index"]
+            QRCache["QR Offline Cache"]
+        end
+    end
+
+    subgraph CLOUD["CLOUD SERVICES"]
+        OllamaCloud["qwen3.5:cloud<br/>Ollama Cloud Runtime"]
+        Deepgram["Deepgram STT"]
+        ElevenLabs["ElevenLabs TTS"]
+        LiveKit["LiveKit WebRTC"]
+        Tavus["Tavus Avatar"]
+        DDG["DuckDuckGo Search"]
+    end
+
+    Agent <-->|"WebRTC"| LiveKit
+    Agent -->|"async HTTP"| OllamaCloud
+    Agent -->|"WebSocket"| Deepgram
+    Agent -->|"HTTP/WS"| ElevenLabs
+    Agent -->|"HTTP"| Tavus
+    Agent -->|"HTTP"| DDG
+    FrameOrch --> GPUInference
+    Workers --> OllamaLocal
+    Workers --> FAISS

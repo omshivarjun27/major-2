@@ -1,0 +1,27 @@
+{
+  "architecture_mode": "hybrid_cloud_local_gpu",
+  "gpu_enabled_if_available": true,
+  "cloud_llm": "qwen3.5:cloud",
+  "local_embedding": "qwen3-embedding:4b",
+  "backend_entry": "apps/api/server.py",
+  "frontend_entry": null,
+  "workers": [
+    "apps/realtime/agent.py"
+  ],
+  "cli_tools": [
+    "scripts/check_deps.py",
+    "scripts/download_models.py",
+    "scripts/generate_scenarios.py"
+  ],
+  "dockerfiles": [
+    "Dockerfile",
+    "deployments/docker/Dockerfile"
+  ],
+  "ci_configs": [
+    ".github/workflows/ci.yml"
+  ],
+  "infra_configs": [
+    "deployments/compose/docker-compose.test.yml",
+    "docker-compose.test.yml"
+  ]
+}

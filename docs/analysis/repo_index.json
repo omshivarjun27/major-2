@@ -1,0 +1,1954 @@
+[
+  {
+    "path": "## Chat Customization Diagnostics.md",
+    "extension": ".md",
+    "language": "markdown",
+    "size_bytes": 1248,
+    "approx_loc": 29,
+    "sha1": "ea91310e186f15bffdd770f311398403df069e84"
+  },
+  {
+    "path": ".dockerignore",
+    "extension": "",
+    "language": "other",
+    "size_bytes": 1344,
+    "approx_loc": 63,
+    "sha1": "0bad641b6f9958178e1d48bd8aa3bdd88855f48b"
+  },
+  {
+    "path": ".env",
+    "extension": "",
+    "language": "other",
+    "size_bytes": 2162,
+    "approx_loc": 56,
+    "sha1": "e607d12fda2cf29c89427a9376ec098f0afe45fe"
+  },
+  {
+    "path": ".env.example",
+    "extension": ".example",
+    "language": "other",
+    "size_bytes": 2021,
+    "approx_loc": 54,
+    "sha1": "29f200454db0d781a4aff556aa68ea516a137894"
+  },
+  {
+    "path": ".github/workflows/ci.yml",
+    "extension": ".yml",
+    "language": "yaml",
+    "size_bytes": 6229,
+    "approx_loc": 160,
+    "sha1": "defb0add7a9a8652eca496418f4f07b68bd2e162"
+  },
+  {
+    "path": ".gitignore",
+    "extension": "",
+    "language": "other",
+    "size_bytes": 1594,
+    "approx_loc": 104,
+    "sha1": "9907b445fc95e63db9df08100adea66c61d2025f"
+  },
+  {
+    "path": "AGENTS.md",
+    "extension": ".md",
+    "language": "markdown",
+    "size_bytes": 7635,
+    "approx_loc": 151,
+    "sha1": "55ee9583cc959d7dbc678fd3afc60abd117fb1f5"
+  },
+  {
+    "path": "application/__init__.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 51,
+    "approx_loc": 1,
+    "sha1": "8e27c01c2da7811f458cdde6eda393aa4b0d7164"
+  },
+  {
+    "path": "application/event_bus/__init__.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 59,
+    "approx_loc": 1,
+    "sha1": "c757f06768fed11b7c1277c99482da6295851e7e"
+  },
+  {
+    "path": "application/frame_processing/__init__.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 81,
+    "approx_loc": 1,
+    "sha1": "27491b4e77297e7d5fab6932b9137f401cc53e7f"
+  },
+  {
+    "path": "application/frame_processing/confidence_cascade.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 12109,
+    "approx_loc": 276,
+    "sha1": "f36d3b571c3e164d14fcc73fd0014756579692d7"
+  },
+  {
+    "path": "application/frame_processing/frame_orchestrator.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 25093,
+    "approx_loc": 519,
+    "sha1": "a2ef22308450737bcc71a42072e7a4f6d6484c33"
+  },
+  {
+    "path": "application/frame_processing/freshness.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 5041,
+    "approx_loc": 98,
+    "sha1": "5fa57815bf6a19e0fc5da019a5df17fffeee9352"
+  },
+  {
+    "path": "application/frame_processing/live_frame_manager.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 14411,
+    "approx_loc": 326,
+    "sha1": "bc6834a5e3387c48df02c0077d10507d831fa564"
+  },
+  {
+    "path": "application/pipelines/__init__.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 1519,
+    "approx_loc": 40,
+    "sha1": "e55fb323cff4f9c5ac1d463e27b415d25d86f0a3"
+  },
+  {
+    "path": "application/pipelines/audio_manager.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 11549,
+    "approx_loc": 260,
+    "sha1": "2cbe8c3753292dd82433e2db9adefb9e203da45a"
+  },
+  {
+    "path": "application/pipelines/cancellation.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 6497,
+    "approx_loc": 155,
+    "sha1": "93185e59f6107d1a25bb3742f4117d0528b5b12d"
+  },
+  {
+    "path": "application/pipelines/debouncer.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 6544,
+    "approx_loc": 164,
+    "sha1": "ae91e328b74d77ef8c7597710a2fdd2925d9f330"
+  },
+  {
+    "path": "application/pipelines/frame_sampler.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 8826,
+    "approx_loc": 198,
+    "sha1": "851b7a22bd35802fec1469b64790826f3a6f8b21"
+  },
+  {
+    "path": "application/pipelines/integration.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 10980,
+    "approx_loc": 250,
+    "sha1": "6b5b82e3eabcd3ffb3eb7e43f3796362a5b2b209"
+  },
+  {
+    "path": "application/pipelines/perception_pool.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 8061,
+    "approx_loc": 199,
+    "sha1": "7f6fa574c038cef46bd4b95b2e187916369db937"
+  },
+  {
+    "path": "application/pipelines/perception_telemetry.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 7686,
+    "approx_loc": 189,
+    "sha1": "8890a322d137826af4cce4b4ee91db8caa180985"
+  },
+  {
+    "path": "application/pipelines/pipeline_monitor.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 10413,
+    "approx_loc": 255,
+    "sha1": "78da5f59e6da18e050141439fe3e2d29b24e7ebd"
+  },
+  {
+    "path": "application/pipelines/streaming_tts.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 16037,
+    "approx_loc": 359,
+    "sha1": "ba602f92710d52992d64185aa93849dcaf7fcd8a"
+  },
+  {
+    "path": "application/pipelines/watchdog.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 9754,
+    "approx_loc": 212,
+    "sha1": "5d42b94b18bd7c2a5972cb782bb590648093ae1f"
+  },
+  {
+    "path": "application/pipelines/worker_pool.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 10354,
+    "approx_loc": 240,
+    "sha1": "903079c8bb24eff8e00895a01af346d5d0bfd82c"
+  },
+  {
+    "path": "application/session_management/__init__.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 56,
+    "approx_loc": 1,
+    "sha1": "85732ad46a35e9ddfc1621cc336552a0d8c77524"
+  },
+  {
+    "path": "apps/__init__.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 37,
+    "approx_loc": 1,
+    "sha1": "3f58c0e19519173e648c43d4b190fd8cecd4fc61"
+  },
+  {
+    "path": "apps/api/__init__.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 44,
+    "approx_loc": 1,
+    "sha1": "16a5c15e9579055f5de31ffcb73bcc35a1e3629b"
+  },
+  {
+    "path": "apps/api/server.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 29674,
+    "approx_loc": 573,
+    "sha1": "28e36ff20a6e64fcb337a4a4f6d00b8ca35c3ca5"
+  },
+  {
+    "path": "apps/cli/__init__.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 557,
+    "approx_loc": 24,
+    "sha1": "947a27c1b793397b29f4c8f30db1deef14850e41"
+  },
+  {
+    "path": "apps/cli/session_logger.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 5065,
+    "approx_loc": 133,
+    "sha1": "9554b09b87f1c884c9c42962dc10707233b4368d"
+  },
+  {
+    "path": "apps/cli/visualizer.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 20446,
+    "approx_loc": 461,
+    "sha1": "827c202a0050f1291e7422b065fad76ff8f2a5e7"
+  },
+  {
+    "path": "apps/realtime/__init__.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 56,
+    "approx_loc": 1,
+    "sha1": "74cbcb7dd33cc34f646a2adf21d5344879628053"
+  },
+  {
+    "path": "apps/realtime/agent.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 97645,
+    "approx_loc": 1602,
+    "sha1": "4bbbcba8f9b29534ad7edfd2870efee5c0fef791"
+  },
+  {
+    "path": "apps/realtime/entrypoint.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 3300,
+    "approx_loc": 66,
+    "sha1": "f54d9df3d5a1fab9f07f3dfc22ab53507c339c13"
+  },
+  {
+    "path": "configs/config.yaml",
+    "extension": ".yaml",
+    "language": "yaml",
+    "size_bytes": 2348,
+    "approx_loc": 52,
+    "sha1": "c2bee2d5e0a0d3f2f4fdfa5a2026ba07795125e8"
+  },
+  {
+    "path": "core/__init__.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 137,
+    "approx_loc": 2,
+    "sha1": "f4030bbb0111d1f81b08e03f87486862fc94d49e"
+  },
+  {
+    "path": "core/action/__init__.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 484,
+    "approx_loc": 19,
+    "sha1": "c002bf9b9b181ab985cc9a58bf9b7ebff79656a0"
+  },
+  {
+    "path": "core/action/action_recognizer.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 14307,
+    "approx_loc": 329,
+    "sha1": "815cb554dbcf609e4b6259176f6c99f09e12f59e"
+  },
+  {
+    "path": "core/audio/__init__.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 614,
+    "approx_loc": 12,
+    "sha1": "b0a50d6f346f8f11e12b5c85d1718a64547a079c"
+  },
+  {
+    "path": "core/audio/audio_event_detector.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 11632,
+    "approx_loc": 257,
+    "sha1": "7a8df5f63008d5e929b4fd4d36e7c0b657851dd9"
+  },
+  {
+    "path": "core/audio/audio_fusion.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 10379,
+    "approx_loc": 238,
+    "sha1": "0339b0d35a06bb4da599b167eb68b9ed38fe9ba5"
+  },
+  {
+    "path": "core/audio/ssl.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 8586,
+    "approx_loc": 204,
+    "sha1": "e1369004c5bd81a7f517d99d1473b286622e49a0"
+  },
+  {
+    "path": "core/braille/__init__.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 1066,
+    "approx_loc": 29,
+    "sha1": "f1bb6f7e515e78472551683b6032f784a0e650c2"
+  },
+  {
+    "path": "core/braille/braille_capture.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 7314,
+    "approx_loc": 181,
+    "sha1": "e2dfbdb69fe0ebedfb97a8e7848ec2c28fc5f175"
+  },
+  {
+    "path": "core/braille/braille_classifier.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 7962,
+    "approx_loc": 180,
+    "sha1": "31bd52a97a29005f613f6981cde4f2ddc96c0cda"
+  },
+  {
+    "path": "core/braille/braille_ocr.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 4608,
+    "approx_loc": 121,
+    "sha1": "bfc95c8253e2707f075f4cc40f28c6a07b70b4b1"
+  },
+  {
+    "path": "core/braille/braille_segmenter.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 10838,
+    "approx_loc": 260,
+    "sha1": "a222e55e795d8ddba8eed3c6a8368a4908310f9c"
+  },
+  {
+    "path": "core/braille/embossing_guidance.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 6436,
+    "approx_loc": 165,
+    "sha1": "07cf1fc8cc27695a9736758d9d116bf7863c949d"
+  },
+  {
+    "path": "core/braille/scenario_analysis.md",
+    "extension": ".md",
+    "language": "markdown",
+    "size_bytes": 10515,
+    "approx_loc": 151,
+    "sha1": "058ccc38578dd9549a97627598f1ffed72fc0c14"
+  },
+  {
+    "path": "core/face/__init__.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 805,
+    "approx_loc": 15,
+    "sha1": "e3cfb89ce4a1d28c9bfb5cf9690cd0c0a274d85f"
+  },
+  {
+    "path": "core/face/face_detector.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 11115,
+    "approx_loc": 259,
+    "sha1": "0b567add66cb54aad39c45e30b43fc12f8381955"
+  },
+  {
+    "path": "core/face/face_embeddings.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 11292,
+    "approx_loc": 260,
+    "sha1": "643c00bcb8ab8e2dabd22f14bbb100c71781e4c1"
+  },
+  {
+    "path": "core/face/face_social_cues.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 9819,
+    "approx_loc": 231,
+    "sha1": "c9982223bc1c401368d96874df5b21fff3891f72"
+  },
+  {
+    "path": "core/face/face_tracker.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 7409,
+    "approx_loc": 173,
+    "sha1": "e818743a5daaadfb1b0c261506d4cce762bb101f"
+  },
+  {
+    "path": "core/memory/__init__.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 2012,
+    "approx_loc": 76,
+    "sha1": "a9448262b10f7e5154d65540e8295cd28af35e9e"
+  },
+  {
+    "path": "core/memory/api_endpoints.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 13801,
+    "approx_loc": 347,
+    "sha1": "38944349ca25b8320ef6d24b003eeeab6f34ee67"
+  },
+  {
+    "path": "core/memory/api_schema.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 9810,
+    "approx_loc": 168,
+    "sha1": "7752f31cb5bc80b4d73523672315c9273a411103"
+  },
+  {
+    "path": "core/memory/cloud_sync.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 14009,
+    "approx_loc": 328,
+    "sha1": "b4e14a4612c4ad72f3630e4d98cb4249f996c9a3"
+  },
+  {
+    "path": "core/memory/config.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 5729,
+    "approx_loc": 127,
+    "sha1": "59f2c574bd3b06c078c99c83a2b85fef4755f566"
+  },
+  {
+    "path": "core/memory/embeddings.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 17249,
+    "approx_loc": 389,
+    "sha1": "06ee0cc54c1a9fafdb013349e3a7f7dc82fadbd3"
+  },
+  {
+    "path": "core/memory/event_detection.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 11179,
+    "approx_loc": 253,
+    "sha1": "e639293ee385db99400a539c39c096f20c018b14"
+  },
+  {
+    "path": "core/memory/indexer.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 22599,
+    "approx_loc": 503,
+    "sha1": "f9a4b938f53093caa7c13e8956b940c38771c816"
+  },
+  {
+    "path": "core/memory/ingest.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 13986,
+    "approx_loc": 335,
+    "sha1": "641180af37012e1094c000562985f7edfe52b9df"
+  },
+  {
+    "path": "core/memory/llm_client.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 12899,
+    "approx_loc": 324,
+    "sha1": "fb52fdb935435d6cf19bd6a05fa0b932d5627345"
+  },
+  {
+    "path": "core/memory/maintenance.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 10535,
+    "approx_loc": 258,
+    "sha1": "ec058d6a2829ad5439900331edb5b454ef87eb93"
+  },
+  {
+    "path": "core/memory/rag_reasoner.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 15397,
+    "approx_loc": 341,
+    "sha1": "b754d5825d5ac131b50de4d8ca5ad568c74b6920"
+  },
+  {
+    "path": "core/memory/README.md",
+    "extension": ".md",
+    "language": "markdown",
+    "size_bytes": 3331,
+    "approx_loc": 72,
+    "sha1": "2720535c3f8911e839eacb698e0d9c7dc9bdcfe7"
+  },
+  {
+    "path": "core/memory/retriever.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 8749,
+    "approx_loc": 223,
+    "sha1": "b7883d7474e987a4af2b93868e730a23a1eb6d68"
+  },
+  {
+    "path": "core/memory/scenario_analysis.md",
+    "extension": ".md",
+    "language": "markdown",
+    "size_bytes": 21315,
+    "approx_loc": 332,
+    "sha1": "9dd80721a986373597ac270c5d016a70196b691e"
+  },
+  {
+    "path": "core/ocr/__init__.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 11194,
+    "approx_loc": 269,
+    "sha1": "7f19402c0242598bb45ff3cb0d82f1076bcf9d19"
+  },
+  {
+    "path": "core/ocr/engine.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 10086,
+    "approx_loc": 236,
+    "sha1": "f34fa355f461b1b1e969f42df693f3275a50309f"
+  },
+  {
+    "path": "core/qr/__init__.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 822,
+    "approx_loc": 26,
+    "sha1": "739db018dd572f13dd9244c1b0f3763ee2f56f20"
+  },
+  {
+    "path": "core/qr/ar_tag_handler.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 5925,
+    "approx_loc": 137,
+    "sha1": "ff423ed7ee4dda7d614cae082603f6837b5187a3"
+  },
+  {
+    "path": "core/qr/cache_manager.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 8205,
+    "approx_loc": 213,
+    "sha1": "bfcfb8449bbafde690509c3fcc571468362daf7f"
+  },
+  {
+    "path": "core/qr/qr_api.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 8690,
+    "approx_loc": 204,
+    "sha1": "ffd34144ee8f2bacbb79b11bb78925650700acaa"
+  },
+  {
+    "path": "core/qr/qr_decoder.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 12039,
+    "approx_loc": 289,
+    "sha1": "4545f3aa52f9ed61899512ac5f2fc0079e440a05"
+  },
+  {
+    "path": "core/qr/qr_scanner.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 9551,
+    "approx_loc": 221,
+    "sha1": "8008f5dd91d880763ddd3d90b5f096e7edc169ab"
+  },
+  {
+    "path": "core/reasoning/__init__.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 53,
+    "approx_loc": 1,
+    "sha1": "e75c3f3846c5fb8fb367f20942cfd2017dfe2a90"
+  },
+  {
+    "path": "core/speech/__init__.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 883,
+    "approx_loc": 31,
+    "sha1": "f5cfb63ffd71b7e66c7398ff4f31249488a897d8"
+  },
+  {
+    "path": "core/speech/speech_handler.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 8669,
+    "approx_loc": 212,
+    "sha1": "5316846cfb384747a56e7b90b49d3d35da322a21"
+  },
+  {
+    "path": "core/speech/tts_handler.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 13564,
+    "approx_loc": 317,
+    "sha1": "bfa52f1fad5c04e18bc7fe797e98a7f5ff036907"
+  },
+  {
+    "path": "core/speech/voice_ask_pipeline.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 15109,
+    "approx_loc": 341,
+    "sha1": "2e94b962a338a62f729176bac2f2109e7c656741"
+  },
+  {
+    "path": "core/speech/voice_router.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 13164,
+    "approx_loc": 272,
+    "sha1": "9854c0c3d6e94dde784e2f5fa4df72d904022fd6"
+  },
+  {
+    "path": "core/vision/__init__.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 67,
+    "approx_loc": 1,
+    "sha1": "77793af3f340b956751c086e4b12a0f8ff255fc9"
+  },
+  {
+    "path": "core/vision/spatial.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 44105,
+    "approx_loc": 943,
+    "sha1": "9fdab07cdba9d79751a3e910196ddd17fccc87d7"
+  },
+  {
+    "path": "core/vision/video_processing.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 16507,
+    "approx_loc": 330,
+    "sha1": "8523ac4c446c70265dfc86f9f69d886eb365064b"
+  },
+  {
+    "path": "core/vision/visual.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 17987,
+    "approx_loc": 362,
+    "sha1": "0b12786f4a34cdd36c5d1339b66008e188ff6b52"
+  },
+  {
+    "path": "core/vqa/__init__.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 4105,
+    "approx_loc": 176,
+    "sha1": "87ac2d5c89373ace48973a44b4f261d7c47566ca"
+  },
+  {
+    "path": "core/vqa/api_endpoints.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 25303,
+    "approx_loc": 591,
+    "sha1": "9bb2628e1aec808aedbc13f7191b9f6be0b7fe6c"
+  },
+  {
+    "path": "core/vqa/api_schema.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 10157,
+    "approx_loc": 194,
+    "sha1": "e95065127cc1f67e5e7224759c3a0dd8e6e26a6b"
+  },
+  {
+    "path": "core/vqa/memory.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 19827,
+    "approx_loc": 463,
+    "sha1": "e4b82fb6a2303fa8dc9c33644f6ac15ded2c6be0"
+  },
+  {
+    "path": "core/vqa/orchestrator.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 8516,
+    "approx_loc": 197,
+    "sha1": "13114398c18f0053c5780ac8eee461e785696957"
+  },
+  {
+    "path": "core/vqa/perception.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 27428,
+    "approx_loc": 596,
+    "sha1": "01026946fd56d0ec0219d9d20504f4c316d82dc1"
+  },
+  {
+    "path": "core/vqa/priority_scene.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 19679,
+    "approx_loc": 484,
+    "sha1": "042ec8c5edc8cb5c29b8fc3a1253710e5902189b"
+  },
+  {
+    "path": "core/vqa/scene_graph.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 13716,
+    "approx_loc": 295,
+    "sha1": "9744b94088ae6f2ca9c6914495b9a0fac5935be4"
+  },
+  {
+    "path": "core/vqa/spatial_fuser.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 17031,
+    "approx_loc": 399,
+    "sha1": "43e974f4d52b157467f8e2edc4b5a463bcaaaced"
+  },
+  {
+    "path": "core/vqa/vqa_reasoner.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 19688,
+    "approx_loc": 481,
+    "sha1": "0097bb716f82a14dfe58c964c31e7c48fc8bd74b"
+  },
+  {
+    "path": "data/memory_backup/backup_info.json",
+    "extension": ".json",
+    "language": "json",
+    "size_bytes": 111,
+    "approx_loc": 5,
+    "sha1": "9390f2d8eea4ffa3762ad5ce41d999ce526adfba"
+  },
+  {
+    "path": "deployments/compose/docker-compose.test.yml",
+    "extension": ".yml",
+    "language": "yaml",
+    "size_bytes": 841,
+    "approx_loc": 26,
+    "sha1": "a6965d7ecfe76ae4612ca0bd5f1186862303b816"
+  },
+  {
+    "path": "deployments/docker/Dockerfile",
+    "extension": "",
+    "language": "dockerfile",
+    "size_bytes": 1639,
+    "approx_loc": 40,
+    "sha1": "35d66900c9abed28fce8df49af404bc56ae2e964"
+  },
+  {
+    "path": "docker-compose.test.yml",
+    "extension": ".yml",
+    "language": "yaml",
+    "size_bytes": 772,
+    "approx_loc": 24,
+    "sha1": "12f1abc77353d5419052216b2d3bfedc33afca4f"
+  },
+  {
+    "path": "Dockerfile",
+    "extension": "",
+    "language": "dockerfile",
+    "size_bytes": 1345,
+    "approx_loc": 31,
+    "sha1": "c449722f3c461fdc6507f2ee4d208177c8fb4652"
+  },
+  {
+    "path": "identities.json",
+    "extension": ".json",
+    "language": "json",
+    "size_bytes": 61,
+    "approx_loc": 4,
+    "sha1": "328a173e3c99eab0e6c75efdd001aa094af112a6"
+  },
+  {
+    "path": "infrastructure/__init__.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 48,
+    "approx_loc": 1,
+    "sha1": "bca6cd7c622afaf0fa74449dc43e5d815fdfabe9"
+  },
+  {
+    "path": "infrastructure/llm/__init__.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 48,
+    "approx_loc": 1,
+    "sha1": "d576a408c9c1d22847f201a4980d34f33a04ec62"
+  },
+  {
+    "path": "infrastructure/llm/embeddings/__init__.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 62,
+    "approx_loc": 1,
+    "sha1": "dc1d02c5c7b08d0f50b36f50860152735e944d33"
+  },
+  {
+    "path": "infrastructure/llm/internet_search.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 7739,
+    "approx_loc": 155,
+    "sha1": "a30a3b153a95a2d5867400a1b59509fd15555183"
+  },
+  {
+    "path": "infrastructure/llm/ollama/__init__.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 115,
+    "approx_loc": 3,
+    "sha1": "a0c7fbccc164f21e1180c747acd177c2556ffbca"
+  },
+  {
+    "path": "infrastructure/llm/ollama/handler.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 11502,
+    "approx_loc": 228,
+    "sha1": "26861fa04d9c0ea922dba0ce3096af36a84303c6"
+  },
+  {
+    "path": "infrastructure/llm/siliconflow/__init__.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 62,
+    "approx_loc": 1,
+    "sha1": "324d5acd5f3461e4ba79388e421ce3bb77de046c"
+  },
+  {
+    "path": "infrastructure/monitoring/__init__.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 56,
+    "approx_loc": 1,
+    "sha1": "017595b368a08c84a5216db975c7b91df76e300e"
+  },
+  {
+    "path": "infrastructure/speech/__init__.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 56,
+    "approx_loc": 1,
+    "sha1": "7bc92bf63b43e0e11249eb9debf0f5dbf76ae019"
+  },
+  {
+    "path": "infrastructure/speech/deepgram/__init__.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 59,
+    "approx_loc": 1,
+    "sha1": "f4bfff464883e0c4fc6f4f8d9e629a7d0375c924"
+  },
+  {
+    "path": "infrastructure/speech/elevenlabs/__init__.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 200,
+    "approx_loc": 3,
+    "sha1": "f201b961dc9c70c7b4683c4973fb7426978e0dd5"
+  },
+  {
+    "path": "infrastructure/speech/elevenlabs/tts_manager.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 9510,
+    "approx_loc": 229,
+    "sha1": "2e7936c4c6354a9f46fbbd734030852989a15df1"
+  },
+  {
+    "path": "infrastructure/storage/__init__.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 58,
+    "approx_loc": 1,
+    "sha1": "0bf640e2ba14de5cf1cf2377860f3e1075cf6086"
+  },
+  {
+    "path": "infrastructure/tavus/__init__.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 172,
+    "approx_loc": 3,
+    "sha1": "2f92f5f958f056023557949c46a70387da9ded82"
+  },
+  {
+    "path": "infrastructure/tavus/adapter.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 8188,
+    "approx_loc": 186,
+    "sha1": "f3831efd4dedfc589e5140bdb7061d67fd274b0e"
+  },
+  {
+    "path": "MIGRATION_MAP.md",
+    "extension": ".md",
+    "language": "markdown",
+    "size_bytes": 29002,
+    "approx_loc": 539,
+    "sha1": "c0cc77e6fb05e94caf6cfe8cd934c5b9d8057ba6"
+  },
+  {
+    "path": "models/midas_v21_small_256.onnx",
+    "extension": ".onnx",
+    "language": "other",
+    "size_bytes": 66764249,
+    "approx_loc": 433566,
+    "sha1": "a44beaa8f2f76999ecda8e87fc6a1af1a9df9cb2"
+  },
+  {
+    "path": "models/yolov8n.onnx",
+    "extension": ".onnx",
+    "language": "other",
+    "size_bytes": 12851046,
+    "approx_loc": 84286,
+    "sha1": "b4150657d5434aea16e9b1e2d59c420a047c5e82"
+  },
+  {
+    "path": "pyproject.toml",
+    "extension": ".toml",
+    "language": "toml",
+    "size_bytes": 5045,
+    "approx_loc": 148,
+    "sha1": "706cc71a1e32bb7e87d1f7c2a05b1270ed4b092d"
+  },
+  {
+    "path": "README.md",
+    "extension": ".md",
+    "language": "markdown",
+    "size_bytes": 25156,
+    "approx_loc": 479,
+    "sha1": "86779da2863393af76f25cea7591eaaf761d9984"
+  },
+  {
+    "path": "reports/replace-embedding-qwen3-4b-test-report.md",
+    "extension": ".md",
+    "language": "markdown",
+    "size_bytes": 5631,
+    "approx_loc": 110,
+    "sha1": "4726ec1aeb06e090fa1c4cd64af9048a82f7e437"
+  },
+  {
+    "path": "requirements-extras.txt",
+    "extension": ".txt",
+    "language": "text",
+    "size_bytes": 871,
+    "approx_loc": 28,
+    "sha1": "528c06e2536651c7d1f819fb5cb4923d89928e64"
+  },
+  {
+    "path": "requirements.txt",
+    "extension": ".txt",
+    "language": "text",
+    "size_bytes": 2473,
+    "approx_loc": 67,
+    "sha1": "f01e73fafc81e3430384216e6a198815bba26fc8"
+  },
+  {
+    "path": "research/benchmarks/benchmark_realtime.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 10772,
+    "approx_loc": 275,
+    "sha1": "eed52f65595239d7c6ae2c27a2dafcbbdb7b4142"
+  },
+  {
+    "path": "research/benchmarks/benchmark_results.json",
+    "extension": ".json",
+    "language": "json",
+    "size_bytes": 2718,
+    "approx_loc": 82,
+    "sha1": "6c159b621b1a6ada09bc76aaf929f71eb580c11d"
+  },
+  {
+    "path": "research/experiments/__init__.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 17,
+    "approx_loc": 1,
+    "sha1": "6471ea6552f2628850b0c759d83b9baf6f86222b"
+  },
+  {
+    "path": "research/experiments/harness.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 10555,
+    "approx_loc": 244,
+    "sha1": "8c01af68a7564ea5a20a9f58ab2b974a83a3fa51"
+  },
+  {
+    "path": "research/experiments/scenario_generator.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 7850,
+    "approx_loc": 198,
+    "sha1": "79e2d52433b94c8fb1c40534d3d18404dca5f5d0"
+  },
+  {
+    "path": "research/experiments/scenarios/README.md",
+    "extension": ".md",
+    "language": "markdown",
+    "size_bytes": 1472,
+    "approx_loc": 52,
+    "sha1": "0f70566f38a744585f860e233d5bac0812e5e648"
+  },
+  {
+    "path": "research/reports/REMEDIATION_PLAN.json",
+    "extension": ".json",
+    "language": "json",
+    "size_bytes": 56711,
+    "approx_loc": 912,
+    "sha1": "3d67ca76d1673fdef7d10fb1c5d33638a5964708"
+  },
+  {
+    "path": "research/reports/REMEDIATION_REPORT.json",
+    "extension": ".json",
+    "language": "json",
+    "size_bytes": 22692,
+    "approx_loc": 507,
+    "sha1": "58dd65007665ab3e81935898617c93d959b8d04e"
+  },
+  {
+    "path": "scripts/check_deps.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 4671,
+    "approx_loc": 130,
+    "sha1": "19e5c54d07a5afff39920bd97200c1f6e3c98ce5"
+  },
+  {
+    "path": "scripts/check_deps.sh",
+    "extension": ".sh",
+    "language": "shell",
+    "size_bytes": 4736,
+    "approx_loc": 123,
+    "sha1": "b625108ca259e9b34d18776c5a9785e0766fced9"
+  },
+  {
+    "path": "scripts/download_models.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 8324,
+    "approx_loc": 173,
+    "sha1": "bbb4fb2394dfa3847b9c34810c89b8fc08da59db"
+  },
+  {
+    "path": "scripts/generate_scenarios.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 19706,
+    "approx_loc": 411,
+    "sha1": "f906ef4093d019a8bf2ec9dce05d388dc95dcee0"
+  },
+  {
+    "path": "scripts/install_ocr_deps.sh",
+    "extension": ".sh",
+    "language": "shell",
+    "size_bytes": 3906,
+    "approx_loc": 94,
+    "sha1": "6d2d5129fb6d7650e57f92a9d2dca89b636c6cd6"
+  },
+  {
+    "path": "scripts/run_local_dev.sh",
+    "extension": ".sh",
+    "language": "shell",
+    "size_bytes": 998,
+    "approx_loc": 28,
+    "sha1": "02becf8fb96a26029e9accaeeba523450993f836"
+  },
+  {
+    "path": "shared/__init__.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 10107,
+    "approx_loc": 256,
+    "sha1": "a2169d4c9c592b65721f87d0f8d00c986367e71b"
+  },
+  {
+    "path": "shared/config/__init__.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 750,
+    "approx_loc": 33,
+    "sha1": "0b98adc0286cbe260363eaebfde862507c7fd2dd"
+  },
+  {
+    "path": "shared/config/settings.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 17139,
+    "approx_loc": 300,
+    "sha1": "ea96326d34fbf60dae4e1dcdb1debb0253626756"
+  },
+  {
+    "path": "shared/debug/__init__.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 687,
+    "approx_loc": 24,
+    "sha1": "092081625c3de5913177d2cf9eba29f2190a9b4e"
+  },
+  {
+    "path": "shared/debug/session_logger.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 5065,
+    "approx_loc": 133,
+    "sha1": "9554b09b87f1c884c9c42962dc10707233b4368d"
+  },
+  {
+    "path": "shared/debug/visualizer.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 20446,
+    "approx_loc": 461,
+    "sha1": "827c202a0050f1291e7422b065fad76ff8f2a5e7"
+  },
+  {
+    "path": "shared/encryption.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 6430,
+    "approx_loc": 144,
+    "sha1": "4a467728df5e1f05358d9ba7b782d6a34451d690"
+  },
+  {
+    "path": "shared/logging/__init__.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 150,
+    "approx_loc": 3,
+    "sha1": "bf9ee8621a559b278d8e39aee471979c6c158e31"
+  },
+  {
+    "path": "shared/logging/logging_config.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 9370,
+    "approx_loc": 215,
+    "sha1": "c914635598a3d07c382edb2a8fd0d273a153e390"
+  },
+  {
+    "path": "shared/logging_config.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 9370,
+    "approx_loc": 215,
+    "sha1": "c914635598a3d07c382edb2a8fd0d273a153e390"
+  },
+  {
+    "path": "shared/schemas/__init__.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 10107,
+    "approx_loc": 256,
+    "sha1": "a2169d4c9c592b65721f87d0f8d00c986367e71b"
+  },
+  {
+    "path": "shared/utils/__init__.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 36,
+    "approx_loc": 1,
+    "sha1": "f71c8ab802653e55c5262fe6849343bf90436cab"
+  },
+  {
+    "path": "shared/utils/encryption.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 6430,
+    "approx_loc": 144,
+    "sha1": "4a467728df5e1f05358d9ba7b782d6a34451d690"
+  },
+  {
+    "path": "shared/utils/helpers.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 537,
+    "approx_loc": 16,
+    "sha1": "a09a31d3ffb6ed2287e3ac861c3dd85ab985ec8c"
+  },
+  {
+    "path": "shared/utils/runtime_diagnostics.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 31907,
+    "approx_loc": 702,
+    "sha1": "b8a30c765fe9ef3d3909e3eb51ddef324d804df8"
+  },
+  {
+    "path": "shared/utils/startup_guards.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 9231,
+    "approx_loc": 232,
+    "sha1": "5848fd4c36058c0695ce22ade6e14dd566ceb82f"
+  },
+  {
+    "path": "shared/utils/timing.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 6596,
+    "approx_loc": 154,
+    "sha1": "a4e434e1654cbcc11afa4f3a0b09b33276e88ac0"
+  },
+  {
+    "path": "tests/__init__.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 0,
+    "approx_loc": 0,
+    "sha1": "da39a3ee5e6b4b0d3255bfef95601890afd80709"
+  },
+  {
+    "path": "tests/fixtures/__init__.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 0,
+    "approx_loc": 0,
+    "sha1": "da39a3ee5e6b4b0d3255bfef95601890afd80709"
+  },
+  {
+    "path": "tests/fixtures/braille/sample_a.png",
+    "extension": ".png",
+    "language": "other",
+    "size_bytes": 342,
+    "approx_loc": 18,
+    "sha1": "d6f83064c7d93e0538102a29fd630547c46a0bb0"
+  },
+  {
+    "path": "tests/fixtures/braille/sample_ab.png",
+    "extension": ".png",
+    "language": "other",
+    "size_bytes": 406,
+    "approx_loc": 16,
+    "sha1": "7e82a4dabdeb80e131b201189fa2894e18eea9b4"
+  },
+  {
+    "path": "tests/fixtures/braille/sample_dots_6.png",
+    "extension": ".png",
+    "language": "other",
+    "size_bytes": 487,
+    "approx_loc": 7,
+    "sha1": "2ae2f82846b808233956fa6b8d9a3bd6e3ce74ad"
+  },
+  {
+    "path": "tests/fixtures/braille/sample_empty.png",
+    "extension": ".png",
+    "language": "other",
+    "size_bytes": 304,
+    "approx_loc": 4,
+    "sha1": "5157a82e5eab61bc6eb94dde1a2e35421edf7d5d"
+  },
+  {
+    "path": "tests/fixtures/braille/sample_hello.png",
+    "extension": ".png",
+    "language": "other",
+    "size_bytes": 752,
+    "approx_loc": 8,
+    "sha1": "0a7aee5eaa0f0e2e21a328ac445f0a4c1404f254"
+  },
+  {
+    "path": "tests/fixtures/braille/sample_noisy.png",
+    "extension": ".png",
+    "language": "other",
+    "size_bytes": 411,
+    "approx_loc": 16,
+    "sha1": "3b2d4e8a58f265d7b77fca2564da19db8897baaf"
+  },
+  {
+    "path": "tests/fixtures/generate_braille_fixtures.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 2683,
+    "approx_loc": 68,
+    "sha1": "a91c18f37d34ec97f76eeb74bf11898663908ece"
+  },
+  {
+    "path": "tests/generated_scenarios.json",
+    "extension": ".json",
+    "language": "json",
+    "size_bytes": 984671,
+    "approx_loc": 19866,
+    "sha1": "dc07fd66025d9637629ff69924c9fbc3f5d9f183"
+  },
+  {
+    "path": "tests/integration/__init__.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 0,
+    "approx_loc": 0,
+    "sha1": "da39a3ee5e6b4b0d3255bfef95601890afd80709"
+  },
+  {
+    "path": "tests/integration/test_deepgram.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 1747,
+    "approx_loc": 44,
+    "sha1": "61606f5f4cddaf2b4e663a395bca564e4d27bcdc"
+  },
+  {
+    "path": "tests/integration/test_memory_search.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 9720,
+    "approx_loc": 212,
+    "sha1": "74c0758efa683b546d870ccdbf50c98ac49882d3"
+  },
+  {
+    "path": "tests/integration/test_qr_flow.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 10140,
+    "approx_loc": 229,
+    "sha1": "6c3eb457d178b39502d52f8bc1830cd3a80f7d95"
+  },
+  {
+    "path": "tests/integration/test_rag_reasoner.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 9268,
+    "approx_loc": 202,
+    "sha1": "9cf70e8719f1d9a651adbc15909e5b55c1682b1e"
+  },
+  {
+    "path": "tests/integration/test_rag_reasoner_claude.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 6950,
+    "approx_loc": 162,
+    "sha1": "666f746e19ae4fee35142ebeff36985eec2030ac"
+  },
+  {
+    "path": "tests/integration/test_siliconflow.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 1054,
+    "approx_loc": 30,
+    "sha1": "fb545bad749e18cf5c008f729130d0d1342ff506"
+  },
+  {
+    "path": "tests/integration/test_vqa_api.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 10740,
+    "approx_loc": 261,
+    "sha1": "3009e6a447e774b7e972478f6c996316d3ead3f4"
+  },
+  {
+    "path": "tests/performance/__init__.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 115,
+    "approx_loc": 2,
+    "sha1": "70e889aec800db7b34afc990be4a06ecfbf54ddc"
+  },
+  {
+    "path": "tests/performance/conftest.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 692,
+    "approx_loc": 20,
+    "sha1": "0e94bc4f1dfad2de47ee6faad7ac2108f9b66523"
+  },
+  {
+    "path": "tests/performance/test_access_control_fuzz.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 5166,
+    "approx_loc": 110,
+    "sha1": "dde2a39826cd918b59f8b93f1dfc482266262f1f"
+  },
+  {
+    "path": "tests/performance/test_benchmark_report.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 3998,
+    "approx_loc": 90,
+    "sha1": "74e7a667f80155adeb0a56979de6ef93ddb06676"
+  },
+  {
+    "path": "tests/performance/test_consent_enforcement.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 4064,
+    "approx_loc": 81,
+    "sha1": "992c07a45dd48c53899f79510f139d80205fa594"
+  },
+  {
+    "path": "tests/performance/test_debug_access_control.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 4636,
+    "approx_loc": 93,
+    "sha1": "d0515f57a8afb948f18d2a150841a295652c075a"
+  },
+  {
+    "path": "tests/performance/test_deterministic_replay.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 2404,
+    "approx_loc": 49,
+    "sha1": "9148c21764b152aa616cf8e5c11731be6c630d85"
+  },
+  {
+    "path": "tests/performance/test_encryption_at_rest.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 5639,
+    "approx_loc": 106,
+    "sha1": "9424169e356dee5e8221d964b2340502fe5b0151"
+  },
+  {
+    "path": "tests/performance/test_graceful_degradation.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 3503,
+    "approx_loc": 71,
+    "sha1": "9e052b10ae1b34a98ca392c52665b698ee21d8ad"
+  },
+  {
+    "path": "tests/performance/test_latency_sla.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 2151,
+    "approx_loc": 44,
+    "sha1": "7ff8f6876b3a65f65f594265592c7dd368f87ec8"
+  },
+  {
+    "path": "tests/performance/test_memory_leak.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 3401,
+    "approx_loc": 82,
+    "sha1": "1e68f56e2a4619740511d2f1b321181a919e2b2d"
+  },
+  {
+    "path": "tests/performance/test_model_checksums.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 3273,
+    "approx_loc": 62,
+    "sha1": "62dbff12a6488047c6fb32fe39152fa8ed08172b"
+  },
+  {
+    "path": "tests/performance/test_model_download_retry.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 2530,
+    "approx_loc": 51,
+    "sha1": "ae4bb5dda9dc2687f808d30b6ef64b7b6ab90dc6"
+  },
+  {
+    "path": "tests/performance/test_offline_behavior.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 2128,
+    "approx_loc": 42,
+    "sha1": "b771f08a778b56f2e4d3d5ae204cc3150065ad25"
+  },
+  {
+    "path": "tests/performance/test_pii_scrubbing.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 2829,
+    "approx_loc": 59,
+    "sha1": "ab2970d9ee7d357ebe1336083910bc2a95f49bb6"
+  },
+  {
+    "path": "tests/performance/test_resource_threshold.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 3688,
+    "approx_loc": 78,
+    "sha1": "0883c09c335ebf9f2f63e106b6d5a771bd7a75d9"
+  },
+  {
+    "path": "tests/performance/test_secrets_scan.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 6885,
+    "approx_loc": 151,
+    "sha1": "7bd50c4a8e89c861ea06958554a3368a43d39c2b"
+  },
+  {
+    "path": "tests/performance/test_sustained_fps.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 2786,
+    "approx_loc": 60,
+    "sha1": "580ac9826338798879f35706ac7eccc3291c371d"
+  },
+  {
+    "path": "tests/performance/test_telemetry_optin.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 1290,
+    "approx_loc": 26,
+    "sha1": "b727096d99f7a9436f8274b781487ebe98144275"
+  },
+  {
+    "path": "tests/realtime/__init__.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 2406,
+    "approx_loc": 58,
+    "sha1": "cc67bb5b445528d4e79754f01bb49dd393a467f0"
+  },
+  {
+    "path": "tests/realtime/benchmark.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 24138,
+    "approx_loc": 566,
+    "sha1": "c4c301a6b1416e4b0bf9f43c5ccf2ce905245b2c"
+  },
+  {
+    "path": "tests/realtime/calibrate_depth.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 27490,
+    "approx_loc": 573,
+    "sha1": "4fc31b25b944a927232818e3088118c67fdb7a16"
+  },
+  {
+    "path": "tests/realtime/EVALUATION_FORMS.md",
+    "extension": ".md",
+    "language": "markdown",
+    "size_bytes": 8389,
+    "approx_loc": 236,
+    "sha1": "476e0248663adb23dfbd8a7d7615f70a5f9ef25e"
+  },
+  {
+    "path": "tests/realtime/metrics.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 23205,
+    "approx_loc": 536,
+    "sha1": "77eaa313df5d130f14f49a6515a47a0a9e51b36c"
+  },
+  {
+    "path": "tests/realtime/realtime_test.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 30593,
+    "approx_loc": 671,
+    "sha1": "22800ad212010c632f2b75806ab8b0d704e85647"
+  },
+  {
+    "path": "tests/realtime/replay_tool.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 23749,
+    "approx_loc": 514,
+    "sha1": "4bdb8f9b46f000d3deaf1d0b6fa845a41e4c4cf3"
+  },
+  {
+    "path": "tests/realtime/SAFETY_PROTOCOLS.md",
+    "extension": ".md",
+    "language": "markdown",
+    "size_bytes": 9329,
+    "approx_loc": 252,
+    "sha1": "97c7d66c560021d89bcb7d1c3d4f6b446854c3b2"
+  },
+  {
+    "path": "tests/realtime/session_logger.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 24218,
+    "approx_loc": 554,
+    "sha1": "7e6f7f1aef02d50568b22183c7bc65c77ac49525"
+  },
+  {
+    "path": "tests/realtime/TEST_PLAN.md",
+    "extension": ".md",
+    "language": "markdown",
+    "size_bytes": 11390,
+    "approx_loc": 332,
+    "sha1": "e9e5cdff782c42691d64aade35492b875abcedd4"
+  },
+  {
+    "path": "tests/test_action_engine.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 4647,
+    "approx_loc": 122,
+    "sha1": "6c6b6c890542350fce4ff16ec80e488115d9762f"
+  },
+  {
+    "path": "tests/test_audio_engine.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 8579,
+    "approx_loc": 216,
+    "sha1": "5e988b4a8fa00e14fc6c640be8e4f3e092fef832"
+  },
+  {
+    "path": "tests/test_ci_smoke.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 11230,
+    "approx_loc": 218,
+    "sha1": "60eb6df285d4a9937767b1ac1e310369836230e3"
+  },
+  {
+    "path": "tests/test_confidence_cascade.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 8838,
+    "approx_loc": 171,
+    "sha1": "4ce42b59cba1a312d476fd78256a3a15e36e5f58"
+  },
+  {
+    "path": "tests/test_continuous_processing.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 21322,
+    "approx_loc": 393,
+    "sha1": "36c033a9885a710e383a4b8183a13327b36a4f5d"
+  },
+  {
+    "path": "tests/test_debug_visualizer.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 11280,
+    "approx_loc": 243,
+    "sha1": "67d971db45d9d4424ed6260f334f0d69afa29fbe"
+  },
+  {
+    "path": "tests/test_encryption.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 3339,
+    "approx_loc": 75,
+    "sha1": "cd5f93f9fb778d6f139b9966724d40753a91b13a"
+  },
+  {
+    "path": "tests/test_face_engine.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 9012,
+    "approx_loc": 206,
+    "sha1": "ab380eb4eb4f0e8ca33a7342ac80afd846f8c268"
+  },
+  {
+    "path": "tests/test_generated_scenarios.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 13055,
+    "approx_loc": 221,
+    "sha1": "af9d7c238d46c91acb057ea903dd3b05e3132fa2"
+  },
+  {
+    "path": "tests/test_live_pipeline.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 14246,
+    "approx_loc": 327,
+    "sha1": "2009965890df1c64c06ad512cf4df5d3a51095f0"
+  },
+  {
+    "path": "tests/test_memory_extensions.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 7496,
+    "approx_loc": 187,
+    "sha1": "185e4795460621aab3da0172f516f289509b6d9a"
+  },
+  {
+    "path": "tests/test_model_load.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 3033,
+    "approx_loc": 61,
+    "sha1": "19f66e705f8fda689a0781987e8a2a1e3bac17c1"
+  },
+  {
+    "path": "tests/test_ocr_pipeline.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 8149,
+    "approx_loc": 197,
+    "sha1": "76aea0e71d924f6827a7e8eb035eb3be7d28011a"
+  },
+  {
+    "path": "tests/test_orchestrator.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 11895,
+    "approx_loc": 270,
+    "sha1": "8afe61f3875f6333e7cd1f4b68f4edf35158964c"
+  },
+  {
+    "path": "tests/test_perception_telemetry.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 6010,
+    "approx_loc": 143,
+    "sha1": "09fce410b6ab4e37a332c0b3897ef78e709cb742"
+  },
+  {
+    "path": "tests/test_priority_scene.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 10943,
+    "approx_loc": 227,
+    "sha1": "dad4bf54bf47f04041970e276d297612f5b9db93"
+  },
+  {
+    "path": "tests/test_runtime_diagnostics.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 12987,
+    "approx_loc": 311,
+    "sha1": "6886e9c9e3ffcbe82dc2b0dac0031587511ae356"
+  },
+  {
+    "path": "tests/test_session_logger.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 6207,
+    "approx_loc": 158,
+    "sha1": "ffd9f368297f2388aacbe3aecf5f413934d19f6c"
+  },
+  {
+    "path": "tests/test_shared_types.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 12580,
+    "approx_loc": 311,
+    "sha1": "4ad6ab4a068f28d573a42e1661bcc1a3a9c2a07c"
+  },
+  {
+    "path": "tests/test_smoke_api.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 6906,
+    "approx_loc": 160,
+    "sha1": "1164e198e0b911484641098f7628dafb276a3afa"
+  },
+  {
+    "path": "tests/test_spatial.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 19046,
+    "approx_loc": 435,
+    "sha1": "b9786132d6e623712a11dff201b56a3e9b0175c5"
+  },
+  {
+    "path": "tests/test_speech_vqa_bridge.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 16282,
+    "approx_loc": 354,
+    "sha1": "73b373491f4117344bc0dea67c000d407d999960"
+  },
+  {
+    "path": "tests/test_startup_guards.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 7435,
+    "approx_loc": 150,
+    "sha1": "8868f46346143e96e9ef13956b0819feba88bf60"
+  },
+  {
+    "path": "tests/test_tavus_adapter.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 2788,
+    "approx_loc": 65,
+    "sha1": "19b0b0e8469d6fe70db47a04840ee2d18ca7d6df"
+  },
+  {
+    "path": "tests/test_tts_manager.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 7313,
+    "approx_loc": 166,
+    "sha1": "9a0c71aac3c418084dfb2182961346f96ec39c2c"
+  },
+  {
+    "path": "tests/unit/__init__.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 0,
+    "approx_loc": 0,
+    "sha1": "da39a3ee5e6b4b0d3255bfef95601890afd80709"
+  },
+  {
+    "path": "tests/unit/test_braille_segmenter.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 3672,
+    "approx_loc": 89,
+    "sha1": "01321cae97f11b557b0dfd980f6b9417f22fd6d0"
+  },
+  {
+    "path": "tests/unit/test_cache_manager.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 5462,
+    "approx_loc": 136,
+    "sha1": "d963dd0fa35c6fbf4e73ba3f7408150092444599"
+  },
+  {
+    "path": "tests/unit/test_debug_endpoints.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 3948,
+    "approx_loc": 86,
+    "sha1": "8a29daca25436fed770d792a950b9a1899793df8"
+  },
+  {
+    "path": "tests/unit/test_embeddings.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 5217,
+    "approx_loc": 99,
+    "sha1": "db6c75c9ab5cf92d53d598ae78c1d4e99692114f"
+  },
+  {
+    "path": "tests/unit/test_fusion.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 12579,
+    "approx_loc": 285,
+    "sha1": "a6bebe8af2ac4fae14dfbf8485202c4674e3c5c3"
+  },
+  {
+    "path": "tests/unit/test_memory_ingest.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 8642,
+    "approx_loc": 174,
+    "sha1": "ca8a0277560421e3f04e778a6951e1494573c6b1"
+  },
+  {
+    "path": "tests/unit/test_ocr_engine_fallbacks.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 4179,
+    "approx_loc": 93,
+    "sha1": "da0ed9479d1f53b22f650b9d8737c01ca061c547"
+  },
+  {
+    "path": "tests/unit/test_ocr_install_error.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 2743,
+    "approx_loc": 55,
+    "sha1": "0768f735c4c516094bcdbd7373e84d4c846f702e"
+  },
+  {
+    "path": "tests/unit/test_perception.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 9651,
+    "approx_loc": 218,
+    "sha1": "de8e818843d9eadee90d37fa00f74ba1194f5855"
+  },
+  {
+    "path": "tests/unit/test_qr_decoder.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 4155,
+    "approx_loc": 86,
+    "sha1": "b1df158740eb77fc927d4e77b859bdb4debeae45"
+  },
+  {
+    "path": "tests/unit/test_qr_scanner.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 6480,
+    "approx_loc": 143,
+    "sha1": "9672ec9a62f4f20915ad14cbca08155a64f256d3"
+  },
+  {
+    "path": "tests/unit/test_rag_reasoner_claude.py",
+    "extension": ".py",
+    "language": "python",
+    "size_bytes": 3913,
+    "approx_loc": 93,
+    "sha1": "f126ec9ead6e96f9cdc87b106b855be6dc6ec247"
+  }
+]
