@@ -3,9 +3,11 @@ This file allows you to configure which vision model provider to use.
 Includes spatial perception configuration for object detection, segmentation, and depth estimation.
 """
 
-import os
 import logging
+import os
 from enum import Enum
+
+from shared.config.secret_provider import create_secret_provider
 
 # Get a logger for this module
 logger = logging.getLogger("config")
@@ -20,17 +22,18 @@ def _get_vision_provider():
     return VisionProvider.OLLAMA
 
 # Default configuration
+_secret_provider = create_secret_provider()
 CONFIG = {
     # Select which vision provider to use
     "VISION_PROVIDER": _get_vision_provider(),
     
     # Ollama configuration
-    "OLLAMA_VL_API_KEY": os.environ.get("OLLAMA_VL_API_KEY", ""),
+    "OLLAMA_VL_API_KEY": _secret_provider.get_secret("OLLAMA_VL_API_KEY") or "",
     "OLLAMA_VL_MODEL_ID": os.environ.get("OLLAMA_VL_MODEL_ID", "qwen3-vl:235b-instruct-cloud"),
     
     # Tavus virtual avatar configuration
     "ENABLE_AVATAR": os.environ.get("ENABLE_AVATAR", "false") == "true",
-    "TAVUS_API_KEY": os.environ.get("TAVUS_API_KEY", ""),
+    "TAVUS_API_KEY": _secret_provider.get_secret("TAVUS_API_KEY") or "",
     "TAVUS_REPLICA_ID": os.environ.get("TAVUS_REPLICA_ID", ""),
     "TAVUS_PERSONA_ID": os.environ.get("TAVUS_PERSONA_ID", ""),
     "TAVUS_AVATAR_NAME": os.environ.get("TAVUS_AVATAR_NAME", "ally-vision-avatar"),
@@ -189,6 +192,11 @@ CONFIG = {
 def get_config():
     """Get the current configuration."""
     return CONFIG
+
+
+def get_secret_provider():
+    """Access the active secret provider."""
+    return _secret_provider
 
 def use_ollama():
     """Check if Ollama is the current vision provider."""
