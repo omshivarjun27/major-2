@@ -87,3 +87,24 @@
 - Addresses TD-001 (god file), TD-003 (sync embedder), TD-010 (shared re-exports)
 - NOTE: BASE-XXX -> T-xxx edges ARE stored in dag.json now (BASE-015->T-038, BASE-001->T-047), unlike P0/P1 where they were implicit
 - Zero prohibited terms confirmed via regex sweep
+
+## 2026-02-25 Task 7: P3-tasks.md + dag.json P3 nodes
+- P3-tasks.md created with exactly 20 task definitions (T-053 through T-072)
+- Phase focus: Resilience & Reliability (circuit breakers, fallbacks, retry, degradation)
+- 4 clusters used: CL-INF(12), CL-APP(4), CL-APV(2), CL-TQA(1), total matches expected breakdown from task-distribution.md
+- T-053 is the priority unlock task (circuit-breaker-foundation), no upstream deps
+- All 6 cloud services have dedicated circuit breaker tasks: Deepgram (T-054), ElevenLabs (T-055), Ollama (T-056), LiveKit (T-057), Tavus (T-058), DuckDuckGo (T-059)
+- Addresses DR-1 through DR-5 (dependency risks) and TD-006 (no circuit breakers)
+- 2 integration closeout tasks: T-071 (circuit breaker integration test), T-072 (failover orchestration validation)
+- DAG updated: 72 nodes (52 existing + 20 P3), 84 edges (62 existing + 22 P3-internal)
+- Zero cross-phase edges for P3 (all P3 tasks depend only on other P3 tasks or have no upstream deps)
+- Zero BASE edges added (learned from P2 cycle bug)
+- Topological sort passes: 72 nodes sorted, acyclic confirmed
+- Risk tiers: 5 High (T-057, T-060, T-061, T-071, T-072), 12 Medium, 3 Low (T-058, T-059 circuit breakers for optional services + cluster count adjustment)
+- Correction: Risk tiers: 5 High, 13 Medium, 2 Low = 20 total
+- Mixed governance: elevated for high-impact tasks (T-053, T-057, T-060, T-061, T-065, T-066, T-071, T-072), standard for remainder
+- Mixed parallelization: T-054..T-059, T-062, T-064, T-067, T-068, T-069 parallelizable after T-053 completes
+- Phase exit criteria: 6 CBs, STT fallback, TTS fallback, retry with backoff, degradation modes
+- Downstream notes reference P4 (performance), P5 (monitoring), P7 (release gate)
+- Zero prohibited terms confirmed via regex sweep
+- All 14 rendered fields (16 schema fields minus the 2 phase-level blocks) verified per task
