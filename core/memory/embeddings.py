@@ -72,16 +72,22 @@ class TextEmbedder(BaseEmbedder):
 
     Default model: qwen3-embedding:4b
     Uses Ollama's embedding API for efficient local inference.
+    Supports both sync (via thread pool) and native async (via ollama.AsyncClient).
     """
+
+    # Retry parameters for transient server errors
+    _MAX_RETRIES: int = 3
+    _BACKOFF_BASE: float = 0.5  # seconds
 
     def __init__(self, model_name: str = "qwen3-embedding:4b"):
         self._model_name = model_name
         self._client: Any = None
+        self._async_client: Any = None  # ollama.AsyncClient for native async
         self._ready = False
         self._dimension: Optional[int] = None  # Auto-detected on first embed
 
     def _ensure_client(self) -> None:
-        """Ensure Ollama client is loaded and model dimension is detected."""
+        """Ensure synchronous Ollama client is loaded and model dimension is detected."""
         if self._client is None:
             self._client = _get_ollama_client()
             # Probe dimension with a test embedding
@@ -91,15 +97,27 @@ class TextEmbedder(BaseEmbedder):
                 if embeddings:
                     first = embeddings[0] if isinstance(embeddings[0], list) else embeddings
                     self._dimension = len(first)
-                    logger.info(f"Ollama embedding model '{self._model_name}' loaded. Dimension: {self._dimension}")
+                    logger.info("Ollama embedding model '%s' loaded. Dimension: %d", self._model_name, self._dimension)
                 else:
                     self._dimension = 0
-                    logger.warning(f"Could not detect dimension for model '{self._model_name}'")
+                    logger.warning("Could not detect dimension for model '%s'", self._model_name)
             except Exception as e:
-                logger.warning(f"Could not probe model dimension: {e}. Will detect on first real embed.")
+                logger.warning("Could not probe model dimension: %s. Will detect on first real embed.", e)
                 self._dimension = 0
             self._ready = True
         self._client = cast(Any, self._client)
+
+    def _ensure_async_client(self) -> Any:
+        """Lazy-create the ollama.AsyncClient for native async calls."""
+        if self._async_client is None:
+            try:
+                import ollama as _ollama_mod
+                self._async_client = _ollama_mod.AsyncClient()
+                logger.info("Ollama AsyncClient created for non-blocking embedding")
+            except ImportError:
+                logger.error("ollama not installed. Run: pip install ollama")
+                raise
+        return self._async_client
 
     def _normalize(self, vec: np.ndarray) -> np.ndarray:
         """L2-normalize a vector."""
@@ -140,14 +158,53 @@ class TextEmbedder(BaseEmbedder):
 
         return embedding
 
-    async def async_embed(self, text: str) -> np.ndarray:
-        """Non-blocking embedding for a single text string.
+    async def _async_embed_with_retry(self, ac: Any, text_or_list: Any) -> Any:
+        """Call ac.embed() with exponential backoff for transient Ollama errors."""
+        last_exc: Optional[Exception] = None
+        for attempt in range(1, self._MAX_RETRIES + 1):
+            try:
+                return await ac.embed(model=self._model_name, input=text_or_list)
+            except Exception as e:
+                last_exc = e
+                if attempt < self._MAX_RETRIES:
+                    delay = self._BACKOFF_BASE * (2 ** (attempt - 1))
+                    logger.warning(
+                        "Ollama embed attempt %d/%d failed: %s. Retrying in %.1fs",
+                        attempt, self._MAX_RETRIES, e, delay,
+                    )
+                    await asyncio.sleep(delay)
+                else:
+                    logger.error("Ollama embed failed after %d retries: %s", self._MAX_RETRIES, e)
+        raise last_exc  # type: ignore[misc]
 
-        Offloads the synchronous Ollama API call to a thread pool executor
-        so the event loop remains free.
+    async def async_embed(self, text: str) -> np.ndarray:
+        """Native async embedding for a single text string.
+
+        Uses ollama.AsyncClient directly so the event loop is never blocked.
+        Includes retry with exponential backoff for transient failures.
         """
-        loop = asyncio.get_running_loop()
-        return await loop.run_in_executor(_embedding_executor, self.embed, text)
+        ac = self._ensure_async_client()
+        start = time.time()
+
+        text = text.strip()
+        if len(text) > 512:
+            text = text[:512]
+
+        response = await self._async_embed_with_retry(ac, text)
+        embeddings = response.get("embeddings", response.get("embedding", []))
+        vec = embeddings[0] if isinstance(embeddings[0], list) else embeddings
+
+        embedding = self._normalize(np.array(vec, dtype=np.float32))
+
+        if self._dimension is None or self._dimension == 0:
+            self._dimension = len(vec)
+        if not self._ready:
+            self._ready = True
+
+        elapsed_ms = (time.time() - start) * 1000
+        logger.debug("Async text embedding generated in %.1fms", elapsed_ms)
+
+        return embedding
 
     def embed_batch(self, data_list: List[Any], batch_size: int = 8) -> np.ndarray:
         """Generate embeddings for batch of texts.
@@ -188,15 +245,35 @@ class TextEmbedder(BaseEmbedder):
         return result
 
     async def async_embed_batch(self, texts: List[str], batch_size: int = 8) -> np.ndarray:
-        """Non-blocking batch embedding.
+        """Native async batch embedding with retry.
 
-        Offloads the synchronous Ollama batch API call to a thread pool executor.
+        Uses ollama.AsyncClient directly so the event loop is never blocked.
         """
-        loop = asyncio.get_running_loop()
-        return await loop.run_in_executor(
-            _embedding_executor,
-            lambda: self.embed_batch(texts, batch_size),
-        )
+        ac = self._ensure_async_client()
+        start = time.time()
+
+        cleaned = [t.strip()[:512] for t in texts]
+
+        response = await self._async_embed_with_retry(ac, cleaned)
+        raw = response.get("embeddings", response.get("embedding", []))
+
+        embeddings = []
+        for vec in raw:
+            v = np.array(vec, dtype=np.float32)
+            embeddings.append(self._normalize(v))
+
+        result = np.array(embeddings, dtype=np.float32)
+
+        if (self._dimension is None or self._dimension == 0) and len(embeddings) > 0:
+            self._dimension = len(embeddings[0])
+
+        if not self._ready:
+            self._ready = True
+
+        elapsed_ms = (time.time() - start) * 1000
+        logger.debug("Async batch embedding (%d texts) in %.1fms", len(texts), elapsed_ms)
+
+        return result
 
     @property
     def dimension(self) -> int:
