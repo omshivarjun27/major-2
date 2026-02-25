@@ -8,9 +8,6 @@ Simulates missing OCR packages and verifies:
 3. OS-specific hints
 """
 
-import sys
-from unittest.mock import patch, MagicMock
-import pytest
 import numpy as np
 
 
@@ -20,7 +17,7 @@ class TestOCRMissingPackageHandling:
     def test_ocr_engine_module_loads_without_easyocr(self):
         """OCR engine should load even if easyocr is not installed."""
         # Just verify the engine module loads without crashing
-        from core.ocr.engine import get_ocr_status, get_install_instructions
+        from core.ocr.engine import get_ocr_status
         status = get_ocr_status()
         assert isinstance(status, dict)
 
@@ -36,15 +33,15 @@ class TestOCRMissingPackageHandling:
         instructions = get_install_instructions()
         assert "pip install" in instructions
 
-    @pytest.mark.asyncio
-    async def test_ocr_read_returns_error_when_no_backends(self):
-        """ocr_read should return helpful error, not crash."""
+    async def test_ocr_read_returns_ocr_result_when_no_backends(self):
+        """ocr_read should return OCRResult, not crash."""
         from core.ocr.engine import ocr_read
+        from shared.schemas import OCRResult
         img = np.ones((100, 200), dtype=np.uint8) * 200
         result = await ocr_read(img)
-        # Should have some kind of result
-        assert isinstance(result, dict)
-        assert "backend" in result or "backend_used" in result
+        # Should return OCRResult with backend attribute
+        assert isinstance(result, OCRResult)
+        assert hasattr(result, "backend")
 
     def test_ocr_pipeline_no_backend_returns_error(self):
         """OCRPipeline with no backend should return error in result."""

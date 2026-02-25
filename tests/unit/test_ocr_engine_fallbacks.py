@@ -6,10 +6,6 @@ Tests the robust OCR abstraction: backend probe, install hints,
 heuristic fallback, graceful error handling.
 """
 
-import importlib
-import sys
-import unittest
-from unittest.mock import patch, MagicMock
 
 import numpy as np
 import pytest
@@ -19,7 +15,7 @@ class TestOCRBackendProbes:
     """Test backend availability probes."""
 
     def test_probe_functions_exist(self):
-        from core.ocr.engine import _probe_easyocr, _probe_tesseract, _probe_cv2
+        from core.ocr.engine import _probe_cv2, _probe_easyocr, _probe_tesseract
         # These return booleans — no crash
         assert isinstance(_probe_easyocr(), bool)
         assert isinstance(_probe_tesseract(), bool)
@@ -46,15 +42,16 @@ class TestOCRHeuristicFallback:
     def test_heuristic_backend_no_crash(self):
         """Heuristic backend should not crash on a blank image."""
         try:
-            import cv2
+            import cv2  # noqa: F401
         except ImportError:
             pytest.skip("OpenCV not available")
 
         from core.ocr.engine import _HeuristicBackend
+        from shared.schemas import OCRResult
         backend = _HeuristicBackend()
         gray = np.ones((100, 200), dtype=np.uint8) * 200
-        results = backend.read(gray)
-        assert isinstance(results, list)
+        result = backend.read(gray)
+        assert isinstance(result, OCRResult)
 
     def test_heuristic_detects_regions_on_text_like_image(self):
         """Heuristic should detect some regions on a contrasted image."""
@@ -64,36 +61,39 @@ class TestOCRHeuristicFallback:
             pytest.skip("OpenCV not available")
 
         from core.ocr.engine import _HeuristicBackend
+        from shared.schemas import OCRResult
         backend = _HeuristicBackend()
         # Create an image with some dark rectangles (text-like)
         img = np.ones((200, 400), dtype=np.uint8) * 220
         cv2.rectangle(img, (20, 50), (150, 80), 30, -1)
         cv2.rectangle(img, (20, 100), (200, 130), 30, -1)
-        results = backend.read(img)
+        result = backend.read(img)
         # May or may not detect — just no crash
-        assert isinstance(results, list)
+        assert isinstance(result, OCRResult)
 
 
 @pytest.mark.asyncio
 class TestOCRRead:
     """Test the unified ocr_read function."""
 
-    async def test_ocr_read_returns_dict(self):
+    async def test_ocr_read_returns_ocr_result(self):
         from core.ocr.engine import ocr_read
+        from shared.schemas import OCRResult
         img = np.ones((100, 200), dtype=np.uint8) * 200
         result = await ocr_read(img)
-        assert isinstance(result, dict)
-        # OCRPipeline uses "backend_used"; fallback path uses "backend"
-        assert "backend" in result or "backend_used" in result
-        assert "error" in result or "full_text" in result
+        assert isinstance(result, OCRResult)
+        # OCRResult should have backend and full_text attributes
+        assert hasattr(result, "backend")
+        assert hasattr(result, "full_text")
 
-    async def test_ocr_read_with_no_backends_gives_instructions(self):
-        """When both EasyOCR and Tesseract are missing, should return install help."""
+    async def test_ocr_read_with_no_backends_gives_ocr_result(self):
+        """When both EasyOCR and Tesseract are missing, should return OCRResult gracefully."""
         from core.ocr.engine import ocr_read
+        from shared.schemas import OCRResult
         # Even if backends are available, the function should handle gracefully
         img = np.ones((50, 50), dtype=np.uint8) * 128
         result = await ocr_read(img)
-        assert isinstance(result, dict)
+        assert isinstance(result, OCRResult)
 
 
 class TestOCRPipelineFallback:

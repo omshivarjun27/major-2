@@ -18,9 +18,11 @@ import asyncio
 import logging
 import time
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 import numpy as np
+
+from shared.schemas import BoundingBox, OCRResult, OCRWord
 
 logger = logging.getLogger("ocr-engine")
 
@@ -38,7 +40,7 @@ except ImportError:
     cv2 = None
 
 try:
-    from PIL import Image as PILImage
+    from PIL import Image as PILImage  # noqa: F401
     PIL_AVAILABLE = True
 except ImportError:
     PIL_AVAILABLE = False
@@ -71,32 +73,10 @@ if not EASYOCR_AVAILABLE and not TESSERACT_AVAILABLE:
 
 
 @dataclass
-class OCRResult:
-    """Result from a single OCR invocation."""
-
-    text: str
-    confidence: float               # 0.0 – 1.0
-    bbox: Optional[Tuple[int, int, int, int]] = None  # x1, y1, x2, y2
-    language: str = "en"
-    latency_ms: float = 0.0
-    backend: str = "unknown"
-
-    def to_dict(self) -> Dict[str, Any]:
-        return {
-            "text": self.text,
-            "confidence": round(self.confidence, 3),
-            "bbox": list(self.bbox) if self.bbox else None,
-            "language": self.language,
-            "latency_ms": round(self.latency_ms, 1),
-            "backend": self.backend,
-        }
-
-
-@dataclass
 class OCRPipelineResult:
     """Aggregated result for the full pipeline."""
 
-    results: List[OCRResult] = field(default_factory=list)
+    results: List[OCRWord] = field(default_factory=list)
     full_text: str = ""
     total_latency_ms: float = 0.0
     preprocessing_ms: float = 0.0
@@ -112,6 +92,18 @@ class OCRPipelineResult:
             "backend_used": self.backend_used,
             "error": self.error,
         }
+
+    def to_ocr_result(self) -> OCRResult:
+        confidence = 0.0
+        if self.results:
+            confidence = sum(r.confidence for r in self.results) / len(self.results)
+        return OCRResult(
+            full_text=self.full_text,
+            words=self.results,
+            confidence=confidence,
+            backend=self.backend_used,
+            latency_ms=self.total_latency_ms,
+        )
 
 
 # ============================================================================
@@ -218,20 +210,19 @@ class _EasyOCRBackend:
         if self._reader is None:
             self._reader = easyocr.Reader(self._languages, gpu=False)
 
-    def read(self, gray: np.ndarray) -> List[OCRResult]:
+    def read(self, gray: np.ndarray) -> List[OCRWord]:
         self._ensure_reader()
         raw = self._reader.readtext(gray)
-        results: List[OCRResult] = []
+        results: List[OCRWord] = []
         for bbox_pts, text, conf in raw:
             # bbox_pts is list of 4 corner points
             xs = [int(p[0]) for p in bbox_pts]
             ys = [int(p[1]) for p in bbox_pts]
-            bbox = (min(xs), min(ys), max(xs), max(ys))
-            results.append(OCRResult(
+            bbox = BoundingBox(x1=min(xs), y1=min(ys), x2=max(xs), y2=max(ys))
+            results.append(OCRWord(
                 text=text,
                 confidence=float(conf),
                 bbox=bbox,
-                backend="easyocr",
             ))
         return results
 
@@ -239,9 +230,9 @@ class _EasyOCRBackend:
 class _TesseractBackend:
     """Tesseract OCR backend."""
 
-    def read(self, gray: np.ndarray) -> List[OCRResult]:
+    def read(self, gray: np.ndarray) -> List[OCRWord]:
         data = pytesseract.image_to_data(gray, output_type=pytesseract.Output.DICT)
-        results: List[OCRResult] = []
+        results: List[OCRWord] = []
         n = len(data["text"])
         for i in range(n):
             text = data["text"][i].strip()
@@ -249,11 +240,10 @@ class _TesseractBackend:
             if not text or conf < 0:
                 continue
             x, y, w, h = data["left"][i], data["top"][i], data["width"][i], data["height"][i]
-            results.append(OCRResult(
+            results.append(OCRWord(
                 text=text,
                 confidence=conf / 100.0,
-                bbox=(x, y, x + w, y + h),
-                backend="tesseract",
+                bbox=BoundingBox.from_xywh(x=x, y=y, w=w, h=h),
             ))
         return results
 
@@ -272,20 +262,54 @@ class OCRPipeline:
 
     def __init__(self, languages: Optional[List[str]] = None, min_confidence: float = 0.3):
         self._min_confidence = min_confidence
-        self._backend = self._select_backend(languages)
-        self._backend_name = self._backend.__class__.__name__
+        self._backends = self._select_backends(languages)
+        self._backend = self._backends[0] if self._backends else None
+        self._backend_name = self._backend.__class__.__name__ if self._backend else "none"
 
     @staticmethod
-    def _select_backend(languages: Optional[List[str]] = None):
+    def _select_backends(languages: Optional[List[str]] = None) -> List[Any]:
+        backends: List[Any] = []
         if EASYOCR_AVAILABLE:
-            return _EasyOCRBackend(languages)
+            backends.append(_EasyOCRBackend(languages))
         if TESSERACT_AVAILABLE:
-            return _TesseractBackend()
-        return None
+            backends.append(_TesseractBackend())
+        return backends
 
     @property
     def is_ready(self) -> bool:
         return self._backend is not None
+
+    @staticmethod
+    def _box_iou(first: OCRWord, second: OCRWord) -> float:
+        if first.bbox is None or second.bbox is None:
+            return 0.0
+        x1 = max(first.bbox.x1, second.bbox.x1)
+        y1 = max(first.bbox.y1, second.bbox.y1)
+        x2 = min(first.bbox.x2, second.bbox.x2)
+        y2 = min(first.bbox.y2, second.bbox.y2)
+        inter_w = max(0, x2 - x1)
+        inter_h = max(0, y2 - y1)
+        inter = inter_w * inter_h
+        if inter == 0:
+            return 0.0
+        area_a = first.bbox.area
+        area_b = second.bbox.area
+        union = area_a + area_b - inter
+        return inter / max(union, 1e-6)
+
+    def _merge_results(self, primary: List[OCRWord], secondary: List[OCRWord]) -> List[OCRWord]:
+        merged = list(primary)
+        for candidate in secondary:
+            replaced = False
+            for idx, existing in enumerate(merged):
+                if self._box_iou(candidate, existing) > 0.5:
+                    if candidate.confidence > existing.confidence:
+                        merged[idx] = candidate
+                    replaced = True
+                    break
+            if not replaced:
+                merged.append(candidate)
+        return merged
 
     async def process(self, image: Any) -> OCRPipelineResult:
         """Run the full OCR pipeline asynchronously."""
@@ -305,24 +329,45 @@ class OCRPipeline:
         pre_ms = (time.time() - pre_start) * 1000
 
         # 2. OCR
-        try:
-            results = await loop.run_in_executor(None, self._backend.read, gray)
-        except Exception as exc:
-            return OCRPipelineResult(error=f"OCR failed: {exc}", preprocessing_ms=pre_ms)
+        results: List[OCRWord] = []
+        backend_used = "none"
+        for backend in self._backends:
+            backend_name = backend.__class__.__name__
+            try:
+                results = await loop.run_in_executor(None, backend.read, gray)
+            except Exception as exc:
+                logger.warning("OCR backend failed: %s", exc)
+                try:
+                    results = await loop.run_in_executor(None, backend.read, gray)
+                except Exception as exc:
+                    logger.error("OCR backend retry failed: %s", exc)
+                    continue
+            backend_used = backend_name
+            self._backend = backend
+            if len(results) >= 2:
+                break
+        if not results:
+            return OCRPipelineResult(error="OCR failed: all backends failed", preprocessing_ms=pre_ms)
+        if len(results) < 2 and len(self._backends) > 1:
+            for backend in self._backends:
+                if backend.__class__.__name__ == backend_used:
+                    continue
+                try:
+                    secondary = await loop.run_in_executor(None, backend.read, gray)
+                    results = self._merge_results(results, secondary)
+                except Exception as exc:
+                    logger.warning("Secondary OCR backend failed: %s", exc)
 
         # 3. Filter by confidence
         results = [r for r in results if r.confidence >= self._min_confidence]
 
         # 4. Build aggregate
         total_ms = (time.time() - start) * 1000
-        for r in results:
-            r.latency_ms = total_ms
-
         full_text = " ".join(r.text for r in results)
 
         _log_event(
             "ocr-engine", "ocr_complete",
-            component=self._backend_name or "unknown",
+            component=backend_used or "unknown",
             latency_ms=total_ms,
             detections_count=len(results),
             characters=len(full_text),
@@ -333,5 +378,5 @@ class OCRPipeline:
             full_text=full_text,
             total_latency_ms=total_ms,
             preprocessing_ms=pre_ms,
-            backend_used=self._backend_name,
+            backend_used=backend_used or self._backend_name,
         )

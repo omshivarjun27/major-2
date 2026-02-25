@@ -9,12 +9,12 @@ Every module (spatial, vqa_engine, scene_graph, etc.) MUST import
 types from here rather than defining their own.
 """
 
-import numpy as np
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from enum import Enum, auto
+from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple, Union
 
+import numpy as np
 
 # ============================================================================
 # Enums
@@ -124,6 +124,42 @@ class BoundingBox:
             x2=max(0, min(self.x2, max_width)),
             y2=max(0, min(self.y2, max_height)),
         )
+
+
+@dataclass
+class OCRWord:
+    """Single OCR word with optional bounding box."""
+
+    text: str
+    confidence: float
+    bbox: Optional[BoundingBox] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "text": self.text,
+            "confidence": round(self.confidence, 3),
+            "bbox": self.bbox.to_list() if self.bbox else None,
+        }
+
+
+@dataclass
+class OCRResult:
+    """Aggregated OCR output for a single image."""
+
+    full_text: str
+    words: List[OCRWord] = field(default_factory=list)
+    confidence: float = 0.0
+    backend: str = "unknown"
+    latency_ms: float = 0.0
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "full_text": self.full_text,
+            "words": [word.to_dict() for word in self.words],
+            "confidence": round(self.confidence, 3),
+            "backend": self.backend,
+            "latency_ms": round(self.latency_ms, 1),
+        }
 
 
 @dataclass

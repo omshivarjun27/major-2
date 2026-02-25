@@ -19,6 +19,7 @@ from core.ocr import (
     OCRPipeline,
     OCRPipelineResult,
     OCRResult,
+    OCRWord,
     _to_numpy,
     apply_clahe,
     denoise,
@@ -33,37 +34,41 @@ from core.ocr import (
 # ============================================================================
 
 
-class TestOCRResult:
+class TestOCRWord:
     def test_creation(self):
-        r = OCRResult(
+        r = OCRWord(
             text="Hello",
             confidence=0.95,
-            bbox=(10, 20, 100, 50),
-            backend="easyocr",
         )
         assert r.text == "Hello"
         assert r.confidence == 0.95
-        assert r.bbox == (10, 20, 100, 50)
 
     def test_to_dict(self):
-        r = OCRResult(
+        r = OCRWord(
             text="World",
             confidence=0.876,
-            bbox=(0, 0, 50, 20),
-            latency_ms=42.567,
-            backend="tesseract",
         )
         d = r.to_dict()
         assert d["text"] == "World"
         assert d["confidence"] == 0.876
-        assert d["bbox"] == [0, 0, 50, 20]
+        assert d["bbox"] is None
+
+
+class TestOCRResult:
+    def test_to_dict(self):
+        result = OCRResult(
+            full_text="Hello World",
+            words=[OCRWord(text="Hello", confidence=0.9), OCRWord(text="World", confidence=0.8)],
+            confidence=0.85,
+            backend="tesseract",
+            latency_ms=42.567,
+        )
+        d = result.to_dict()
+        assert d["full_text"] == "Hello World"
+        assert len(d["words"]) == 2
+        assert d["confidence"] == 0.85
         assert d["latency_ms"] == 42.6
         assert d["backend"] == "tesseract"
-
-    def test_to_dict_no_bbox(self):
-        r = OCRResult(text="No bbox", confidence=0.5, backend="unknown")
-        d = r.to_dict()
-        assert d["bbox"] is None
 
 
 # ============================================================================
@@ -85,8 +90,8 @@ class TestOCRPipelineResult:
 
     def test_to_dict(self):
         results = [
-            OCRResult(text="Hello", confidence=0.9, backend="test"),
-            OCRResult(text="World", confidence=0.8, backend="test"),
+            OCRWord(text="Hello", confidence=0.9),
+            OCRWord(text="World", confidence=0.8),
         ]
         r = OCRPipelineResult(
             results=results,
@@ -187,7 +192,7 @@ class TestOCRPipeline:
         class MockBackend:
             def read(self, gray):
                 return [
-                    OCRResult(text="Mock text", confidence=0.85, backend="mock"),
+                    OCRWord(text="Mock text", confidence=0.85),
                 ]
 
         pipeline = OCRPipeline()
@@ -211,8 +216,8 @@ class TestOCRPipeline:
         class LowConfBackend:
             def read(self, gray):
                 return [
-                    OCRResult(text="Good", confidence=0.9, backend="test"),
-                    OCRResult(text="Bad", confidence=0.1, backend="test"),
+                    OCRWord(text="Good", confidence=0.9),
+                    OCRWord(text="Bad", confidence=0.1),
                 ]
 
         pipeline = OCRPipeline(min_confidence=0.3)

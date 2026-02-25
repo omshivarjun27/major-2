@@ -13,12 +13,15 @@ with OS-specific install instructions.  Never crashes the system.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import platform
-import sys
+import time
 from typing import Any, Dict, List, Optional
 
 import numpy as np
+
+from shared.schemas import BoundingBox, OCRResult, OCRWord
 
 logger = logging.getLogger("ocr-engine")
 
@@ -180,32 +183,47 @@ class _HeuristicBackend:
     regions with a disclaimer.  Useful as a "something is here" signal.
     """
 
-    def read(self, gray: np.ndarray) -> List[Dict[str, Any]]:
+    def read(self, gray: np.ndarray) -> OCRResult:
         import cv2
+
+        start = time.time()
 
         mser = cv2.MSER_create()
         mser.setMinArea(60)
         mser.setMaxArea(14400)
 
         regions, _ = mser.detectRegions(gray)
-        bboxes = []
+        bboxes: List[OCRWord] = []
         for pts in regions:
             x, y, w, h = cv2.boundingRect(pts)
             aspect = w / (h + 1e-6)
             if 0.2 < aspect < 5.0 and h > 8:
-                bboxes.append({"bbox": [x, y, x + w, y + h], "type": "text_region"})
+                bboxes.append(
+                    OCRWord(
+                        text="",
+                        confidence=0.0,
+                        bbox=BoundingBox.from_xywh(x=x, y=y, w=w, h=h),
+                    )
+                )
 
         # Deduplicate overlapping boxes (simple greedy NMS)
         bboxes = self._nms(bboxes, iou_thresh=0.5)
-        return bboxes
+        return OCRResult(
+            full_text="",
+            words=bboxes,
+            confidence=0.0,
+            backend="heuristic_opencv",
+            latency_ms=(time.time() - start) * 1000,
+        )
 
     @staticmethod
-    def _nms(boxes: List[Dict], iou_thresh: float) -> List[Dict]:
+    def _nms(boxes: List[OCRWord], iou_thresh: float) -> List[OCRWord]:
         if not boxes:
             return []
-        import cv2
 
-        rects = np.array([b["bbox"] for b in boxes], dtype=np.float32)
+        rects = np.array([b.bbox.to_list() for b in boxes if b.bbox], dtype=np.float32)
+        if rects.size == 0:
+            return []
         # Compute areas
         x1, y1, x2, y2 = rects[:, 0], rects[:, 1], rects[:, 2], rects[:, 3]
         areas = (x2 - x1) * (y2 - y1)
@@ -229,25 +247,139 @@ class _HeuristicBackend:
         return [boxes[i] for i in keep]
 
 
+async def _retry_read(func, *args, **kwargs):
+    delays = [0.1, 0.3]
+    for attempt in range(len(delays) + 1):
+        try:
+            return await func(*args, **kwargs)
+        except (OSError, RuntimeError):
+            if attempt >= len(delays):
+                raise
+            await asyncio.sleep(delays[attempt])
+
+
+def _compute_confidence(words: List[OCRWord]) -> float:
+    if not words:
+        return 0.0
+    return sum(word.confidence for word in words) / len(words)
+
+
+async def _run_backend_fallbacks(
+    image: Any,
+    languages: Optional[List[str]],
+    min_confidence: float,
+) -> Optional[OCRResult]:
+    from core.ocr import OCRPipeline
+
+    pipeline = OCRPipeline(languages=languages)
+    primary_backend = None
+    if pipeline._backend is not None:
+        primary_backend = pipeline._backend.__class__.__name__
+
+    for backend in ("easyocr", "tesseract"):
+        if backend == "easyocr" and not EASYOCR_OK:
+            continue
+        if backend == "tesseract" and not TESSERACT_OK:
+            continue
+        if primary_backend == "_EasyOCRBackend" and backend == "easyocr":
+            continue
+        if primary_backend == "_TesseractBackend" and backend == "tesseract":
+            continue
+        try:
+            result = await _retry_read(_run_single_backend, image, backend, languages)
+        except Exception as exc:
+            logger.debug("OCR backend %s failed: %s", backend, exc)
+            continue
+
+        filtered_words = [w for w in result.words if w.confidence >= min_confidence]
+        result.words = filtered_words
+        if filtered_words:
+            result.full_text = " ".join(w.text for w in filtered_words if w.text)
+            result.confidence = _compute_confidence(filtered_words)
+        else:
+            result.full_text = ""
+            result.confidence = 0.0
+        if result.confidence > 0.0:
+            return result
+    return None
+
+
+async def _run_single_backend(
+    image: Any,
+    backend: str,
+    languages: Optional[List[str]],
+) -> OCRResult:
+    start = time.time()
+    from core.ocr import OCRPipeline, preprocess
+
+    pipeline = OCRPipeline(languages=languages)
+    if not pipeline._backends:
+        raise RuntimeError("No OCR backend available")
+
+    backend_instance = None
+    if backend == "easyocr":
+        if not EASYOCR_OK:
+            raise RuntimeError("EasyOCR backend unavailable")
+        backend_instance = pipeline._backends[0]
+    elif backend == "tesseract":
+        if not TESSERACT_OK:
+            raise RuntimeError("Tesseract backend unavailable")
+        backend_instance = pipeline._backends[-1]
+    else:
+        raise ValueError(f"Unknown backend: {backend}")
+
+    loop = asyncio.get_event_loop()
+    gray = await loop.run_in_executor(None, preprocess, image)
+    words = await loop.run_in_executor(None, backend_instance.read, gray)
+    confidence = _compute_confidence(words)
+    return OCRResult(
+        full_text=" ".join(w.text for w in words if w.text),
+        words=words,
+        confidence=confidence,
+        backend=backend,
+        latency_ms=(time.time() - start) * 1000,
+    )
+
+
 # ── Unified OCR function ─────────────────────────────────────────
 
-async def ocr_read(image: Any, languages: Optional[List[str]] = None) -> Dict[str, Any]:
+async def ocr_read(
+    image: Any,
+    languages: Optional[List[str]] = None,
+    min_confidence: float = 0.3,
+) -> OCRResult:
     """Run OCR on an image using the best available backend.
 
-    Returns a dict with:
-    - backend: str — which backend was used
-    - results: list — OCR results
-    - full_text: str — concatenated text
-    - error: str | None — error message if any
-    - install_help: str | None — install instructions if no backend
+    Returns OCRResult with:
+    - full_text: concatenated text
+    - words: per-word details and bboxes
+    - confidence: average word confidence
+    - backend: backend identifier
+    - latency_ms: total latency
     """
     # Try the full OCRPipeline from core/ocr/__init__.py first
     try:
         from core.ocr import OCRPipeline
-        pipe = OCRPipeline(languages=languages)
+        pipe = OCRPipeline(languages=languages, min_confidence=min_confidence)
         if pipe.is_ready:
-            result = await pipe.process(image)
-            return result.to_dict()
+            started = time.time()
+            result = await _retry_read(pipe.process, image)
+            primary_result = result.to_ocr_result()
+            primary_result.latency_ms = (time.time() - started) * 1000
+            filtered_words = [w for w in primary_result.words if w.confidence >= min_confidence]
+            primary_result.words = filtered_words
+            if filtered_words:
+                primary_result.full_text = " ".join(w.text for w in filtered_words if w.text)
+                primary_result.confidence = _compute_confidence(filtered_words)
+            else:
+                primary_result.full_text = ""
+                primary_result.confidence = 0.0
+
+            if primary_result.confidence < 0.5:
+                fallback_result = await _run_backend_fallbacks(image, languages, min_confidence)
+                if fallback_result and fallback_result.confidence > primary_result.confidence:
+                    return fallback_result
+            return primary_result
     except Exception as exc:
         logger.debug("OCRPipeline failed: %s", exc)
 
@@ -255,7 +387,6 @@ async def ocr_read(image: Any, languages: Optional[List[str]] = None) -> Dict[st
     if CV2_OK:
         try:
             import cv2
-            import asyncio
 
             if isinstance(image, np.ndarray):
                 gray = image if len(image.shape) == 2 else cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -267,26 +398,21 @@ async def ocr_read(image: Any, languages: Optional[List[str]] = None) -> Dict[st
             heuristic = _HeuristicBackend()
             gray = deskew_image(gray)  # correct slight rotation before detection
             loop = asyncio.get_event_loop()
-            regions = await loop.run_in_executor(None, heuristic.read, gray)
-            return {
-                "backend": "heuristic_opencv",
-                "results": regions,
-                "full_text": "",
-                "error": "No real OCR backend installed — showing detected text regions only.",
-                "install_help": get_install_instructions(),
-            }
+            result = await loop.run_in_executor(None, heuristic.read, gray)
+            filtered_words = [w for w in result.words if w.confidence >= min_confidence]
+            result.words = filtered_words
+            if result.words:
+                result.full_text = " ".join(w.text for w in result.words if w.text)
+                result.confidence = _compute_confidence(result.words)
+            return result
         except Exception as exc:
             logger.error("Heuristic OCR fallback failed: %s", exc)
 
     # Nothing available
-    return {
-        "backend": "none",
-        "results": [],
-        "full_text": "",
-        "error": (
-            "OCR engine is not installed on this device. "
-            "Please run `scripts/install_ocr_deps.sh` or enable OCR in settings. "
-            "Meanwhile I can attempt limited text-region detection but may fail to read text."
-        ),
-        "install_help": get_install_instructions(),
-    }
+    return OCRResult(
+        full_text="",
+        words=[],
+        confidence=0.0,
+        backend="none",
+        latency_ms=0.0,
+    )
