@@ -5,17 +5,13 @@
 > **Risk Classification**: CRITICAL, single-task isolation mandatory.
 > **Priority Unlock**: T-001 Secrets Migration
 
-> **Revision**: v2 (2026-02-25) — Scope adjustments based on codebase audit.
-> **Changes**: T-001, T-002, T-004, T-011, T-012 objectives revised for feasibility.
-> **Original**: Preserved at P0-tasks-v1-original.md
-
 ---
 
 ## T-001: secrets-migration
 
 - **Phase**: P0
 - **Cluster**: CL-SEC
-- **Objective**: Create a SecretProvider abstraction in `shared/config/` with two concrete implementations: (a) `EnvFileProvider` that reads from `.env` files for local development, and (b) `EnvironmentProvider` that reads from OS environment variables for Docker and CI deployments. Refactor `shared/config/settings.py` to retrieve the 7 API keys (LIVEKIT_API_KEY, DEEPGRAM_API_KEY, OLLAMA_API_KEY, ELEVEN_API_KEY, OLLAMA_VL_API_KEY, TAVUS_API_KEY, LIVEKIT_API_SECRET) through the SecretProvider interface instead of direct `os.environ.get()` calls. The abstraction must define `supports_rotation()` and `health_check()` methods as extension points for future vault/KMS backends, but no vault/KMS implementation is required at this stage. Backward compatibility with existing `.env` usage must be preserved.
+- **Objective**: Migrate 7 API keys (LIVEKIT_API_KEY, DEEPGRAM_API_KEY, OLLAMA_API_KEY, ELEVEN_API_KEY, OLLAMA_VL_API_KEY, TAVUS_API_KEY, LIVEKIT_API_SECRET) from plaintext `.env` storage to a vault/KMS backend with runtime injection. This is the priority unlock task for Phase 0. Every downstream security task depends on secrets being properly managed before it can proceed. The migration must preserve backward compatibility for local development while enforcing vault-based retrieval in staging and production environments.
 - **Upstream Deps**: []
 - **Downstream Impact**: [`T-002`, `T-004`, `T-006`, `T-008`, `T-009`]
 - **Risk Tier**: Critical
@@ -34,7 +30,7 @@
 
 - **Phase**: P0
 - **Cluster**: CL-SEC
-- **Objective**: Implement the `SecretProvider` ABC and two concrete backends: `EnvFileProvider` (reads dotenv files with python-dotenv) and `EnvironmentProvider` (reads OS environment variables directly). Each provider must implement `get_secret(key) -> Optional[str]`, `supports_rotation() -> bool` (returns False for both initial backends), and `health_check() -> bool`. Add provider selection logic to `shared/config/settings.py` that auto-detects the environment: if running inside Docker (check for `/.dockerenv` or `DOCKER=true` env var), use `EnvironmentProvider`; otherwise fall back to `EnvFileProvider`. This decouples the application from direct `os.environ` access and enables future vault/KMS backends without changing consumer code.
+- **Objective**: Create a SecretProvider interface in `shared/config/` with concrete implementations for three environments: local `.env` file (development), HashiCorp Vault (staging), and cloud KMS (production). The abstraction allows `shared/config/settings.py` to retrieve secrets through a unified API regardless of the backing store. Each provider must support key rotation notifications and health checks. This decouples the application from any single secrets backend and enables zero-downtime key rotation.
 - **Upstream Deps**: [`T-001`]
 - **Downstream Impact**: [`T-004`, `T-009`]
 - **Risk Tier**: Critical
@@ -72,7 +68,7 @@
 
 - **Phase**: P0
 - **Cluster**: CL-SEC
-- **Objective**: Configure Docker and Docker Compose to inject secrets via `env_file:` directive or `docker run --env-file` instead of baking values into images. Update `docker-compose.test.yml` and `deployments/compose/docker-compose.test.yml` to reference an `env_file:` block pointing to `.env` (with a `.env.example` template committed to the repo). Remove any `COPY .env` patterns from Dockerfiles if present. Verify that the root Dockerfile's `COPY . .` does not include `.env` by adding it to `.dockerignore`. Validate that containers start correctly when secrets are provided via environment injection at runtime.
+- **Objective**: Configure Docker and Docker Compose to inject secrets via environment variables or mounted secret files instead of baking `.env` into images. Update `docker-compose.test.yml` and deployment configurations under `deployments/` to read secrets from the vault/KMS infrastructure established by T-001. Remove any `COPY .env` directives from Dockerfiles. Validate that containers start and authenticate with all 7 API services when secrets are injected at runtime rather than build time.
 - **Upstream Deps**: [`T-001`, `T-003`]
 - **Downstream Impact**: [`T-011`]
 - **Risk Tier**: Critical
@@ -205,7 +201,7 @@
 
 - **Phase**: P0
 - **Cluster**: CL-TQA
-- **Objective**: End-to-end verification that the SecretProvider abstraction, non-root Docker execution, and PII scrubbing work together as a cohesive security layer. Create `tests/integration/test_p0_security_smoke.py` with pytest-compatible test scenarios that: (1) verify SecretProvider returns expected values for all 7 API key names when env vars are set, (2) verify SecretProvider raises or returns None when keys are missing, (3) confirm that none of the 7 API key patterns appear in log output by injecting test values through the PIIScrubFilter, and (4) validate that the EncryptionManager can encrypt and decrypt consent-format JSON files. Docker non-root verification is handled by the existing CI docker job smoke test and does not require Docker-in-pytest.
+- **Objective**: End-to-end verification that secrets injection, non-root Docker execution, and PII scrubbing work together as a cohesive security layer. Create `tests/integration/test_p0_security_smoke.py` with test scenarios that: (1) start a Docker container as non-root, (2) verify secrets are injected at runtime and accessible to the application, (3) confirm that none of the 7 API keys appear in any log output, and (4) validate that the consent file is encrypted at rest. This is one of the two integration/stabilization closeout tasks for Phase 0.
 - **Upstream Deps**: [`T-001`, `T-003`, `T-004`, `T-008`]
 - **Downstream Impact**: [`T-012`]
 - **Risk Tier**: Critical
@@ -224,7 +220,7 @@
 
 - **Phase**: P0
 - **Cluster**: CL-OPS
-- **Objective**: Record current measurable baseline metrics before Phase 1 begins: import latency (orchestrator, config, core modules), test pass rate (total tests, pass/fail/skip counts), LOC counts per top-level module (shared, core, application, infrastructure, apps), stub inventory count, and configuration variable count. Produce a structured artifact at `docs/baselines/p0_metrics.json` containing all measurements with timestamps. VRAM usage is excluded from automated capture (requires GPU hardware) and should be recorded manually if GPU is available, with a placeholder field in the JSON schema. This snapshot serves as the regression baseline for subsequent phases.
+- **Objective**: Record current VRAM usage, pipeline latency (hot path end-to-end, vision processing, OCR, memory query), test pass rate, LOC counts per module, and stub inventory counts before Phase 1 begins. Produce a structured artifact at `docs/baselines/p0_metrics.json` containing all measurements with timestamps. This snapshot serves as the regression baseline for every subsequent phase. Without it, performance and quality claims in later phases have no reference point. This is the second integration/stabilization closeout task for Phase 0.
 - **Upstream Deps**: [`T-011`]
 - **Downstream Impact**: []
 - **Risk Tier**: Critical
@@ -246,7 +242,7 @@
 3. Every entry in every task's `doc_mutation_map` has been verified as updated
 4. No unresolved `blocked` tasks remain
 5. Regression suite shows no coverage drop compared to phase entry baseline
-6. All 7 API keys accessed through SecretProvider abstraction (no direct os.environ.get for secrets)
+6. All 7 API keys rotated and stored in vault/KMS (zero plaintext in .env)
 7. Docker containers running as non-root user confirmed
 8. Zero critical security issues from SAST scan
 9. Secrets management infrastructure verified operational
