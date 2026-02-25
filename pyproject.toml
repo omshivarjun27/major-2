@@ -164,3 +164,12 @@ name = "application must not import infrastructure or apps"
 type = "forbidden"
 source_modules = ["application"]
 forbidden_modules = ["infrastructure", "apps"]
+
+
+# ================================================================
+# bandit — Python SAST
+# ================================================================
+
+[tool.bandit]
+exclude_dirs = ["tests", "research", "scripts", ".sisyphus"]
+targets = ["shared", "core", "application", "infrastructure", "apps"]

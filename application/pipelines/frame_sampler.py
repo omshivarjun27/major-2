@@ -203,7 +203,7 @@ class AdaptiveFrameSampler:
             # Mean-based hash: each pixel is above or below mean
             mean_val = pixels.mean()
             bits = (pixels > mean_val).astype(np.uint8)
-            return hashlib.md5(bits.tobytes()).hexdigest()[:16]
+            return hashlib.md5(bits.tobytes()).hexdigest()[:16]  # nosec B324 - MD5 used for perceptual frame fingerprint, not security
 
         except Exception:
             return ""

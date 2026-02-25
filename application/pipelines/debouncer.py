@@ -178,7 +178,7 @@ def compute_scene_graph_hash(scene_graph: Any) -> str:
         elif isinstance(scene_graph, dict):
             sg_dict = scene_graph
         else:
-            return hashlib.md5(str(scene_graph).encode()).hexdigest()[:12]
+            return hashlib.md5(str(scene_graph).encode()).hexdigest()[:12]  # nosec B324 - MD5 used for scene deduplication fingerprint, not security
 
         # Extract stable features (ignore transient variations)
         stable = []
@@ -192,6 +192,6 @@ def compute_scene_graph_hash(scene_graph: Any) -> str:
         stable.sort(key=lambda x: (x["cls"], x["dist"]))
 
         raw = json.dumps(stable, sort_keys=True)
-        return hashlib.md5(raw.encode()).hexdigest()[:12]
+        return hashlib.md5(raw.encode()).hexdigest()[:12]  # nosec B324 - MD5 used for scene deduplication fingerprint, not security
     except Exception:
         return ""
