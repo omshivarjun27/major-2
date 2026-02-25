@@ -108,3 +108,24 @@
 - Downstream notes reference P4 (performance), P5 (monitoring), P7 (release gate)
 - Zero prohibited terms confirmed via regex sweep
 - All 14 rendered fields (16 schema fields minus the 2 phase-level blocks) verified per task
+
+## 2026-02-25 Task 8: P4-tasks.md + dag.json P4 nodes
+- P4-tasks.md created with exactly 18 task definitions (T-073 through T-090)
+- Phase focus: Performance & Validation (profiling, quantization, optimization, load testing, SLA enforcement)
+- 4 clusters used: CL-VIS(4), CL-MEM(3), CL-TQA(9), CL-OPS(1)
+- Three independent entry points (no upstream deps): T-073 (vision profiling), T-077 (FAISS scaling), T-078 (embedding batch), T-080 (VRAM profiler), T-084 (memory leak), T-086 (TTS optimization), T-087 (STT optimization)
+- T-074 is the INT8 quantization task (dedicated per requirement)
+- T-083 is the Locust load testing task (dedicated per requirement)
+- 2 integration closeout tasks: T-089 (SLA validation under load), T-090 (VRAM budget verification)
+- DAG updated: 90 nodes (72 existing + 18 P4), 101 edges (84 existing + 17 P4-internal)
+- Zero cross-phase edges for P4 (all P4 tasks depend only on other P4 tasks or have no upstream deps)
+- Zero BASE edges added (consistent with P3 learning)
+- Topological sort passes: 90 nodes sorted, acyclic confirmed
+- Risk tiers: 8 High (T-074, T-075, T-076, T-077, T-081, T-082, T-083, T-089, T-090), 9 Medium, 0 Low
+- Correction: Risk tiers: 9 High, 9 Medium = 18 total
+- Mixed governance: elevated for high-impact tasks (T-074, T-075, T-076, T-077, T-081, T-082, T-083, T-089, T-090), standard for remainder
+- Phase exit criteria includes 10 items: all tasks completed, zero failing tests, doc mutations verified, 500ms SLA at 10 users, VRAM <= 3.5GB, CPU < 80%, no memory leaks, vision < 300ms
+- Downstream notes: P5 monitoring consumes P4 baselines, P7 extends to 50 concurrent users
+- When appending to dag.json, must add trailing comma to last existing entry before new entries (fixed for both nodes and edges arrays)
+- Zero prohibited terms confirmed via regex sweep
+- All 14 rendered fields (16 schema fields minus 2 phase-level blocks) verified per task

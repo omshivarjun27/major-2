@@ -738,7 +738,7 @@ Parallel Speedup: Wave 1 (3x), Wave FINAL (4x)
   - Message: `docs(sisyphus): enumerate Phase 3 Resilience (20 tasks T-053..T-072)`
 
 
-- [ ] 8. Enumerate Phase 4: Performance and Validation (18 tasks, T-073 to T-090)
+- [x] 8. Enumerate Phase 4: Performance and Validation (18 tasks, T-073 to T-090)
 
   **What to do**:
   - Create `.sisyphus/phases/P4-tasks.md` with exactly 18 task definitions following locked schema
