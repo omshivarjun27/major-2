@@ -68,7 +68,8 @@ deployments/
 
 # Environment files
 .env
-.env.example
+.env.*
+!.env.example
 
 # ML models and binaries (handled separately or via volume mount)
 # Uncomment if models are too large for build context:

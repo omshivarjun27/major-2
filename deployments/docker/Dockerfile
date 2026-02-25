@@ -19,6 +19,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
+# Create non-root application user
+RUN groupadd -r appuser && useradd -r -g appuser -d /app -s /sbin/nologin appuser
+
 WORKDIR /app
 
 # Python dependencies (cached layer)
@@ -38,6 +41,10 @@ COPY data/ ./data/
 
 # Runtime directories
 RUN mkdir -p .runtime/logs .runtime/cache
+
+RUN mkdir -p /app/data /app/qr_cache \
+    && chown -R appuser:appuser /app/data /app/.runtime /app/qr_cache
+USER appuser
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
