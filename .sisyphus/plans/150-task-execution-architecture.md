@@ -574,7 +574,7 @@ Parallel Speedup: Wave 1 (3x), Wave FINAL (4x)
   - Message: `docs(sisyphus): enumerate Phase 0 Foundation Hardening (12 tasks T-001..T-012)`
   - Files: `.sisyphus/phases/P0-tasks.md`, `.sisyphus/dag.json`
 
-- [ ] 5. Enumerate Phase 1: Core Completion (25 tasks, T-013 to T-037)
+- [x] 5. Enumerate Phase 1: Core Completion (25 tasks, T-013 to T-037)
 
   **What to do**:
   - Create `.sisyphus/phases/P1-tasks.md` with exactly 25 task definitions following locked schema

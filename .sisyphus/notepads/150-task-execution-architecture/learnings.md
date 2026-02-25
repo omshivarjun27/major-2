@@ -47,3 +47,22 @@
 - Python executable on this Windows machine is `py` (C:\Windows\py.exe), not `python`
 - 14 fields validated per task (Phase through Current State), all 12 instances confirmed
 - Zero prohibited terms confirmed via regex sweep
+
+## 2026-02-25 Task 5: P1-tasks.md + dag.json P1 nodes
+- P1-tasks.md created with exactly 25 task definitions (T-013 through T-037)
+- 10 clusters used: CL-VIS(5), CL-MEM(5), CL-VQA(3), CL-OCR(2), CL-FACE(2), CL-APP(2), CL-RSN(1), CL-INF(2), CL-TQA(2), CL-GOV(1)
+- P1 allows parallel execution: parallelization_eligible varies per task (yes/no with reasons)
+- Mixed risk tiers: mostly High, some Medium, one Low (T-026 ocr-fallback-hardening)
+- Mixed governance: elevated for cross-layer tasks (T-016, T-021, T-022, T-024, T-029, T-030, T-031, T-035, T-036, T-037), standard for single-module tasks
+- DAG updated: 37 nodes (12 P0 + 25 P1), 41 edges (13 P0 + 27 P1-internal + 1 cross-phase P0->P1)
+- Cross-phase edge: T-001 -> T-029 (face consent needs secrets infrastructure)
+- P1 has 10 root tasks (no P1-internal upstream): T-013, T-014, T-018, T-020, T-026, T-027, T-028, T-030, T-033, T-034
+- T-035 is the major convergence point with 9 upstream deps (all stub-filling terminal tasks)
+- T-037 is the terminal task (architecture compliance check as phase gate)
+- 5 placeholder modules covered: core/reasoning/ (T-032), infrastructure/storage/ (T-033), infrastructure/monitoring/ (T-034), application/event_bus/ + application/session_mgmt/ (T-030)
+- 3 integration/stabilization closeouts: T-035 (stub validation), T-036 (cross-module integration test), T-037 (architecture compliance)
+- Phase exit criteria: stubs < 10, 5 MVPs implemented, tests >= 880, 100% doc coverage
+- Downstream impact notes: P2 agent refactoring depends on T-016/T-024/T-031, P3 circuit breakers need T-022/T-034, P6 extends T-032
+- Topological order verified: T-001 -> T-003 -> T-005 -> T-013 -> T-014 -> T-018 -> T-020 -> T-026 -> T-027 -> T-028 -> T-030 -> T-033 -> T-034 -> ... -> T-035 -> T-036 -> T-037
+- Zero prohibited terms confirmed, all 25 tasks have 14 rendered fields, all current_state: not_started
+- BASE-XXX edges are implicit (not stored in dag.json edges array), only T-to-T edges tracked
