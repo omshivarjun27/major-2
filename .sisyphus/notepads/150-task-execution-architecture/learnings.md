@@ -196,3 +196,17 @@
 - dag.json schema validated: valid JSON, total_tasks=150, phases=[P0..P7]
 - Zero prohibited terms confirmed via regex sweep
 - All 14 rendered fields (matching P3 reference format) verified per task
+
+## 2026-02-25 Task: DAG second pass (cross-phase edges, checkpoints, critical path)
+- Added 9 cross-phase edges: T-037->T-038 (P1->P2), T-052->T-053 (P2->P3), T-072->T-073 (P3->P4), T-090->T-091 (P4->P5), T-110->T-111/T-117/T-120 (P5->P6), T-132->T-137 (P6->P7), T-097->T-139 (P5->P7)
+- Total cross-phase edges now 11 (2 original + 9 new)
+- T-035 convergence point had 9 upstream deps (pre-existing from P1), violated the <=5 constraint
+- Fixed by rerouting 4 edges: T-017->T-021 (was T-017->T-035), T-027->T-029 (was T-027->T-035), T-032->T-031 (was T-032->T-035), T-033->T-034 (was T-033->T-035)
+- T-035 now has exactly 5 upstream: T-021, T-025, T-029, T-031, T-034
+- Rerouting increased critical path by 1 node (T-032->T-031 added to chain): length 51 vs 50 before
+- 8 stabilization checkpoints added at T-010, T-020, T-030, T-050, T-075, T-100, T-125, T-150
+- Critical path: 51 nodes, spans P1 (T-013) through P7 (T-150), crosses all phase boundaries
+- Critical path route: VIS->VQA->convergence->compliance->agent split->async->circuit breaker->app->QA->failover->vision opt->load test->VRAM->monitoring->ops->runbook->reasoning->VQA->release
+- dag.json final stats: 150 nodes, 176 edges, 11 cross-phase, acyclic, max upstream <=5, 8 checkpoints
+- All 8 validation checks pass: node count, contiguous IDs, acyclicity, upstream limit, cross-phase count, no BASE edges, checkpoints, critical path ends at T-150
+- LEARNING: convergence nodes (like T-035 with 9 upstream) need upstream-limit checks applied retroactively when introducing new constraints; rerouting through intermediate nodes preserves reachability without violating fan-in limits

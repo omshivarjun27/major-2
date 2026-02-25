@@ -892,7 +892,7 @@ Parallel Speedup: Wave 1 (3x), Wave FINAL (4x)
   **Commit**: YES
   - Message: `docs(sisyphus): enumerate Phase 7 Hardening (18 tasks T-133..T-150)`
 
-- [ ] 12. Resolve Cross-Phase DAG Edges + Stabilization Checkpoint Injection
+- [x] 12. Resolve Cross-Phase DAG Edges + Stabilization Checkpoint Injection
 
   **What to do**:
   - This is the second pass of the two-pass approach for DAG construction

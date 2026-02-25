@@ -209,14 +209,14 @@
     {"from": "T-028", "to": "T-029"},
     {"from": "T-001", "to": "T-029"},
     {"from": "T-030", "to": "T-031"},
-    {"from": "T-017", "to": "T-035"},
+    {"from": "T-017", "to": "T-021"},
     {"from": "T-021", "to": "T-035"},
     {"from": "T-025", "to": "T-035"},
-    {"from": "T-027", "to": "T-035"},
+    {"from": "T-027", "to": "T-029"},
     {"from": "T-029", "to": "T-035"},
     {"from": "T-031", "to": "T-035"},
-    {"from": "T-032", "to": "T-035"},
-    {"from": "T-033", "to": "T-035"},
+    {"from": "T-032", "to": "T-031"},
+    {"from": "T-033", "to": "T-034"},
     {"from": "T-034", "to": "T-035"},
     {"from": "T-035", "to": "T-036"},
     {"from": "T-036", "to": "T-037"},
@@ -345,6 +345,29 @@
     {"from": "T-144", "to": "T-149"},
     {"from": "T-147", "to": "T-149"},
     {"from": "T-148", "to": "T-149"},
-    {"from": "T-149", "to": "T-150"}
-  ]
+    {"from": "T-149", "to": "T-150"},
+    {"from": "T-037", "to": "T-038"},
+    {"from": "T-052", "to": "T-053"},
+    {"from": "T-072", "to": "T-073"},
+    {"from": "T-090", "to": "T-091"},
+    {"from": "T-110", "to": "T-111"},
+    {"from": "T-110", "to": "T-117"},
+    {"from": "T-110", "to": "T-120"},
+    {"from": "T-132", "to": "T-137"},
+    {"from": "T-097", "to": "T-139"}
+  ],
+  "stabilization_checkpoints": [
+    {"task_id": "T-010", "phase": "P0", "type": "every-10", "description": "P0 security SAST scan complete"},
+    {"task_id": "T-020", "phase": "P1", "type": "every-10", "description": "P1 FAISS indexer and RAG pipeline complete"},
+    {"task_id": "T-030", "phase": "P1", "type": "every-10", "description": "P1 application event bus and session management MVPs"},
+    {"task_id": "T-050", "phase": "P2", "type": "every-50", "description": "P2 tech debt reassessment — 1/3 milestone"},
+    {"task_id": "T-075", "phase": "P4", "type": "every-25", "description": "P4 MiDaS optimization complete"},
+    {"task_id": "T-100", "phase": "P5", "type": "every-50", "description": "P5 backup scheduler orchestrator — 2/3 milestone"},
+    {"task_id": "T-125", "phase": "P6", "type": "every-25", "description": "P6 multi-frame VQA complete"},
+    {"task_id": "T-150", "phase": "P7", "type": "every-50", "description": "Release artifact packaging — FINAL task"}
+  ],
+  "critical_path": {
+    "length": 51,
+    "path": ["T-013", "T-015", "T-016", "T-023", "T-024", "T-032", "T-031", "T-035", "T-036", "T-037", "T-038", "T-039", "T-041", "T-042", "T-043", "T-051", "T-052", "T-053", "T-054", "T-060", "T-065", "T-066", "T-070", "T-071", "T-072", "T-073", "T-074", "T-076", "T-082", "T-083", "T-085", "T-089", "T-090", "T-091", "T-092", "T-103", "T-107", "T-110", "T-120", "T-121", "T-124", "T-125", "T-126", "T-130", "T-131", "T-132", "T-137", "T-142", "T-148", "T-149", "T-150"]
+  }
 }
