@@ -171,3 +171,28 @@
 - Zero prohibited terms confirmed via regex sweep
 - All 14 rendered fields (matching P3 reference format) verified per task
 - dag.json edit: replaced last node line (T-110) with T-110 + 22 new nodes, replaced last edge line with last edge + 26 new edges
+
+## 2026-02-25 Task 11: P7-tasks.md + dag.json P7 nodes (FINAL PHASE)
+- P7-tasks.md created with exactly 18 task definitions (T-133 through T-150)
+- Phase focus: Hardening & Release (SAST/DAST scanning, canary deployment, 1000+ test regression, release packaging)
+- 3 clusters used: CL-TQA(9), CL-OPS(4), CL-GOV(5) = 18 total
+- Cluster counts match explicit DAG node specs from orchestrator (not the summary line which said 8/5/5)
+- 11 root tasks with no P7 upstream: T-133, T-134, T-137, T-138, T-139, T-140, T-141, T-143, T-144, T-145, T-146, T-147
+- Security scanning chain: T-133/T-134 -> T-135 -> T-136 -> T-142
+- Documentation convergence: T-140/T-141/T-142/T-143/T-146 -> T-148
+- Final regression: T-138/T-144/T-147/T-148 -> T-149 -> T-150 (capstone)
+- T-149 upstream deps limited to 4 (per plan spec max ~5): T-138, T-144, T-147, T-148
+- T-150 is the CAPSTONE task: release artifact packaging, canary deployment, final task in 150-task master plan
+- 2 integration closeouts: T-149 (final regression suite), T-150 (release artifact packaging)
+- DAG updated: 150 nodes (132 existing + 18 P7), 167 edges (151 existing + 16 P7-internal)
+- Zero cross-phase edges for P7 (all P7 tasks depend only on other P7 tasks or have no upstream deps)
+- Zero BASE edges added (consistent with P3/P4/P5/P6 learning)
+- Topological sort passes: 150 nodes sorted, acyclic confirmed
+- T-150 is terminal: zero outgoing edges, one incoming from T-149
+- Risk tiers: 8 High (T-133, T-134, T-135, T-136, T-137, T-138, T-139, T-142, T-149, T-150), 4 Medium (T-144, T-145, T-146, T-147), 4 Low (T-140, T-141, T-143, T-148)
+- Correction: Risk tiers: 10 High, 4 Medium, 4 Low = 18 total
+- Phase exit criteria: 10 items covering SAST/DAST clean, dependency scan clean, 1000+ tests passing, 50-user load test, canary success, all docs complete, release artifacts packaged
+- This is the FINAL phase. All 150 tasks (P0-P7) now defined in the DAG.
+- dag.json schema validated: valid JSON, total_tasks=150, phases=[P0..P7]
+- Zero prohibited terms confirmed via regex sweep
+- All 14 rendered fields (matching P3 reference format) verified per task

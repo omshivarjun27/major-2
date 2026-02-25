@@ -854,7 +854,7 @@ Parallel Speedup: Wave 1 (3x), Wave FINAL (4x)
   **Commit**: YES
   - Message: `docs(sisyphus): enumerate Phase 6 Feature Evolution (22 tasks T-111..T-132)`
 
-- [ ] 11. Enumerate Phase 7: Hardening and Release (18 tasks, T-133 to T-150)
+- [x] 11. Enumerate Phase 7: Hardening and Release (18 tasks, T-133 to T-150)
 
   **What to do**:
   - Create `.sisyphus/phases/P7-tasks.md` with exactly 18 task definitions following locked schema
