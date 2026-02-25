@@ -31,10 +31,8 @@ import logging
 import os
 import re
 import sys
-import time
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional
-
 
 # ── PII Scrubbing Patterns ────────────────────────────────────────────
 _PII_PATTERNS = [
@@ -49,6 +47,17 @@ _PII_PATTERNS = [
     (re.compile(r"\b(API[a-zA-Z0-9]{10,})\b"), "[API_KEY_REDACTED]"),
     # Bearer tokens
     (re.compile(r"Bearer\s+[a-zA-Z0-9._\-]+"), "Bearer [TOKEN_REDACTED]"),
+    # Deepgram-style keys (dg_ prefix)
+    (re.compile(r"\bdg_[a-zA-Z0-9]{10,}\b"), "[API_KEY_REDACTED]"),
+    # Generic long hex strings (likely API keys/secrets, 32+ chars)
+    (re.compile(r"\b[a-f0-9]{32,}\b"), "[HEX_SECRET_REDACTED]"),
+    # Key=value patterns for named secrets in log messages
+    (re.compile(
+        r"(?i)((?:api[_-]?key|api[_-]?secret|token|password|secret)"
+        r"\s*[=:]\s*)['\"]?([a-zA-Z0-9_\-./+]{8,})['\"]?"
+    ), r"\1[REDACTED]"),
+    # WebSocket URLs with credentials
+    (re.compile(r"(wss?://[^:]+:)[a-zA-Z0-9_\-]+(@)"), r"\1[REDACTED]\2"),
 ]
 
 
