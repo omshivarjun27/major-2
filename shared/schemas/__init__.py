@@ -58,6 +58,13 @@ class SpatialRelation(Enum):
     BLOCKING = "blocking"
 
 
+class Verbosity(Enum):
+    """Output detail level for navigation cues."""
+    TERSE = "terse"      # max 8 words, critical info only
+    NORMAL = "normal"    # standard short_cue behavior
+    VERBOSE = "verbose"  # detailed format_verbose behavior
+
+
 # ============================================================================
 # Core Data Structures
 # ============================================================================

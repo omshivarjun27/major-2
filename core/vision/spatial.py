@@ -945,6 +945,86 @@ EXAMPLES:
 
 OUTPUT: Single spoken sentence only. No punctuation except period."""
 
+    # ── Clock-position mapping ───────────────────────────────────────────
+    DIRECTION_TO_CLOCK = {
+        Direction.FAR_LEFT: 9,
+        Direction.LEFT: 10,
+        Direction.SLIGHTLY_LEFT: 11,
+        Direction.CENTER: 12,
+        Direction.SLIGHTLY_RIGHT: 1,
+        Direction.RIGHT: 2,
+        Direction.FAR_RIGHT: 3,
+    }
+
+    # ── i18n string table ──────────────────────────────────────────────────
+    _STRINGS = {
+        "en": {
+            "path_clear": "Path clear.",
+            "all_clear": "All clear.",
+            "clear_terse": "Clear.",
+            "stop": "Stop!",
+            "caution": "Caution,",
+            "at_clock": "at {clock} o'clock",
+            "meters": "{dist} meters",
+            "meter": "{dist} meter",
+            "step_right": "step right",
+            "step_left": "step left",
+            "stop_reassess": "stop and reassess",
+            "proceed_caution": "proceed with caution",
+            "critical_hazard": "This is a critical hazard requiring immediate attention.",
+            "near_hazard": "This is a near hazard.",
+            "detected_at": "A {class_name} is detected {dist} {direction} of center.",
+        }
+    }
+
+    def __init__(self, locale: str = "en"):
+        self._strings = self._STRINGS.get(locale, self._STRINGS["en"])
+
+    def _get_string(self, key: str, **kwargs) -> str:
+        """Resolve a localised string template."""
+        template = self._strings.get(key, key)
+        return template.format(**kwargs) if kwargs else template
+
+    def _direction_to_clock(self, direction: Direction) -> int:
+        """Map Direction enum to 12-hour clock position."""
+        return self.DIRECTION_TO_CLOCK.get(direction, 12)
+
+    def format_clock_position(self, obstacles: List[ObstacleRecord]) -> str:
+        """Generate TTS cue using clock-position directions."""
+        if not obstacles:
+            return "All clear."
+        top = obstacles[0]
+        clock = self._direction_to_clock(top.direction)
+        dist = round(top.distance_m * 2) / 2
+        if top.priority == Priority.CRITICAL:
+            return f"Stop! {top.class_name.title()} at {clock} o'clock, {dist:.1g} meters."
+        elif top.priority == Priority.NEAR_HAZARD:
+            return f"Caution, {top.class_name} at {clock} o'clock, {dist:.1g} meters."
+        return f"{top.class_name.title()} at {clock} o'clock, {dist:.0f} meters."
+
+    def _format_terse(self, obstacles: List[ObstacleRecord]) -> str:
+        """Ultra-short output (max 8 words)."""
+        if not obstacles:
+            return "Clear."
+        top = obstacles[0]
+        dist = round(top.distance_m)
+        dir_word = top.direction.value.split()[-1]  # 'left', 'right', 'ahead'
+        if top.priority == Priority.CRITICAL:
+            return f"Stop! {dir_word}."
+        return f"{top.class_name} {dist}m {dir_word}."
+
+    def format_with_verbosity(self, obstacles: List[ObstacleRecord], verbosity: Optional[Any] = None) -> str:
+        """Unified method selecting detail level from Verbosity enum."""
+        from shared.schemas import Verbosity as _Verbosity
+        if verbosity is None:
+            verbosity = _Verbosity.NORMAL
+        if verbosity == _Verbosity.TERSE:
+            return self._format_terse(obstacles)
+        elif verbosity == _Verbosity.VERBOSE:
+            return self.format_verbose(obstacles)
+        return self.format_short_cue(obstacles)
+
+
     def format_short_cue(self, obstacles: List[ObstacleRecord]) -> str:
         """Generate short TTS-ready cue (max 15 words)"""
         if not obstacles:
