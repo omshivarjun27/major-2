@@ -14,9 +14,11 @@ import json
 import logging
 import time
 import uuid
+from collections import OrderedDict
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 
@@ -32,6 +34,27 @@ from .embeddings import MultimodalFuser, TextEmbedder, create_embedders
 from .indexer import FAISSIndexer
 
 logger = logging.getLogger("memory-ingest")
+
+
+class IngestValidationError(Exception):
+    """Raised when an ingest request fails validation."""
+
+    def __init__(self, reason: str):
+        self.reason = reason
+        super().__init__(reason)
+
+
+@dataclass
+class BatchIngestResult:
+    """Result from a batch ingestion."""
+
+    total: int = 0
+    succeeded: int = 0
+    failed: int = 0
+    deduplicated: int = 0
+    results: List[MemoryStoreResponse] = field(default_factory=list)
+    errors: List[Dict[str, str]] = field(default_factory=list)
+    total_time_ms: float = 0.0
 
 
 class MemoryIngester:
@@ -82,6 +105,10 @@ class MemoryIngester:
         self._ingest_count = 0
         self._total_ingest_time_ms = 0.0
 
+        # Dedup cache: content_hash -> memory_id (bounded LRU, max 10000)
+        self._dedup_cache: OrderedDict[str, str] = OrderedDict()
+        self._dedup_cache_max = 10_000
+
     async def ingest(
         self,
         request: MemoryStoreRequest,
@@ -106,6 +133,37 @@ class MemoryIngester:
         retention_days = self._config.retention_days
         expiry = (datetime.utcnow() + timedelta(days=retention_days)).isoformat() + "Z"
 
+        # Step 1: Validate input
+        try:
+            self._validate_request(request)
+        except IngestValidationError as e:
+            logger.warning("Ingest rejected: %s", e.reason)
+            return MemoryStoreResponse(
+                id="",
+                timestamp=timestamp,
+                expiry=expiry,
+                summary=f"Rejected: {e.reason}",
+                embedding_status=EmbeddingStatus.REJECTED,
+                ingest_time_ms=(time.time() - start_time) * 1000,
+            )
+
+        # Step 2: Dedup check
+        content_hash = self._compute_content_hash(request)
+        if content_hash in self._dedup_cache:
+            existing_id = self._dedup_cache[content_hash]
+            # Move to end (LRU refresh)
+            self._dedup_cache.move_to_end(content_hash)
+            logger.debug("Dedup hit: content_hash=%s existing_id=%s", content_hash[:16], existing_id)
+            return MemoryStoreResponse(
+                id=existing_id,
+                timestamp=timestamp,
+                expiry=expiry,
+                summary="Duplicate content (previously ingested)",
+                embedding_status=EmbeddingStatus.DEDUPLICATED,
+                ingest_time_ms=(time.time() - start_time) * 1000,
+            )
+
+        # Step 3: Process
         try:
             # Decode inputs
             image = self._decode_image(request.image_base64) if request.image_base64 else None
@@ -163,6 +221,11 @@ class MemoryIngester:
                     f"index={idx_time_ms:.1f}ms"
                 )
 
+            # Store hash in dedup cache on success
+            self._dedup_cache[content_hash] = memory_id
+            if len(self._dedup_cache) > self._dedup_cache_max:
+                self._dedup_cache.popitem(last=False)  # Remove oldest entry
+
             return MemoryStoreResponse(
                 id=memory_id,
                 timestamp=timestamp,
@@ -176,21 +239,7 @@ class MemoryIngester:
         except Exception as e:
             logger.error(f"Ingest failed for {memory_id}: {e}")
 
-            # Store with failed embedding status
-            try:
-                summary = request.user_label or "Memory ingestion failed"
-                self._indexer.add(
-                    id=memory_id,
-                    embedding=np.zeros(self._text_embedder.dimension, dtype=np.float32),
-                    timestamp=timestamp,
-                    expiry=expiry,
-                    summary=summary,
-                    session_id=request.session_id,
-                    user_label=request.user_label,
-                )
-            except Exception:
-                pass
-
+            # Do NOT store zero-vector entries in the index on failure
             total_time_ms = (time.time() - start_time) * 1000
 
             return MemoryStoreResponse(
@@ -286,6 +335,90 @@ class MemoryIngester:
             )
 
         return embedding
+
+    def _validate_request(self, request: MemoryStoreRequest) -> None:
+        """Validate ingest request. Raises IngestValidationError on failure."""
+        has_text = bool(request.transcript and request.transcript.strip())
+        has_image = bool(request.image_base64)
+        has_audio = bool(request.audio_base64)
+        has_scene = bool(request.scene_graph)
+
+        if not (has_text or has_image or has_audio or has_scene):
+            raise IngestValidationError("Request has no content: provide transcript, image, audio, or scene_graph")
+
+        # Text length limit
+        if request.transcript and len(request.transcript) > 50_000:
+            raise IngestValidationError(f"Transcript too long: {len(request.transcript)} chars (max 50000)")
+
+        # Image size limit (base64 string, ~4MB decoded = ~5.3MB base64)
+        if request.image_base64 and len(request.image_base64) > 6_000_000:
+            raise IngestValidationError(f"Image too large: {len(request.image_base64)} chars (max ~4MB decoded)")
+
+        # Audio size limit (~10MB decoded = ~13.3MB base64)
+        if request.audio_base64 and len(request.audio_base64) > 14_000_000:
+            raise IngestValidationError(f"Audio too large: {len(request.audio_base64)} chars (max ~10MB decoded)")
+
+    def _compute_content_hash(self, request: MemoryStoreRequest) -> str:
+        """SHA-256 hash of request content for dedup."""
+        h = hashlib.sha256()
+        if request.transcript:
+            h.update(request.transcript.strip().lower().encode("utf-8"))
+        if request.scene_graph:
+            sg = json.dumps(request.scene_graph, sort_keys=True)
+            h.update(sg.encode("utf-8"))
+        if request.image_base64:
+            # Hash first 1000 chars of base64 (enough to distinguish images)
+            h.update(request.image_base64[:1000].encode("utf-8"))
+        return h.hexdigest()
+
+    async def ingest_batch(
+        self,
+        requests: List[MemoryStoreRequest],
+        consent_given: bool = False,
+        stop_on_error: bool = False,
+    ) -> BatchIngestResult:
+        """Ingest multiple memories with partial-success tracking.
+
+        Args:
+            requests: List of store requests
+            consent_given: Whether user has given storage consent
+            stop_on_error: If True, abort batch on first failure
+
+        Returns:
+            BatchIngestResult with per-item outcomes
+        """
+        start = time.time()
+        results: List[MemoryStoreResponse] = []
+        errors: List[Dict[str, str]] = []
+        dedup_count = 0
+
+        for idx, req in enumerate(requests):
+            try:
+                resp = await self.ingest(req, consent_given=consent_given)
+                if resp.embedding_status == EmbeddingStatus.DEDUPLICATED:
+                    dedup_count += 1
+                if resp.embedding_status == EmbeddingStatus.REJECTED:
+                    error_entry = {"index": str(idx), "error": resp.summary}
+                    errors.append(error_entry)
+                    if stop_on_error:
+                        break
+                else:
+                    results.append(resp)
+            except Exception as e:
+                error_entry = {"index": str(idx), "error": str(e)}
+                errors.append(error_entry)
+                if stop_on_error:
+                    break
+
+        return BatchIngestResult(
+            total=len(requests),
+            succeeded=len(results),
+            failed=len(errors),
+            deduplicated=dedup_count,
+            results=results,
+            errors=errors,
+            total_time_ms=(time.time() - start) * 1000,
+        )
 
     def _decode_image(self, image_base64: str) -> Optional[Any]:
         """Decode base64 image to PIL Image."""
