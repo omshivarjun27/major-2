@@ -129,3 +129,23 @@
 - When appending to dag.json, must add trailing comma to last existing entry before new entries (fixed for both nodes and edges arrays)
 - Zero prohibited terms confirmed via regex sweep
 - All 14 rendered fields (16 schema fields minus 2 phase-level blocks) verified per task
+## 2026-02-25 Task 9: P5-tasks.md + dag.json P5 nodes
+- P5-tasks.md created with exactly 20 task definitions (T-091 through T-110)
+- Phase focus: Operational Readiness (Prometheus monitoring, Grafana dashboards, alerting, CD pipelines, backup/restore, runbooks, environment config)
+- 3 clusters used: CL-OPS(13), CL-INF(3), CL-GOV(4) = 20 total
+- T-091 is the priority unlock task (prometheus-metrics-foundation), no upstream deps
+- 3 integration closeout tasks: T-108 (monitoring stack integration), T-109 (CD pipeline validation), T-110 (runbook execution test)
+- DAG updated: 110 nodes (90 existing + 20 P5), 125 edges (101 existing + 24 P5-internal)
+- Zero cross-phase edges for P5 (all P5 tasks depend only on other P5 tasks or have no upstream deps)
+- Zero BASE edges added (consistent with P3/P4 learning)
+- Topological sort passes: 110 nodes sorted, acyclic confirmed
+- Risk tiers: 2 High (T-097 production CD, T-109 CD validation), 7 Medium (T-096, T-098, T-099, T-100, T-105, T-106, T-108, T-110), 9 Low
+- Correction: Risk tiers: 2 High, 8 Medium, 10 Low = 20 total
+- Mixed governance: elevated for high-risk + integration closeouts (T-096, T-097, T-108, T-109, T-110), standard for remainder
+- 5 root tasks with no P5 upstream: T-091, T-096, T-098, T-099, T-101, T-105
+- T-110 is the terminal task (depends on T-107, T-108, T-109)
+- Phase exit criteria: 10 items covering Prometheus live, Grafana dashboards, alert rules, CD pipeline, backup automation, runbooks, structured logging, Docker Compose configs, deployment time < 10 min
+- Downstream notes: P6 uses monitoring infra, P7 requires CD pipeline + monitoring + runbooks fully operational
+- Zero prohibited terms confirmed via regex sweep
+- All 14 rendered fields (16 schema fields minus 2 phase-level blocks) verified per task
+- dag.json trailing comma handling: the edit tool auto-handles comma insertion when appending after last node/edge
