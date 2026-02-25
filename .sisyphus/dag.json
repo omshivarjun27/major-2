@@ -1,0 +1,31 @@
+{
+  "schema_version": "1.0",
+  "total_tasks": 150,
+  "phases": ["P0", "P1", "P2", "P3", "P4", "P5", "P6", "P7"],
+  "baseline_prerequisites": [
+    {"id": "BASE-001", "description": "5-layer architecture migration"},
+    {"id": "BASE-002", "description": "YOLO v8n integration"},
+    {"id": "BASE-003", "description": "MiDaS depth estimation"},
+    {"id": "BASE-004", "description": "3-tier OCR fallback chain"},
+    {"id": "BASE-005", "description": "Braille reading pipeline"},
+    {"id": "BASE-006", "description": "QR/AR scanning with cache"},
+    {"id": "BASE-007", "description": "Scene graph construction"},
+    {"id": "BASE-008", "description": "Perception orchestrator"},
+    {"id": "BASE-009", "description": "FAISS vector indexing"},
+    {"id": "BASE-010", "description": "RAG pipeline"},
+    {"id": "BASE-011", "description": "Embedding model migration"},
+    {"id": "BASE-012", "description": "Consent management"},
+    {"id": "BASE-013", "description": "Face detection & tracking"},
+    {"id": "BASE-014", "description": "Voice router & TTS bridge"},
+    {"id": "BASE-015", "description": "LiveKit WebRTC agent"},
+    {"id": "BASE-016", "description": "FastAPI REST server"},
+    {"id": "BASE-017", "description": "GitHub Actions CI pipeline"},
+    {"id": "BASE-018", "description": "Docker multi-stage build"},
+    {"id": "BASE-019", "description": "Enterprise documentation suite"},
+    {"id": "BASE-020", "description": "840 test functions"},
+    {"id": "BASE-021", "description": "Import linter integration"},
+    {"id": "BASE-022", "description": "PII scrubber for logs"}
+  ],
+  "nodes": [],
+  "edges": []
+}
