@@ -6,6 +6,7 @@ Memory Engine - Retriever Module
 Vector search API for memory retrieval.
 """
 
+import asyncio
 import logging
 import time
 from datetime import datetime
@@ -61,6 +62,20 @@ class MemoryRetriever:
         self._search_count = 0
         self._total_search_time_ms = 0.0
 
+    def _normalize_score(self, raw_score: float) -> float:
+        """Clamp raw score to a 0-1 cosine similarity range."""
+        return max(0.0, min(1.0, raw_score))
+
+    def _deduplicate(self, results: List[SearchResult]) -> List[SearchResult]:
+        """Deduplicate results by normalized summary while keeping top scores."""
+        deduped: Dict[str, SearchResult] = {}
+        for result in results:
+            summary_key = (result.metadata.summary or "").strip().lower()
+            existing = deduped.get(summary_key)
+            if existing is None or result.score > existing.score:
+                deduped[summary_key] = result
+        return sorted(deduped.values(), key=lambda r: r.score, reverse=True)
+
     async def search(
         self,
         request: MemorySearchRequest,
@@ -77,22 +92,30 @@ class MemoryRetriever:
 
         try:
             # Embed query
-            if hasattr(self._text_embedder, "async_embed"):
-                query_embedding = await self._text_embedder.async_embed(request.query)
-            else:
-                query_embedding = self._text_embedder.embed(request.query)
+            query_embedding = await asyncio.to_thread(self._text_embedder.embed, request.query)
 
             # Search index
-            raw_results = self._indexer.search(
+            raw_results = await asyncio.to_thread(
+                self._indexer.search,
                 query=query_embedding,
-                k=request.k,
+                k=request.k * 2,
                 time_window_days=request.time_window_days,
                 session_id=request.session_id,
             )
 
+            normalized_results = [
+                SearchResult(
+                    id=result.id,
+                    score=self._normalize_score(result.score),
+                    metadata=result.metadata,
+                )
+                for result in raw_results
+            ]
+            deduped_results = self._deduplicate(normalized_results)
+
             # Convert to response format
             hits = []
-            for result in raw_results:
+            for result in deduped_results:
                 # Apply score threshold
                 if result.score < self._config.similarity_threshold:
                     continue
@@ -113,6 +136,8 @@ class MemoryRetriever:
                     hit.scene_graph = None  # Placeholder
 
                 hits.append(hit)
+                if len(hits) >= request.k:
+                    break
 
             total_time_ms = (time.time() - start_time) * 1000
 
@@ -160,12 +185,22 @@ class MemoryRetriever:
         Returns:
             List of SearchResult
         """
-        return self._indexer.search(
+        raw_results = await asyncio.to_thread(
+            self._indexer.search,
             query=embedding,
             k=k,
             time_window_days=time_window_days,
             session_id=session_id,
         )
+        normalized_results = [
+            SearchResult(
+                id=result.id,
+                score=self._normalize_score(result.score),
+                metadata=result.metadata,
+            )
+            for result in raw_results
+        ]
+        return self._deduplicate(normalized_results)
 
     def get_memory(self, memory_id: str) -> Optional[MemoryRecord]:
         """Get a specific memory by ID.
