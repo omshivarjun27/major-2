@@ -1,3 +1,26 @@
+# ruff: noqa: W293, E402
+# pyright: ignore[
+#     reportAttributeAccessIssue,
+#     reportAny,
+#     reportConstantRedefinition,
+#     reportDeprecated,
+#     reportExplicitAny,
+#     reportImplicitOverride,
+#     reportIndexIssue,
+#     reportMissingImports,
+#     reportMissingParameterType,
+#     reportMissingTypeStubs,
+#     reportOptionalMemberAccess,
+#     reportUnannotatedClassAttribute,
+#     reportUnknownArgumentType,
+#     reportUnknownLambdaType,
+#     reportUnknownMemberType,
+#     reportUnknownParameterType,
+#     reportUnknownVariableType,
+#     reportUnusedExpression,
+#     reportUnusedImport,
+#     reportUnusedParameter,
+# ]
 """
 Spatial Perception Module for Voice & Vision Assistant
 =======================================================
@@ -10,27 +33,30 @@ Pipeline: FRAME → DETECT → SEGMENT → DEPTH → FUSE → NAVIGATION
 All core data types are imported from ``shared`` — do NOT redefine them here.
 """
 
+from __future__ import annotations
+
 import asyncio
 import gc
 import logging
-import math
 import time
 from abc import ABC, abstractmethod
-from typing import List, Optional, Tuple, Dict, Any, Union, TYPE_CHECKING
+from pathlib import Path
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
+
 import numpy as np
+
+from core.vision.model_download import ensure_midas_model, ensure_yolo_model
 
 # ── Canonical types from shared module ────────────────────────────────────
 from shared.schemas import (
     BoundingBox,
-    Detection,
-    SegmentationMask,
     DepthMap,
-    PerceptionResult,
-    ObstacleRecord,
-    NavigationOutput,
-    Priority,
+    Detection,
     Direction,
-    SizeCategory,
+    NavigationOutput,
+    ObstacleRecord,
+    Priority,
+    SegmentationMask,
 )
 
 # Memory optimization constants - ULTRA-LOW-LATENCY
@@ -44,8 +70,7 @@ GC_AFTER_FRAME = True  # Force GC after each frame
 # Type checking imports
 if TYPE_CHECKING:
     from PIL import Image as PILImageType
-else:
-    PILImageType = Any
+    PILImageType
 
 try:
     from PIL import Image as PILImage
@@ -79,7 +104,8 @@ logger = logging.getLogger("spatial-perception")
 try:
     from shared.logging.logging_config import log_event as _log_event
 except ImportError:
-    def _log_event(*a, **kw): pass
+    def _log_event(*a, **kw):
+        pass
 
 
 # =============================================================================
@@ -123,20 +149,20 @@ class MockObjectDetector(BaseDetector):
     Fast mock object detector for testing and fallback.
     ULTRA-OPTIMIZED: Zero-copy, pre-allocated, minimal latency.
     """
-    
+
     __slots__ = ('_ready', '_classes')
-    
+
     def __init__(self):
         self._ready = True
         self._classes = ("person", "chair", "table", "door", "wall")  # Tuple for speed
-    
+
     def is_ready(self) -> bool:
         return self._ready
-    
+
     async def detect(self, image: Any) -> List[Detection]:
         """ULTRA-FAST mock detection — always fresh, never cached."""
         width, height = image.size
-        
+
         # Pre-calculate positions (deterministic for consistency)
         hw, hh = width // 2, height // 2
         detections = [
@@ -147,7 +173,7 @@ class MockObjectDetector(BaseDetector):
                 bbox=BoundingBox(hw - 50, hh - 50, hw + 50, hh + 50)
             )
         ]
-        
+
         return detections
 
 
@@ -156,17 +182,17 @@ class YOLODetector(BaseDetector):
     YOLO-based object detector using ONNX Runtime or PyTorch.
     Supports YOLOv8, YOLOv7-tiny for optimized inference.
     """
-    
+
     def __init__(self, model_path: Optional[str] = None, conf_threshold: float = 0.5):
         self._model_path = model_path
         self._conf_threshold = conf_threshold
         self._model = None
         self._ready = False
         self._class_names = self._get_coco_classes()
-        
-        if model_path:
+
+        if model_path or ONNX_AVAILABLE or TORCH_AVAILABLE:
             self._load_model()
-    
+
     def _get_coco_classes(self) -> List[str]:
         """COCO class names"""
         return [
@@ -183,10 +209,14 @@ class YOLODetector(BaseDetector):
             "refrigerator", "book", "clock", "vase", "scissors", "teddy bear", "hair drier",
             "toothbrush"
         ]
-    
+
     def _load_model(self):
         """Load YOLO model"""
         try:
+            if ONNX_AVAILABLE:
+                if not self._model_path or not Path(self._model_path).exists():
+                    self._model_path = ensure_yolo_model()
+
             if ONNX_AVAILABLE and self._model_path and self._model_path.endswith('.onnx'):
                 self._model = ort.InferenceSession(self._model_path)
                 self._ready = True
@@ -194,7 +224,11 @@ class YOLODetector(BaseDetector):
             elif TORCH_AVAILABLE:
                 # Try loading with ultralytics
                 try:
-                    from ultralytics import YOLO
+                    try:
+                        from ultralytics import YOLO  # type: ignore[import-not-found]
+                    except ImportError as e:
+                        raise e
+
                     self._model = YOLO(self._model_path or "yolov8n.pt")
                     self._ready = True
                     logger.info("Loaded YOLO model with ultralytics")
@@ -203,15 +237,15 @@ class YOLODetector(BaseDetector):
         except Exception as e:
             logger.error(f"Failed to load YOLO model: {e}")
             self._ready = False
-    
+
     def is_ready(self) -> bool:
         return self._ready
-    
+
     async def detect(self, image: Any) -> List[Detection]:
         """Run YOLO detection (ONNX or ultralytics)."""
         if not self._ready:
             return []
-        
+
         try:
             # Convert to numpy
             img_np = np.array(image)
@@ -222,9 +256,9 @@ class YOLODetector(BaseDetector):
                     img_np = np.stack([img_np]*3, axis=-1)
             elif img_np.shape[2] == 4:
                 img_np = img_np[:, :, :3]
-            
+
             detections = []
-            
+
             if ONNX_AVAILABLE and isinstance(self._model, ort.InferenceSession):
                 # ── ONNX YOLOv8 inference ──────────────────────────────
                 detections = await asyncio.get_event_loop().run_in_executor(
@@ -236,7 +270,7 @@ class YOLODetector(BaseDetector):
                     None,
                     lambda: self._model.predict(img_np, conf=self._conf_threshold, verbose=False)
                 )
-                
+
                 for r in results:
                     boxes = r.boxes
                     for i, box in enumerate(boxes):
@@ -244,16 +278,16 @@ class YOLODetector(BaseDetector):
                         conf = float(box.conf[0])
                         cls_id = int(box.cls[0])
                         cls_name = self._class_names[cls_id] if cls_id < len(self._class_names) else "object"
-                        
+
                         detections.append(Detection(
                             id=f"obj_{i+1}",
                             class_name=cls_name,
                             confidence=conf,
                             bbox=BoundingBox(x1, y1, x2, y2)
                         ))
-            
+
             return detections[:MAX_DETECTIONS * 5]  # generous but bounded
-            
+
         except Exception as e:
             logger.error(f"YOLO detection error: {e}")
             return []
@@ -357,8 +391,10 @@ class YOLODetector(BaseDetector):
 
     @staticmethod
     def _iou(ax1, ay1, ax2, ay2, bx1, by1, bx2, by2) -> float:
-        ix1 = max(ax1, bx1); iy1 = max(ay1, by1)
-        ix2 = min(ax2, bx2); iy2 = min(ay2, by2)
+        ix1 = max(ax1, bx1)
+        iy1 = max(ay1, by1)
+        ix2 = min(ax2, bx2)
+        iy2 = min(ay2, by2)
         inter = max(0, ix2 - ix1) * max(0, iy2 - iy1)
         area_a = (ax2 - ax1) * (ay2 - ay1)
         area_b = (bx2 - bx1) * (by2 - by1)
@@ -374,19 +410,19 @@ class EdgeAwareSegmenter(BaseSegmenter):
     ULTRA-FAST edge-aware segmentation.
     Skip heavy processing, use confidence estimation only.
     """
-    
+
     __slots__ = ('_ready', '_cached_masks', '_gray_buffer')
-    
+
     def __init__(self):
         self._ready = cv2 is not None
         self._cached_masks: List[SegmentationMask] = []
         self._gray_buffer: Optional[np.ndarray] = None
-    
+
     async def segment(self, image: Any, detections: List[Detection]) -> List[SegmentationMask]:
         """ULTRA-FAST segmentation - minimal processing."""
         if not self._ready or not detections:
             return []
-        
+
         try:
             # FAST PATH: Return cached if available
             if len(detections) <= len(self._cached_masks):
@@ -398,30 +434,30 @@ class EdgeAwareSegmenter(BaseSegmenter):
                         edge_pixels=None
                     )
                 return self._cached_masks[:len(detections)]
-            
+
             # Aggressive downscale - use PIL resize (faster than cv2 for small sizes)
             small_img = image.resize(MAX_MASK_SIZE, PILImage.Resampling.NEAREST)
             img_np = np.asarray(small_img, dtype=np.uint8)
-            
+
             if len(img_np.shape) == 3:
                 # Fast grayscale conversion
                 gray = np.mean(img_np, axis=2, dtype=np.uint8)
             else:
                 gray = img_np
-            
+
             scale_x = MAX_MASK_SIZE[0] / image.size[0]
             scale_y = MAX_MASK_SIZE[1] / image.size[1]
-            
+
             masks = []
             for det in detections[:MAX_DETECTIONS]:
                 bbox = det.bbox
                 x1, y1 = int(bbox.x1 * scale_x), int(bbox.y1 * scale_y)
                 x2, y2 = int(bbox.x2 * scale_x), int(bbox.y2 * scale_y)
-                
+
                 # Bounds check
                 x1, y1 = max(0, x1), max(0, y1)
                 x2, y2 = min(MAX_MASK_SIZE[0], x2), min(MAX_MASK_SIZE[1], y2)
-                
+
                 if x2 <= x1 or y2 <= y1:
                     boundary_conf = 0.5
                 else:
@@ -429,17 +465,17 @@ class EdgeAwareSegmenter(BaseSegmenter):
                     roi = gray[y1:y2, x1:x2]
                     variance = np.var(roi) if roi.size > 0 else 0
                     boundary_conf = min(0.5 + variance / 5000.0, 0.95)
-                
+
                 masks.append(SegmentationMask(
                     detection_id=det.id,
                     mask=None,
                     boundary_confidence=boundary_conf,
                     edge_pixels=None
                 ))
-            
+
             self._cached_masks = masks
             return masks
-            
+
         except Exception as e:
             logger.error(f"Segmentation error: {e}")
             return []
@@ -454,23 +490,23 @@ class SimpleDepthEstimator(BaseDepthEstimator):
     ULTRA-FAST depth estimation using pre-allocated arrays.
     Zero-copy where possible.
     """
-    
+
     __slots__ = ('_ready', '_min_depth', '_max_depth', '_cached_depth', '_cached_dims')
-    
+
     def __init__(self, default_depth_range: Tuple[float, float] = (0.5, 10.0)):
         self._ready = True
         self._min_depth = default_depth_range[0]
         self._max_depth = default_depth_range[1]
         self._cached_depth: Optional[np.ndarray] = None
         self._cached_dims: Tuple[int, int] = (0, 0)
-    
+
     async def estimate_depth(self, image: Any) -> DepthMap:
         """ULTRA-FAST depth estimation with caching."""
         try:
             orig_width, orig_height = image.size
             height = orig_height // DEPTH_DOWNSCALE
             width = orig_width // DEPTH_DOWNSCALE
-            
+
             # Reuse cached depth array if dimensions match
             if (height, width) == self._cached_dims and self._cached_depth is not None:
                 return DepthMap(
@@ -479,25 +515,23 @@ class SimpleDepthEstimator(BaseDepthEstimator):
                     max_depth=self._max_depth,
                     is_metric=False
                 )
-            
+
             # Pre-allocate and fill in-place
             depth = np.empty((height, width), dtype=np.float32)
-            depth_range = self._max_depth - self._min_depth
-            
             # Vectorized fill - single operation
             row_depths = np.linspace(self._max_depth, self._min_depth, height, dtype=np.float32)
             depth[:] = row_depths[:, np.newaxis]
-            
+
             self._cached_depth = depth
             self._cached_dims = (height, width)
-            
+
             return DepthMap(
                 depth_array=depth,
                 min_depth=self._min_depth,
                 max_depth=self._max_depth,
                 is_metric=False
             )
-            
+
         except Exception as e:
             logger.error(f"Depth estimation error: {e}")
             return DepthMap(
@@ -513,27 +547,32 @@ class MiDaSDepthEstimator(BaseDepthEstimator):
     MiDaS-based depth estimation using ONNX or PyTorch.
     Provides more accurate monocular depth estimation.
     """
-    
+
     def __init__(self, model_path: Optional[str] = None, model_type: str = "MiDaS_small"):
         self._model_path = model_path
         self._model_type = model_type
         self._model = None
         self._transform = None
         self._ready = False
-        
-        if TORCH_AVAILABLE:
+
+        if ONNX_AVAILABLE or TORCH_AVAILABLE:
             self._load_model()
-    
+
     def _load_model(self):
         """Load MiDaS model (ONNX preferred for speed, PyTorch fallback)."""
         try:
-            if self._model_path and ONNX_AVAILABLE and self._model_path.endswith('.onnx'):
-                import os as _os
-                if _os.path.isfile(self._model_path):
+            import os as _os
+            if ONNX_AVAILABLE:
+                if not self._model_path or not _os.path.isfile(self._model_path):
+                    try:
+                        self._model_path = ensure_midas_model()
+                    except Exception as e:
+                        logger.warning("MiDaS download failed: %s", e)
+                if self._model_path and self._model_path.endswith(".onnx") and _os.path.isfile(self._model_path):
                     self._model = ort.InferenceSession(self._model_path)
                     self._ready = True
                     logger.info("Loaded ONNX MiDaS model: %s", self._model_path)
-                else:
+                elif self._model_path:
                     logger.warning("MiDaS model file not found: %s", self._model_path)
             elif TORCH_AVAILABLE:
                 # Try loading from torch hub
@@ -548,14 +587,18 @@ class MiDaSDepthEstimator(BaseDepthEstimator):
                     logger.warning(f"Could not load MiDaS from hub: {e}")
         except Exception as e:
             logger.error(f"Failed to load MiDaS model: {e}")
-    
+
+    def is_ready(self) -> bool:
+        """Check if MiDaS model is loaded and ready."""
+        return self._ready
+
     async def estimate_depth(self, image: Any) -> DepthMap:
         """Estimate depth using MiDaS (ONNX or PyTorch)."""
         if not self._ready:
             # Fallback to simple estimator
             simple = SimpleDepthEstimator()
             return await simple.estimate_depth(image)
-        
+
         try:
             img_np = np.array(image)
 
@@ -566,7 +609,7 @@ class MiDaSDepthEstimator(BaseDepthEstimator):
                 )
             elif self._transform:
                 input_batch = self._transform(img_np)
-                
+
                 with torch.no_grad():
                     prediction = self._model(input_batch)
                     prediction = torch.nn.functional.interpolate(
@@ -575,24 +618,24 @@ class MiDaSDepthEstimator(BaseDepthEstimator):
                         mode="bicubic",
                         align_corners=False,
                     ).squeeze()
-                
+
                 depth = prediction.cpu().numpy()
             else:
                 depth = np.zeros(img_np.shape[:2], dtype=np.float32)
-            
+
             # Normalize to metric range (approximate)
             depth_min = np.min(depth)
             depth_max = np.max(depth)
             depth_normalized = (depth - depth_min) / (depth_max - depth_min + 1e-6)
             depth_metric = 0.5 + depth_normalized * 9.5  # 0.5m to 10m range
-            
+
             return DepthMap(
                 depth_array=depth_metric.astype(np.float32),
                 min_depth=float(np.min(depth_metric)),
                 max_depth=float(np.max(depth_metric)),
                 is_metric=False  # Approximate, not calibrated
             )
-            
+
         except Exception as e:
             logger.error(f"MiDaS depth estimation error: {e}")
             simple = SimpleDepthEstimator()
@@ -645,27 +688,27 @@ class SpatialFuser:
     Fuses detection, segmentation, and depth data into unified obstacle records.
     Computes distance, direction, size, and priority for each obstacle.
     """
-    
+
     # Priority thresholds in meters
     CRITICAL_THRESHOLD = 1.0
     NEAR_THRESHOLD = 2.0
     FAR_THRESHOLD = 5.0
-    
+
     # FOV assumption for direction calculation (degrees)
     HORIZONTAL_FOV = 70.0
-    
+
     def __init__(self, image_width: int = 640, image_height: int = 480):
         self._img_width = image_width
         self._img_height = image_height
-    
+
     def _calculate_direction(self, center_x: int) -> Tuple[Direction, float]:
         """Calculate direction and angle from image center"""
         # Normalize x position to -1 to 1
         normalized_x = (center_x - self._img_width / 2) / (self._img_width / 2)
-        
+
         # Calculate angle in degrees
         angle = normalized_x * (self.HORIZONTAL_FOV / 2)
-        
+
         # Determine direction category
         if angle < -25:
             direction = Direction.FAR_LEFT
@@ -681,9 +724,9 @@ class SpatialFuser:
             direction = Direction.RIGHT
         else:
             direction = Direction.FAR_RIGHT
-        
+
         return direction, angle
-    
+
     def _calculate_priority(self, distance: float) -> Priority:
         """Determine priority based on distance"""
         if distance < self.CRITICAL_THRESHOLD:
@@ -694,7 +737,7 @@ class SpatialFuser:
             return Priority.FAR_HAZARD
         else:
             return Priority.SAFE
-    
+
     def _calculate_size_category(self, bbox: BoundingBox) -> str:
         """Categorize object size"""
         area_ratio = bbox.area / (self._img_width * self._img_height)
@@ -704,19 +747,19 @@ class SpatialFuser:
             return "medium"
         else:
             return "small"
-    
+
     def _generate_action(self, direction: Direction, distance: float, priority: Priority) -> str:
         """Generate recommended action"""
         if priority == Priority.SAFE:
             return "clear path"
-        
+
         if priority == Priority.CRITICAL:
             prefix = "stop immediately, "
         elif priority == Priority.NEAR_HAZARD:
             prefix = ""
         else:
             prefix = "be aware, "
-        
+
         if direction in [Direction.FAR_LEFT, Direction.LEFT, Direction.SLIGHTLY_LEFT]:
             action = f"{prefix}step right"
         elif direction in [Direction.FAR_RIGHT, Direction.RIGHT, Direction.SLIGHTLY_RIGHT]:
@@ -726,9 +769,9 @@ class SpatialFuser:
                 action = "stop and reassess"
             else:
                 action = "proceed with caution"
-        
+
         return action
-    
+
     def fuse(
         self,
         detections: List[Detection],
@@ -736,41 +779,41 @@ class SpatialFuser:
         depth_map: DepthMap
     ) -> List[ObstacleRecord]:
         """Fuse all spatial data into obstacle records"""
-        
+
         # Create mask lookup
         mask_lookup = {m.detection_id: m for m in masks}
-        
+
         obstacles = []
-        
+
         for det in detections:
             bbox = det.bbox
             center_x, center_y = bbox.center
-            
+
             # Get depth for this detection
             _, _, mean_depth = depth_map.get_region_depth(bbox)
-            
+
             # If depth seems invalid, estimate from position
             # Note: get_region_depth returns (min, median, max) — we use max as proxy
             if mean_depth == float('inf') or mean_depth > 100:
                 # Fallback: estimate from y-position
                 mean_depth = 0.5 + (1 - center_y / self._img_height) * 9.5
-            
+
             # Get mask confidence
             mask = mask_lookup.get(det.id)
             mask_conf = mask.boundary_confidence if mask else 0.5
-            
+
             # Calculate direction
             direction, angle = self._calculate_direction(center_x)
-            
+
             # Calculate priority
             priority = self._calculate_priority(mean_depth)
-            
+
             # Calculate size
             size_cat = self._calculate_size_category(bbox)
-            
+
             # Generate action
             action = self._generate_action(direction, mean_depth, priority)
-            
+
             obstacles.append(ObstacleRecord(
                 id=det.id,
                 class_name=det.class_name,
@@ -785,7 +828,7 @@ class SpatialFuser:
                 size_category=size_cat,
                 action_recommendation=action
             ))
-        
+
         # Sort by priority (critical first) then by distance
         priority_order = {
             Priority.CRITICAL: 0,
@@ -794,7 +837,7 @@ class SpatialFuser:
             Priority.SAFE: 3
         }
         obstacles.sort(key=lambda o: (priority_order[o.priority], o.distance_m))
-        
+
         return obstacles
 
 
@@ -807,7 +850,7 @@ class MicroNavFormatter:
     Formats spatial obstacle data into navigation cues for TTS output.
     Generates short, medium, and verbose descriptions.
     """
-    
+
     # LLM System Prompt for micro-navigation (can be used with Ollama)
     MICRO_NAV_SYSTEM_PROMPT = """You are a micro-navigation assistant for blind users.
 Given spatial obstacle data, generate VERY concise spoken warnings.
@@ -824,22 +867,22 @@ EXAMPLES:
 - "Person 3 meters ahead."
 
 OUTPUT: Single spoken sentence only. No punctuation except period."""
-    
+
     def format_short_cue(self, obstacles: List[ObstacleRecord]) -> str:
         """Generate short TTS-ready cue (max 15 words)"""
         if not obstacles:
             return "Path clear."
-        
+
         # Focus on highest priority obstacle
         top = obstacles[0]
-        
+
         # Distance formatting
         dist_rounded = round(top.distance_m * 2) / 2  # Round to 0.5
         if dist_rounded < 1:
-            dist_str = f"half meter" if dist_rounded == 0.5 else f"{dist_rounded:.1f} meters"
+            dist_str = "half meter" if dist_rounded == 0.5 else f"{dist_rounded:.1f} meters"
         else:
             dist_str = f"{dist_rounded:.1g} meters" if dist_rounded != int(dist_rounded) else f"{int(dist_rounded)} meter{'s' if dist_rounded != 1 else ''}"
-        
+
         # Priority prefix
         if top.priority == Priority.CRITICAL:
             prefix = "Stop!"
@@ -847,58 +890,58 @@ OUTPUT: Single spoken sentence only. No punctuation except period."""
             prefix = "Caution,"
         else:
             prefix = ""
-        
+
         # Direction formatting
         if top.direction == Direction.CENTER:
             dir_str = "ahead"
         else:
             dir_str = top.direction.value
-        
+
         # Build cue
         cue = f"{prefix} {top.class_name.title()} {dist_str} {dir_str}"
-        
+
         # Add action for critical
         if top.priority in [Priority.CRITICAL, Priority.NEAR_HAZARD]:
             cue += f" – {top.action_recommendation}"
-        
+
         return cue.strip().replace("  ", " ")
-    
+
     def format_verbose(self, obstacles: List[ObstacleRecord]) -> str:
         """Generate detailed verbal description"""
         if not obstacles:
             return "The path ahead appears clear with no obstacles detected."
-        
+
         descriptions = []
-        
+
         for obs in obstacles[:3]:  # Limit to top 3
             dist_str = f"{obs.distance_m:.1f} meters"
-            
+
             desc = (
                 f"A {obs.class_name} is detected {dist_str} {obs.direction.value} of center, "
                 f"at approximately {abs(obs.direction_deg):.0f} degrees. "
             )
-            
+
             if obs.priority == Priority.CRITICAL:
-                desc += f"This is a critical hazard requiring immediate attention. "
+                desc += "This is a critical hazard requiring immediate attention. "
             elif obs.priority == Priority.NEAR_HAZARD:
-                desc += f"This is a near hazard. "
-            
+                desc += "This is a near hazard. "
+
             desc += f"Recommended action: {obs.action_recommendation}."
             descriptions.append(desc)
-        
+
         if len(obstacles) > 3:
             descriptions.append(f"Additionally, {len(obstacles) - 3} more objects detected further away.")
-        
+
         return " ".join(descriptions)
-    
+
     def format_telemetry(self, obstacles: List[ObstacleRecord]) -> List[Dict]:
         """Generate JSON telemetry for downstream processing"""
         return [obs.to_dict() for obs in obstacles]
-    
+
     def format_all(self, obstacles: List[ObstacleRecord]) -> NavigationOutput:
         """Generate all output formats"""
         has_critical = any(o.priority == Priority.CRITICAL for o in obstacles)
-        
+
         return NavigationOutput(
             short_cue=self.format_short_cue(obstacles),
             verbose_description=self.format_verbose(obstacles),
@@ -916,7 +959,7 @@ class SpatialProcessor:
     Main spatial perception processor that orchestrates the full pipeline:
     FRAME → DETECT → SEGMENT → DEPTH → FUSE → NAVIGATION
     """
-    
+
     def __init__(
         self,
         detector: Optional[BaseDetector] = None,
@@ -931,33 +974,33 @@ class SpatialProcessor:
         self._depth_estimator = depth_estimator or SimpleDepthEstimator() if enable_depth else None
         self._fuser = SpatialFuser()
         self._formatter = MicroNavFormatter()
-        
+
         # Configuration
         self._enable_segmentation = enable_segmentation
         self._enable_depth = enable_depth
-        
+
         # State
         self._last_obstacles: List[ObstacleRecord] = []
         self._last_nav_output: Optional[NavigationOutput] = None
         self._processing = False
-        
+
         logger.info("SpatialProcessor initialized")
-    
+
     @property
     def is_ready(self) -> bool:
         """Check if processor is ready"""
         return self._detector.is_ready()
-    
+
     @property
     def last_obstacles(self) -> List[ObstacleRecord]:
         """Get last processed obstacles"""
         return self._last_obstacles
-    
+
     @property
     def last_navigation(self) -> Optional[NavigationOutput]:
         """Get last navigation output"""
         return self._last_nav_output
-    
+
     async def process_frame(self, image: Any) -> NavigationOutput:
         """
         ULTRA-FAST spatial perception pipeline.
@@ -971,21 +1014,21 @@ class SpatialProcessor:
                 telemetry=[],
                 has_critical=False
             )
-        
+
         self._processing = True
         start_time = time.time()
-        
+
         try:
             width, height = image.size
-            
+
             # Reuse fuser if dimensions match
             if not hasattr(self, '_fuser_dims') or self._fuser_dims != (width, height):
                 self._fuser = SpatialFuser(width, height)
                 self._fuser_dims = (width, height)
-            
+
             # Step 1: Object Detection (FAST)
             detections = await self._detector.detect(image)
-            
+
             if not detections:
                 self._last_obstacles = []
                 self._last_nav_output = NavigationOutput(
@@ -995,24 +1038,24 @@ class SpatialProcessor:
                     has_critical=False
                 )
                 return self._last_nav_output
-            
+
             # Steps 2-3: Run segmentation and depth in PARALLEL
             masks = []
             depth_map = None
-            
+
             async def run_segmentation():
                 nonlocal masks
                 if self._segmenter and self._enable_segmentation:
                     masks = await self._segmenter.segment(image, detections)
-            
+
             async def run_depth():
                 nonlocal depth_map
                 if self._depth_estimator and self._enable_depth:
                     depth_map = await self._depth_estimator.estimate_depth(image)
-            
+
             # Execute in parallel
             await asyncio.gather(run_segmentation(), run_depth())
-            
+
             # Fallback depth map
             if depth_map is None:
                 depth_map = DepthMap(
@@ -1021,17 +1064,17 @@ class SpatialProcessor:
                     max_depth=3.0,
                     is_metric=False
                 )
-            
+
             # Step 4: Fast Fusion
             obstacles = self._fuser.fuse(detections, masks, depth_map)
-            
+
             # Step 5: Format Output
             nav_output = self._formatter.format_all(obstacles)
-            
+
             # Store state
             self._last_obstacles = obstacles[:MAX_DETECTIONS]
             self._last_nav_output = nav_output
-            
+
             total_time = (time.time() - start_time) * 1000
 
             _log_event(
@@ -1045,9 +1088,9 @@ class SpatialProcessor:
 
             if total_time > 150:
                 logger.warning(f"Spatial pipeline slow: {total_time:.0f}ms")
-            
+
             return nav_output
-            
+
         except Exception as e:
             logger.error(f"Spatial processing error: {e}")
             return NavigationOutput(
@@ -1060,7 +1103,7 @@ class SpatialProcessor:
             self._processing = False
             if GC_AFTER_FRAME:
                 gc.collect()
-    
+
     async def get_quick_warning(self, image: Any) -> str:
         """
         Fast path for immediate hazard detection.
@@ -1069,19 +1112,19 @@ class SpatialProcessor:
         try:
             # Quick detection only
             detections = await self._detector.detect(image)
-            
+
             if not detections:
                 return "Path clear."
-            
+
             # Quick depth estimate for closest object
             width, height = image.size
-            
+
             # Find detection closest to bottom of frame (likely closest)
             closest = max(detections, key=lambda d: d.bbox.y2)
-            
+
             # Estimate distance from y-position
             est_distance = 0.5 + (1 - closest.bbox.y2 / height) * 5.0
-            
+
             # Quick direction
             center_x = closest.bbox.center[0]
             if center_x < width * 0.4:
@@ -1090,7 +1133,7 @@ class SpatialProcessor:
                 direction = "right"
             else:
                 direction = "ahead"
-            
+
             # Format quick warning
             if est_distance < 1.0:
                 return f"Stop! {closest.class_name.title()} very close {direction}."
@@ -1098,7 +1141,7 @@ class SpatialProcessor:
                 return f"Caution, {closest.class_name} {est_distance:.1f}m {direction}."
             else:
                 return f"{closest.class_name.title()} {est_distance:.0f}m {direction}."
-            
+
         except Exception as e:
             logger.error(f"Quick warning error: {e}")
             return "Unable to assess obstacles."
@@ -1118,7 +1161,7 @@ def create_spatial_processor(
 ) -> SpatialProcessor:
     """
     Factory function to create a configured SpatialProcessor.
-    
+
     Args:
         use_yolo: Use YOLO detector instead of mock
         yolo_model_path: Path to YOLO ONNX model
@@ -1126,7 +1169,7 @@ def create_spatial_processor(
         midas_model_path: Path to MiDaS ONNX model
         enable_segmentation: Enable edge-aware segmentation
         enable_depth: Enable depth estimation
-    
+
     Returns:
         Configured SpatialProcessor instance
     """
@@ -1138,16 +1181,16 @@ def create_spatial_processor(
             detector = MockObjectDetector()
     else:
         detector = MockObjectDetector()
-    
+
     # Select depth estimator
     if use_midas:
         depth_estimator = MiDaSDepthEstimator(model_path=midas_model_path)
     else:
         depth_estimator = SimpleDepthEstimator()
-    
+
     # Segmenter
     segmenter = EdgeAwareSegmenter() if enable_segmentation else None
-    
+
     return SpatialProcessor(
         detector=detector,
         segmenter=segmenter,
