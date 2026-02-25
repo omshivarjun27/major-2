@@ -998,19 +998,19 @@ Parallel Speedup: Wave 1 (3x), Wave FINAL (4x)
 
 > 4 validation agents run in PARALLEL. ALL must PASS. Failure triggers re-enumeration of affected phase.
 
-- [ ] F1. **Task Count Audit** — `quick`
+- [x] F1. **Task Count Audit** — `quick`
   Grep all `.sisyphus/phases/P*.md` files. Count `## T-` headers. Assert exactly 150. Count per phase matches allocation (P0=12, P1=25, P2=15, P3=20, P4=18, P5=20, P6=22, P7=18).
   Output: `P0 [12] | P1 [25] | P2 [15] | P3 [20] | P4 [18] | P5 [20] | P6 [22] | P7 [18] | TOTAL [150] | VERDICT: PASS/FAIL`
 
-- [ ] F2. **DAG Integrity Check** — `quick`
+- [x] F2. **DAG Integrity Check** — `quick`
   Parse `.sisyphus/dag.json`. Run topological sort via python script. Verify acyclicity. Check no backward cross-phase edges in upstream_deps. Verify all task ID references resolve to existing nodes. Verify no task has >5 upstream deps.
   Output: `Nodes [150] | Edges [N] | Cycles [0] | Unresolved Refs [0] | Max Upstream [≤5] | VERDICT: PASS/FAIL`
 
-- [ ] F3. **Schema Conformance Audit** — `quick`
+- [x] F3. **Schema Conformance Audit** — `quick`
   For each task in all 8 phase files, verify all 16 metadata fields are populated (not empty, not placeholder, not "TBD"). Cross-check task IDs in phase files match dag.json nodes. Verify BASE-XXX references are valid.
   Output: `Tasks [150] | Fields [16] | Complete [N/150] | BASE Refs [N valid] | VERDICT: PASS/FAIL`
 
-- [ ] F4. **Prohibited Terms + Governance Sweep** — `quick`
+- [x] F4. **Prohibited Terms + Governance Sweep** — `quick`
   Grep all `.sisyphus/phases/P*.md` for prohibited terms list. Verify every task has non-empty doc_mutation_map. Verify every CRITICAL-risk task has governance_level=critical. Verify stabilization checkpoints present at task boundaries (T-010, T-020, T-030, T-050, T-075, T-100, T-125, T-150).
   Output: `Term Violations [0] | Empty Doc Maps [0] | Governance Mismatches [0] | Checkpoints [8/8] | VERDICT: PASS/FAIL`
 
