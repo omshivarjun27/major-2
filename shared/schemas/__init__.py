@@ -20,16 +20,19 @@ import numpy as np
 # Enums
 # ============================================================================
 
+
 class Priority(Enum):
     """Obstacle priority levels based on distance."""
-    CRITICAL = "critical"      # < 1.0m — immediate stop/alert
-    NEAR_HAZARD = "near"       # 1.0-2.0m — urgent audio cue
-    FAR_HAZARD = "far"         # 2.0-5.0m — cautionary mention
-    SAFE = "safe"              # > 5.0m — no action needed
+
+    CRITICAL = "critical"  # < 1.0m — immediate stop/alert
+    NEAR_HAZARD = "near"  # 1.0-2.0m — urgent audio cue
+    FAR_HAZARD = "far"  # 2.0-5.0m — cautionary mention
+    SAFE = "safe"  # > 5.0m — no action needed
 
 
 class Direction(Enum):
     """Direction relative to user's centre of view."""
+
     FAR_LEFT = "far left"
     LEFT = "left"
     SLIGHTLY_LEFT = "slightly left"
@@ -41,13 +44,15 @@ class Direction(Enum):
 
 class SizeCategory(Enum):
     """Relative size of detected object in frame."""
-    SMALL = "small"      # < 5 % of frame
-    MEDIUM = "medium"    # 5-25 % of frame
-    LARGE = "large"      # > 25 % of frame
+
+    SMALL = "small"  # < 5 % of frame
+    MEDIUM = "medium"  # 5-25 % of frame
+    LARGE = "large"  # > 25 % of frame
 
 
 class SpatialRelation(Enum):
     """Spatial relationships between objects."""
+
     LEFT_OF = "left of"
     RIGHT_OF = "right of"
     ABOVE = "above"
@@ -60,8 +65,9 @@ class SpatialRelation(Enum):
 
 class Verbosity(Enum):
     """Output detail level for navigation cues."""
-    TERSE = "terse"      # max 8 words, critical info only
-    NORMAL = "normal"    # standard short_cue behavior
+
+    TERSE = "terse"  # max 8 words, critical info only
+    NORMAL = "normal"  # standard short_cue behavior
     VERBOSE = "verbose"  # detailed format_verbose behavior
 
 
@@ -69,9 +75,11 @@ class Verbosity(Enum):
 # Core Data Structures
 # ============================================================================
 
+
 @dataclass
 class BoundingBox:
     """Bounding box in pixel coordinates (x1, y1, x2, y2)."""
+
     x1: int
     y1: int
     x2: int
@@ -172,6 +180,7 @@ class OCRResult:
 @dataclass
 class Detection:
     """Single object detection result."""
+
     id: str
     class_name: str
     confidence: float
@@ -190,8 +199,9 @@ class Detection:
 @dataclass
 class SegmentationMask:
     """Edge-aware segmentation mask for a detection."""
+
     detection_id: str
-    mask: Optional[np.ndarray] = None       # Binary mask
+    mask: Optional[np.ndarray] = None  # Binary mask
     boundary_confidence: float = 0.5
     edge_pixels: Optional[np.ndarray] = None
 
@@ -210,10 +220,11 @@ class DepthMap:
     ``get_region_depth`` returns ``(min, median, max)`` — the canonical
     three-stat tuple used everywhere in the pipeline.
     """
+
     depth_array: np.ndarray = None  # H × W depth values
     min_depth: float = 0.0
     max_depth: float = 10.0
-    is_metric: bool = False         # True → values are calibrated metres
+    is_metric: bool = False  # True → values are calibrated metres
 
     # ── Alias support ──
     @classmethod
@@ -260,28 +271,30 @@ class DepthMap:
 @dataclass
 class PerceptionResult:
     """Combined perception pipeline output."""
+
     detections: List[Detection]
     masks: List[SegmentationMask]
     depth_map: DepthMap
     image_size: Tuple[int, int]  # (width, height)
     latency_ms: float
     timestamp: str
-    frame_id: str = ""                # Unique frame identifier
-    timestamp_epoch_ms: float = 0.0   # High-res epoch timestamp (ms)
+    frame_id: str = ""  # Unique frame identifier
+    timestamp_epoch_ms: float = 0.0  # High-res epoch timestamp (ms)
 
 
 @dataclass
 class ObstacleRecord:
     """Fused spatial obstacle data (detection + segmentation + depth)."""
+
     id: str
     class_name: str
     bbox: BoundingBox
     centroid_px: Tuple[int, int]
     distance_m: float
     direction: Direction
-    direction_deg: float               # Angle from centre (−45 … +45)
+    direction_deg: float  # Angle from centre (−45 … +45)
     mask_confidence: float
-    detection_confidence: float        # Canonical field name
+    detection_confidence: float  # Canonical field name
     priority: Priority
     size_category: Union[SizeCategory, str]
     action_recommendation: str
@@ -312,10 +325,11 @@ class ObstacleRecord:
 @dataclass
 class NavigationOutput:
     """Navigation cue output formats."""
-    short_cue: str            # Brief TTS message
+
+    short_cue: str  # Brief TTS message
     verbose_description: str  # Detailed narration
-    telemetry: List[Dict]     # JSON telemetry for downstream
-    has_critical: bool        # Whether critical obstacles exist
+    telemetry: List[Dict]  # JSON telemetry for downstream
+    has_critical: bool  # Whether critical obstacles exist
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -329,6 +343,7 @@ class NavigationOutput:
 # ============================================================================
 # Abstract Base Classes for Pipeline Stages
 # ============================================================================
+
 
 class ObjectDetector(ABC):
     """Abstract base class for object detection."""
@@ -360,3 +375,14 @@ class DepthEstimator(ABC):
     @abstractmethod
     async def estimate(self, image: Any) -> DepthMap:
         pass
+
+
+@dataclass
+class ReasoningResult:
+    """Unified result from the reasoning engine."""
+
+    answer: str
+    source: str  # "vqa" | "ocr" | "memory" | "quick" | "fallback"
+    confidence: float
+    latency_ms: float
+    metadata: Dict[str, Any] = field(default_factory=dict)
