@@ -10,11 +10,11 @@ import logging
 import os
 import shutil
 import threading
-import time
-from dataclasses import dataclass, field
+import uuid
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, cast
 
 import numpy as np
 
@@ -67,52 +67,54 @@ class SearchResult:
 
 class FAISSIndexer:
     """FAISS index manager for memory embeddings.
-    
+
     Features:
     - Flat L2 index for exact search (good for small indices)
     - Persistence to disk (index + metadata)
     - Size limits with eviction policy (LRU or time-based)
     - Thread-safe operations
-    
+
     Usage:
         indexer = FAISSIndexer(index_path="./data/memory_index/", max_vectors=5000)
         indexer.add(id="mem_001", embedding=vector, metadata=metadata)
         results = indexer.search(query_vector, k=5)
     """
-    
+
     def __init__(
         self,
         index_path: str = "./data/memory_index/",
         dimension: int = 384,
         max_vectors: int = 5000,
         eviction_policy: str = "time",  # "time" or "lru"
+        max_backups: int = 3,
     ):
         self._index_path = Path(index_path)
         self._dimension = dimension
         self._max_vectors = max_vectors
         self._eviction_policy = eviction_policy
-        
+        self._max_backups = max_backups
+
         # FAISS index
-        self._index = None
-        
+        self._index: Any = None
+
         # Metadata store: vector_idx -> IndexMetadata
         self._metadata: Dict[int, IndexMetadata] = {}
-        
+
         # ID to vector index mapping
         self._id_to_idx: Dict[str, int] = {}
-        
+
         # Next available vector index
         self._next_idx = 0
-        
+
         # Deleted indices (for reuse)
         self._deleted_indices: List[int] = []
-        
+
         # Thread lock
         self._lock = threading.RLock()
-        
+
         # Load existing index if present
         self._load()
-    
+
     def _ensure_index(self):
         """Create index if not exists."""
         if self._index is None:
@@ -120,7 +122,7 @@ class FAISSIndexer:
             # Use flat L2 index for small datasets (exact search)
             self._index = faiss.IndexFlatL2(self._dimension)
             logger.info(f"Created FAISS index (dim={self._dimension})")
-    
+
     def add(
         self,
         id: str,
@@ -134,7 +136,7 @@ class FAISSIndexer:
         scene_graph_ref: Optional[str] = None,
     ) -> int:
         """Add a vector to the index.
-        
+
         Args:
             id: Unique memory ID
             embedding: Embedding vector (normalized)
@@ -145,39 +147,39 @@ class FAISSIndexer:
             session_id: Session ID
             user_label: User label
             scene_graph_ref: Scene graph reference
-            
+
         Returns:
             Vector index in FAISS
         """
         with self._lock:
             self._ensure_index()
-            
+
             # Check if already exists
             if id in self._id_to_idx:
                 logger.warning(f"Memory {id} already indexed, updating")
                 self.delete(id)
-            
+
             # Check capacity
             if len(self._id_to_idx) >= self._max_vectors:
                 self._evict()
-            
+
             # Prepare embedding
             embedding = np.array(embedding, dtype=np.float32).reshape(1, -1)
             if embedding.shape[1] != self._dimension:
                 raise ValueError(f"Embedding dimension {embedding.shape[1]} != index dimension {self._dimension}")
-            
+
             # Get vector index
             if self._deleted_indices:
-                vec_idx = self._deleted_indices.pop(0)
+                self._deleted_indices.pop(0)
             else:
-                vec_idx = self._next_idx
                 self._next_idx += 1
-            
+
             # Add to FAISS
             # Note: IndexFlatL2 appends, so we track actual positions
-            self._index.add(embedding)
-            actual_idx = self._index.ntotal - 1
-            
+            index = cast(Any, self._index)
+            index.add(embedding)
+            actual_idx = index.ntotal - 1
+
             # Create metadata
             if metadata is None:
                 metadata = IndexMetadata(
@@ -192,14 +194,14 @@ class FAISSIndexer:
                 )
             else:
                 metadata.vector_idx = actual_idx
-            
+
             # Store mappings
             self._metadata[actual_idx] = metadata
             self._id_to_idx[id] = actual_idx
-            
+
             logger.debug(f"Added memory {id} at index {actual_idx}")
             return actual_idx
-    
+
     def search(
         self,
         query: np.ndarray,
@@ -208,42 +210,46 @@ class FAISSIndexer:
         session_id: Optional[str] = None,
     ) -> List[SearchResult]:
         """Search for similar vectors.
-        
+
         Args:
             query: Query embedding vector
             k: Number of results
             time_window_days: Optional time filter
             session_id: Optional session filter
-            
+
         Returns:
             List of SearchResult sorted by score (lower is better for L2)
         """
         with self._lock:
-            if self._index is None or self._index.ntotal == 0:
+            if self._index is None:
                 return []
-            
+
+            index = cast(Any, self._index)
+            if index.ntotal == 0:
+                return []
+
             # Prepare query
             query = np.array(query, dtype=np.float32).reshape(1, -1)
             if query.shape[1] != self._dimension:
                 raise ValueError(f"Query dimension {query.shape[1]} != index dimension {self._dimension}")
-            
+
             # Search (get more results for filtering)
-            search_k = min(k * 3, self._index.ntotal)
-            distances, indices = self._index.search(query, search_k)
-            
+            search_k = min(k * 3, index.ntotal)
+            distances, indices = index.search(query, search_k)
+
             # Convert to results with filtering
             results = []
             now = datetime.utcnow()
-            
+
             for dist, idx in zip(distances[0], indices[0]):
                 if idx == -1:
                     continue
-                
+
                 if idx not in self._metadata:
                     continue
-                
+
                 meta = self._metadata[idx]
-                
+
                 # Time filter
                 if time_window_days is not None:
                     try:
@@ -253,62 +259,62 @@ class FAISSIndexer:
                             continue
                     except (ValueError, AttributeError):
                         pass
-                
+
                 # Session filter
                 if session_id is not None and meta.session_id != session_id:
                     continue
-                
+
                 # Convert L2 distance to similarity score (0-1)
                 # L2 distance: lower is better, so we invert
                 score = 1.0 / (1.0 + dist)
-                
+
                 results.append(SearchResult(
                     id=meta.id,
                     score=score,
                     metadata=meta,
                 ))
-                
+
                 if len(results) >= k:
                     break
-            
+
             return results
-    
+
     def delete(self, id: str) -> bool:
         """Delete a memory from the index.
-        
+
         Args:
             id: Memory ID to delete
-            
+
         Returns:
             True if deleted, False if not found
         """
         with self._lock:
             if id not in self._id_to_idx:
                 return False
-            
+
             idx = self._id_to_idx[id]
-            
+
             # Remove from metadata
             if idx in self._metadata:
                 del self._metadata[idx]
-            
+
             # Remove from ID mapping
             del self._id_to_idx[id]
-            
+
             # Mark index as deleted (for reuse)
             # Note: FAISS IndexFlatL2 doesn't support deletion,
             # so we mark as deleted and compact periodically
             self._deleted_indices.append(idx)
-            
+
             logger.debug(f"Deleted memory {id} (index {idx})")
             return True
-    
+
     def get(self, id: str) -> Optional[IndexMetadata]:
         """Get metadata for a memory ID.
-        
+
         Args:
             id: Memory ID
-            
+
         Returns:
             IndexMetadata or None
         """
@@ -317,7 +323,7 @@ class FAISSIndexer:
                 return None
             idx = self._id_to_idx[id]
             return self._metadata.get(idx)
-    
+
     def _evict(self):
         """Evict vectors to make room for new ones."""
         with self._lock:
@@ -325,91 +331,148 @@ class FAISSIndexer:
                 # Remove oldest entries
                 entries = list(self._metadata.values())
                 entries.sort(key=lambda m: m.timestamp)
-                
+
                 # Remove 10% of oldest
                 to_remove = max(1, len(entries) // 10)
                 for meta in entries[:to_remove]:
                     self.delete(meta.id)
-                    
+
                 logger.info(f"Evicted {to_remove} memories (time-based)")
             else:
                 # LRU - remove entries with oldest timestamps
                 # (In a full impl, we'd track access times)
                 entries = list(self._metadata.values())
                 entries.sort(key=lambda m: m.timestamp)
-                
+
                 to_remove = max(1, len(entries) // 10)
                 for meta in entries[:to_remove]:
                     self.delete(meta.id)
-                    
+
                 logger.info(f"Evicted {to_remove} memories (LRU)")
-    
+
     def compact(self):
         """Rebuild index to reclaim space from deleted vectors.
-        
+
         This is expensive, so call periodically (e.g., during maintenance).
         """
         with self._lock:
             if not self._metadata:
                 return
-            
+
             faiss = _get_faiss()
-            
-            logger.info(f"Compacting index ({self._index.ntotal} vectors, {len(self._deleted_indices)} deleted)")
-            
+
+            index = cast(Any, self._index)
+            logger.info(f"Compacting index ({index.ntotal} vectors, {len(self._deleted_indices)} deleted)")
+
             # Collect all valid vectors and metadata
             valid_entries = []
             for idx, meta in self._metadata.items():
-                if idx < self._index.ntotal:
-                    vector = self._index.reconstruct(idx)
+                if idx < index.ntotal:
+                    vector = index.reconstruct(idx)
                     valid_entries.append((meta, vector))
-            
+
             # Create new index
             new_index = faiss.IndexFlatL2(self._dimension)
             new_metadata = {}
             new_id_to_idx = {}
-            
+
             for i, (meta, vector) in enumerate(valid_entries):
                 new_index.add(vector.reshape(1, -1))
                 meta.vector_idx = i
                 new_metadata[i] = meta
                 new_id_to_idx[meta.id] = i
-            
+
             # Replace old structures
             self._index = new_index
             self._metadata = new_metadata
             self._id_to_idx = new_id_to_idx
             self._next_idx = len(valid_entries)
             self._deleted_indices = []
-            
+
             logger.info(f"Compaction complete ({new_index.ntotal} vectors)")
-    
+
+    def _compute_checksum(self, file_path: Path) -> str:
+        """SHA-256 hex digest of a file."""
+        import hashlib
+
+        h = hashlib.sha256()
+        with open(file_path, "rb") as f:
+            for chunk in iter(lambda: f.read(8192), b""):
+                h.update(chunk)
+        return h.hexdigest()
+
+    def _write_checksum(self, file_path: Path, checksum: str) -> None:
+        """Write checksum to a .sha256 sidecar file."""
+        sidecar = file_path.with_suffix(file_path.suffix + ".sha256")
+        sidecar.write_text(checksum)
+
+    def _verify_checksum(self, file_path: Path) -> bool:
+        """Verify file against its .sha256 sidecar. Returns True if valid or no sidecar exists."""
+        sidecar = file_path.with_suffix(file_path.suffix + ".sha256")
+        if not sidecar.exists():
+            return True
+        if not file_path.exists():
+            return False
+        expected = sidecar.read_text().strip()
+        actual = self._compute_checksum(file_path)
+        return actual == expected
+
+    def _rotate_backups(self) -> int:
+        """Rotate backup snapshots and return current backup count."""
+        if self._max_backups <= 0:
+            return 0
+
+        index_file = self._index_path / "index.faiss"
+        metadata_file = self._index_path / "metadata.json"
+
+        if not index_file.exists() or not metadata_file.exists():
+            return len([p for p in self._index_path.glob("backup_*") if p.is_dir()])
+
+        oldest = self._index_path / f"backup_{self._max_backups:03d}"
+        if oldest.exists():
+            shutil.rmtree(oldest, ignore_errors=True)
+
+        for i in range(self._max_backups - 1, 0, -1):
+            src = self._index_path / f"backup_{i:03d}"
+            dst = self._index_path / f"backup_{i + 1:03d}"
+            if src.exists():
+                if dst.exists():
+                    shutil.rmtree(dst, ignore_errors=True)
+                shutil.move(str(src), str(dst))
+
+        backup_dir = self._index_path / "backup_001"
+        backup_dir.mkdir(parents=True, exist_ok=True)
+
+        for file_path in (
+            index_file,
+            metadata_file,
+            index_file.with_suffix(index_file.suffix + ".sha256"),
+            metadata_file.with_suffix(metadata_file.suffix + ".sha256"),
+        ):
+            if file_path.exists():
+                shutil.copy2(file_path, backup_dir / file_path.name)
+
+        return len([p for p in self._index_path.glob("backup_*") if p.is_dir()])
+
     def save(self):
         """Persist index and metadata to disk (encrypted when key is set)."""
         with self._lock:
             if self._index is None:
                 return
-            
+
             self._index_path.mkdir(parents=True, exist_ok=True)
-            
+
             faiss = _get_faiss()
             enc = _get_enc() if _get_enc is not None else None
-            
-            # ── Save FAISS index ──────────────────────────────────
+
             index_file = self._index_path / "index.faiss"
-            if enc and enc.active:
-                # Serialize to bytes, then encrypt
-                import tempfile
-                with tempfile.NamedTemporaryFile(delete=False) as tmp:
-                    faiss.write_index(self._index, tmp.name)
-                raw = Path(tmp.name).read_bytes()
-                os.unlink(tmp.name)
-                enc.save_encrypted(index_file, raw)
-            else:
-                faiss.write_index(self._index, str(index_file))
-            
-            # ── Save metadata as JSON ─────────────────────────────
             metadata_file = self._index_path / "metadata.json"
+
+            temp_dir = self._index_path / f".tmp_save_{uuid.uuid4().hex}"
+            temp_dir.mkdir(parents=True, exist_ok=True)
+            temp_index_file = temp_dir / "index.faiss"
+            temp_metadata_file = temp_dir / "metadata.json"
+
             meta_dict = {}
             for idx, meta in self._metadata.items():
                 meta_dict[str(idx)] = {
@@ -422,7 +485,7 @@ class FAISSIndexer:
                     "scene_graph_ref": meta.scene_graph_ref,
                     "vector_idx": meta.vector_idx,
                 }
-            
+
             payload = {
                 "metadata": meta_dict,
                 "id_to_idx": self._id_to_idx,
@@ -431,32 +494,61 @@ class FAISSIndexer:
                 "dimension": self._dimension,
                 "saved_at": datetime.utcnow().isoformat() + "Z",
             }
-            
+
             if enc and enc.active:
-                enc.save_json_encrypted(metadata_file, payload)
+                import tempfile
+
+                with tempfile.NamedTemporaryFile(delete=False) as tmp:
+                    faiss.write_index(self._index, tmp.name)
+                raw = Path(tmp.name).read_bytes()
+                os.unlink(tmp.name)
+                temp_index_file.write_bytes(enc.encrypt(raw))
+                temp_metadata_file.write_bytes(json.dumps(payload, indent=2).encode())
+                temp_metadata_file.write_bytes(enc.encrypt(temp_metadata_file.read_bytes()))
             else:
-                with open(metadata_file, "w") as f:
+                faiss.write_index(self._index, str(temp_index_file))
+                with open(temp_metadata_file, "w") as f:
                     json.dump(payload, f, indent=2)
-            
+
+            index_checksum = self._compute_checksum(temp_index_file)
+            metadata_checksum = self._compute_checksum(temp_metadata_file)
+            self._write_checksum(temp_index_file, index_checksum)
+            self._write_checksum(temp_metadata_file, metadata_checksum)
+
+            self._rotate_backups()
+
+            os.replace(str(temp_index_file), str(index_file))
+            os.replace(
+                str(temp_index_file.with_suffix(temp_index_file.suffix + ".sha256")),
+                str(index_file.with_suffix(index_file.suffix + ".sha256")),
+            )
+            os.replace(str(temp_metadata_file), str(metadata_file))
+            os.replace(
+                str(temp_metadata_file.with_suffix(temp_metadata_file.suffix + ".sha256")),
+                str(metadata_file.with_suffix(metadata_file.suffix + ".sha256")),
+            )
+
+            shutil.rmtree(temp_dir, ignore_errors=True)
+
             logger.info(
                 "Index saved to %s (%d vectors, encrypted=%s)",
                 self._index_path, len(self._metadata),
                 enc.active if enc else False,
             )
-    
+
     def _load(self):
         """Load index and metadata from disk (decrypted when key is set)."""
         index_file = self._index_path / "index.faiss"
         metadata_file = self._index_path / "metadata.json"
-        
+
         if not index_file.exists() or not metadata_file.exists():
             logger.info("No existing index found, starting fresh")
             return
-        
+
         try:
             faiss = _get_faiss()
             enc = _get_enc() if _get_enc is not None else None
-            
+
             # ── Load FAISS index ──────────────────────────────────
             if enc and enc.active:
                 import tempfile
@@ -468,14 +560,14 @@ class FAISSIndexer:
                 os.unlink(tmp.name)
             else:
                 self._index = faiss.read_index(str(index_file))
-            
+
             # ── Load metadata ─────────────────────────────────────
             if enc and enc.active:
                 data = enc.load_json_decrypted(metadata_file)
             else:
                 with open(metadata_file, "r") as f:
                     data = json.load(f)
-            
+
             # Restore metadata
             self._metadata = {}
             for idx_str, meta_dict in data.get("metadata", {}).items():
@@ -490,20 +582,20 @@ class FAISSIndexer:
                     scene_graph_ref=meta_dict.get("scene_graph_ref"),
                     vector_idx=meta_dict.get("vector_idx", idx),
                 )
-            
+
             self._id_to_idx = data.get("id_to_idx", {})
             self._next_idx = data.get("next_idx", self._index.ntotal)
             self._deleted_indices = data.get("deleted_indices", [])
             self._dimension = data.get("dimension", self._dimension)
-            
+
             logger.info(f"Loaded index from {self._index_path} ({len(self._metadata)} vectors)")
-            
+
         except Exception as e:
             logger.error(f"Failed to load index: {e}")
             self._index = None
             self._metadata = {}
             self._id_to_idx = {}
-    
+
     def clear(self):
         """Clear all data from the index."""
         with self._lock:
@@ -512,25 +604,25 @@ class FAISSIndexer:
             self._id_to_idx = {}
             self._next_idx = 0
             self._deleted_indices = []
-            
+
             # Remove files
             if self._index_path.exists():
                 shutil.rmtree(self._index_path, ignore_errors=True)
-            
+
             logger.info("Index cleared")
-    
+
     @property
     def size(self) -> int:
         """Return number of indexed vectors."""
         return len(self._id_to_idx)
-    
+
     @property
     def total_vectors(self) -> int:
         """Return total vectors in FAISS (including deleted)."""
         if self._index is None:
             return 0
         return self._index.ntotal
-    
+
     @property
     def dimension(self) -> int:
         """Return index dimension."""
@@ -539,39 +631,39 @@ class FAISSIndexer:
 
 class MockFAISSIndexer(FAISSIndexer):
     """Mock indexer for testing without FAISS dependency."""
-    
+
     def __init__(self, **kwargs):
         # Skip parent init to avoid FAISS loading
         self._index_path = Path(kwargs.get("index_path", "./data/test_index/"))
         self._dimension = kwargs.get("dimension", 384)
         self._max_vectors = kwargs.get("max_vectors", 100)
         self._eviction_policy = kwargs.get("eviction_policy", "time")
-        
+
         self._vectors: Dict[int, np.ndarray] = {}
         self._metadata: Dict[int, IndexMetadata] = {}
         self._id_to_idx: Dict[str, int] = {}
         self._next_idx = 0
         self._deleted_indices: List[int] = []
         self._lock = threading.RLock()
-    
+
     def _ensure_index(self):
         pass  # No-op for mock
-    
+
     def add(self, id: str, embedding: np.ndarray, **kwargs) -> int:
         with self._lock:
             if id in self._id_to_idx:
                 self.delete(id)
-            
+
             if len(self._id_to_idx) >= self._max_vectors:
                 self._evict()
-            
+
             embedding = np.array(embedding, dtype=np.float32).flatten()
-            
+
             vec_idx = self._next_idx
             self._next_idx += 1
-            
+
             self._vectors[vec_idx] = embedding
-            
+
             meta = IndexMetadata(
                 id=id,
                 timestamp=kwargs.get("timestamp", datetime.utcnow().isoformat() + "Z"),
@@ -582,19 +674,19 @@ class MockFAISSIndexer(FAISSIndexer):
                 scene_graph_ref=kwargs.get("scene_graph_ref"),
                 vector_idx=vec_idx,
             )
-            
+
             self._metadata[vec_idx] = meta
             self._id_to_idx[id] = vec_idx
-            
+
             return vec_idx
-    
+
     def search(self, query: np.ndarray, k: int = 5, **kwargs) -> List[SearchResult]:
         with self._lock:
             if not self._vectors:
                 return []
-            
+
             query = np.array(query, dtype=np.float32).flatten()
-            
+
             # Compute L2 distances
             results = []
             for idx, vec in self._vectors.items():
@@ -607,16 +699,16 @@ class MockFAISSIndexer(FAISSIndexer):
                     score=score,
                     metadata=self._metadata[idx],
                 ))
-            
+
             results.sort(key=lambda r: -r.score)
             return results[:k]
-    
+
     def save(self):
         pass  # No-op for mock
-    
+
     def compact(self):
         pass  # No-op for mock
-    
+
     @property
     def total_vectors(self) -> int:
         return len(self._vectors)
