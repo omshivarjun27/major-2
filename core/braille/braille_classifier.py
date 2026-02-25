@@ -11,10 +11,12 @@ Convert dot patterns → characters.  Includes:
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Tuple
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Protocol, cast
 
-import numpy as np
+if TYPE_CHECKING:
+    import torch
+    import torch.nn as nn
 
 logger = logging.getLogger("braille-classifier")
 
@@ -22,7 +24,7 @@ logger = logging.getLogger("braille-classifier")
 # Dot numbering: [1,2,3,4,5,6] → left-col top-to-bottom, right-col top-to-bottom
 # True/False for each dot presence.
 
-BRAILLE_MAP: Dict[Tuple[bool, ...], str] = {
+BRAILLE_MAP: dict[tuple[bool, ...], str] = {
     (True, False, False, False, False, False): "a",
     (True, True, False, False, False, False): "b",
     (True, False, False, True, False, False): "c",
@@ -49,30 +51,93 @@ BRAILLE_MAP: Dict[Tuple[bool, ...], str] = {
     (True, False, True, True, False, True): "x",
     (True, False, True, True, True, True): "y",
     (True, False, True, False, True, True): "z",
-    # Digits (preceded by number indicator ⠼ in real braille)
-    # Here stored directly for the classifier:
-    (False, True, False, True, True, True): "0",  # same as w — context needed
-    (True, False, False, False, False, False): "1",  # same as a
-    (True, True, False, False, False, False): "2",  # same as b
-    # ... (in practice digits need the ⠼ prefix; we store the base patterns)
+    # Note: Digits share patterns with letters a-j. They are disambiguated by
+    # the number indicator prefix in classify_sequence(). The DIGIT_MAP is
+    # defined separately below — do NOT duplicate patterns here.
+    # Space
     # Space
     (False, False, False, False, False, False): " ",
 }
 
 # Reverse map: char → dots
-CHAR_TO_DOTS: Dict[str, Tuple[bool, ...]] = {v: k for k, v in BRAILLE_MAP.items()}
+CHAR_TO_DOTS: dict[str, tuple[bool, ...]] = {v: k for k, v in BRAILLE_MAP.items()}
+
+# Indicators and Grade 1 expansions
+NUMBER_INDICATOR: tuple[int, ...] = (3, 4, 5, 6)
+CAPITAL_INDICATOR: tuple[int, ...] = (6,)
+
+DIGIT_MAP: dict[tuple[int, ...], str] = {
+    (1,): "1",
+    (1, 2): "2",
+    (1, 4): "3",
+    (1, 4, 5): "4",
+    (1, 5): "5",
+    (1, 2, 4): "6",
+    (1, 2, 4, 5): "7",
+    (1, 2, 5): "8",
+    (2, 4): "9",
+    (2, 4, 5): "0",
+}
+
+PUNCTUATION_MAP: dict[tuple[int, ...], str] = {
+    (2, 5, 6): ".",
+    (2,): ",",
+    (2, 3, 5): "!",
+    (2, 3, 6): "?",
+    (2, 5): ":",
+    (2, 3): ";",
+    (3, 6): "-",
+    (3,): "'",
+}
+
+CONTRACTIONS: dict[tuple[int, ...], str] = {
+    (1, 2, 3, 4, 6): "and",
+    (1, 2, 3, 4, 5, 6): "for",
+    (1, 2, 3, 5, 6): "of",
+    (2, 3, 4, 6): "the",
+    (2, 3, 4, 5, 6): "with",
+    (1, 6): "ch",
+    (1, 4, 6): "sh",
+    (1, 4, 5, 6): "th",
+    (1, 5, 6): "wh",
+    (1, 2, 5, 6): "ou",
+}
+
+LETTER_MAP: dict[tuple[int, ...], str] = {
+    (1,): "a",
+    (1, 2): "b",
+    (1, 4): "c",
+    (1, 4, 5): "d",
+    (1, 5): "e",
+    (1, 2, 4): "f",
+    (1, 2, 4, 5): "g",
+    (1, 2, 5): "h",
+    (2, 4): "i",
+    (2, 4, 5): "j",
+    (2, 4, 5, 6): "w",
+}
+
+
+def _dots_to_numbers(dots: tuple[bool, ...]) -> tuple[int, ...]:
+    return tuple(idx + 1 for idx, active in enumerate(dots) if active)
+
+
+class CellLike(Protocol):
+    row: int
+    col: int
+    dots: list[bool]
 
 
 @dataclass
 class BrailleChar:
     """Classified braille character."""
     char: str
-    dots: List[bool]
+    dots: list[bool]
     confidence: float = 1.0
     cell_row: int = 0
     cell_col: int = 0
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, object]:
         return {
             "char": self.char,
             "dots": self.dots,
@@ -95,17 +160,17 @@ class BrailleClassifier:
         text = clf.to_text(chars)
     """
 
-    def __init__(self, mode: str = "lookup", model_path: Optional[str] = None):
-        self._mode = mode
-        self._model_path = model_path
-        self._model = None
+    def __init__(self, mode: str = "lookup", model_path: str | None = None):
+        self._mode: str = mode
+        self._model_path: str | None = model_path
+        self._model: "nn.Module | None" = None
 
         if mode == "model" and model_path:
             self._load_model(model_path)
 
     # ── Lookup classification ─────────────────────────────────────
 
-    def classify(self, cells: List[Any]) -> List[BrailleChar]:
+    def classify(self, cells: list[CellLike]) -> list[BrailleChar]:
         """Classify a list of CellInfo objects into characters.
 
         Args:
@@ -114,10 +179,59 @@ class BrailleClassifier:
         Returns:
             List of BrailleChar.
         """
-        results: List[BrailleChar] = []
+        return self.classify_sequence(cells)
+
+    def classify_cell(self, dots: tuple[bool, ...]) -> str:
+        """Classify a single braille cell by lookup or model."""
+        char = BRAILLE_MAP.get(dots)
+        if char is not None:
+            return char
+        if self._mode == "model":
+            return self._model_classify(dots)
+        return "?"
+
+    def classify_sequence(self, cells: list[CellLike]) -> list[BrailleChar]:
+        """Classify a sequence of cells with number/capital state handling."""
+        results: list[BrailleChar] = []
+        number_mode = False
+        capital_next = False
+
         for cell in cells:
             dots = tuple(cell.dots[:6])
-            char = BRAILLE_MAP.get(dots, "?")
+            dot_numbers = _dots_to_numbers(dots)
+
+            if dot_numbers == NUMBER_INDICATOR:
+                number_mode = True
+                capital_next = False
+                continue
+
+            if dot_numbers == CAPITAL_INDICATOR:
+                capital_next = True
+                continue
+
+            if number_mode and dot_numbers in DIGIT_MAP:
+                char = DIGIT_MAP[dot_numbers]
+            else:
+                if number_mode:
+                    number_mode = False
+
+                if dot_numbers in CONTRACTIONS:
+                    char = CONTRACTIONS[dot_numbers]
+                elif dot_numbers in PUNCTUATION_MAP:
+                    char = PUNCTUATION_MAP[dot_numbers]
+                elif dot_numbers in LETTER_MAP:
+                    char = LETTER_MAP[dot_numbers]
+                else:
+                    char = self.classify_cell(dots)
+
+            if char == " ":
+                number_mode = False
+                capital_next = False
+
+            if capital_next and char.isalpha() and len(char) == 1:
+                char = char.upper()
+                capital_next = False
+
             confidence = 1.0 if char != "?" else 0.0
             results.append(BrailleChar(
                 char=char,
@@ -126,9 +240,15 @@ class BrailleClassifier:
                 cell_row=cell.row,
                 cell_col=cell.col,
             ))
+
         return results
 
-    def to_text(self, chars: List[BrailleChar]) -> str:
+    def _model_classify(self, _: tuple[bool, ...]) -> str:
+        """Stub for future ML-based classification."""
+        logger.warning("Braille model classification not implemented")
+        return "?"
+
+    def to_text(self, chars: list[BrailleChar]) -> str:
         """Convert classified characters to a text string.
 
         Groups by row, orders by column.
@@ -136,11 +256,11 @@ class BrailleClassifier:
         if not chars:
             return ""
 
-        rows: Dict[int, List[BrailleChar]] = {}
+        rows: dict[int, list[BrailleChar]] = {}
         for ch in chars:
             rows.setdefault(ch.cell_row, []).append(ch)
 
-        lines = []
+        lines: list[str] = []
         for row_idx in sorted(rows.keys()):
             row_chars = sorted(rows[row_idx], key=lambda c: c.cell_col)
             lines.append("".join(c.char for c in row_chars))
@@ -169,7 +289,7 @@ class BrailleClassifier:
             class BrailleDotNet(nn.Module):
                 def __init__(self, num_classes: int = 37):
                     super().__init__()
-                    self.net = nn.Sequential(
+                    self.net: nn.Sequential = nn.Sequential(
                         nn.Linear(6, 32),
                         nn.ReLU(),
                         nn.Linear(32, 64),
@@ -179,13 +299,14 @@ class BrailleClassifier:
                         nn.Linear(32, num_classes),
                     )
 
-                def forward(self, x):
-                    return self.net(x)
+                def forward(self, x: torch.Tensor) -> torch.Tensor:  # pyright: ignore[reportImplicitOverride]
+                    return cast(torch.Tensor, self.net(x))
 
             self._model = BrailleDotNet()
             if os.path.exists(path):
-                self._model.load_state_dict(torch.load(path, map_location="cpu"))
-                self._model.eval()
+                state_dict = cast(dict[str, torch.Tensor], torch.load(path, map_location="cpu"))
+                _ = self._model.load_state_dict(state_dict)
+                _ = self._model.eval()
                 logger.info("Braille model loaded from %s", path)
             else:
                 logger.warning("Model path %s not found — using untrained stub", path)
@@ -218,4 +339,4 @@ Images should be at least 640×480 with visible raised dots.
 
 
 # Make os available for _load_model
-import os
+import os  # noqa: E402
