@@ -149,3 +149,25 @@
 - Zero prohibited terms confirmed via regex sweep
 - All 14 rendered fields (16 schema fields minus 2 phase-level blocks) verified per task
 - dag.json trailing comma handling: the edit tool auto-handles comma insertion when appending after last node/edge
+
+## 2026-02-25 Task 10: P6-tasks.md + dag.json P6 nodes
+- P6-tasks.md created with exactly 22 task definitions (T-111 through T-132)
+- Phase focus: Feature Evolution (cloud sync, CLIP action recognition, reasoning engine MVP, multi-frame VQA)
+- 7 clusters used: CL-MEM(6), CL-AUD(3), CL-RSN(8), CL-VQA(2), CL-TQA(1), CL-INF(1), CL-GOV(1) = 22 total
+- Three independent entry points (no upstream deps): T-111 (cloud-sync-architecture), T-117 (clip-action-recognition-model), T-119 (audio-event-detection), T-120 (reasoning-engine-foundation)
+- 2 integration closeout tasks: T-131 (p6-feature-integration-test), T-132 (p6-cloud-sync-validation)
+- DAG updated: 132 nodes (110 existing + 22 P6), 151 edges (125 existing + 26 P6-internal)
+- Zero cross-phase edges for P6 (all P6 tasks depend only on other P6 tasks or have no upstream deps)
+- Zero BASE edges added (consistent with P3/P4/P5 learning)
+- Topological sort passes: 132 nodes sorted, acyclic confirmed
+- Risk tiers: 5 High (T-111, T-112, T-113, T-114, T-124, T-131, T-132), 14 Medium, 1 Low = 22 total
+- Correction: Risk tiers: 7 High, 14 Medium, 1 Low = 22 total
+- Mixed governance: elevated for high-risk + integration closeouts + privacy tasks (T-111, T-112, T-113, T-114, T-115, T-124, T-131, T-132), standard for remainder
+- T-132 is the terminal task (depends on T-131 which aggregates all feature integration)
+- Cloud sync has linear chain: T-111 -> T-112/T-113 -> T-114 -> T-115 -> T-128 -> T-131
+- Reasoning engine fan-out/fan-in: T-120 -> T-121/T-122/T-123 -> T-124 -> T-125/T-127
+- Phase exit criteria: 10 items covering cloud sync, action recognition, reasoning engine, multi-frame VQA, audio events, proactive narration, 24h smoke test, tests >= 1000, perf regression < 2%
+- Downstream notes: P7 security must cover cloud sync paths, P7 load test includes sync traffic, P7 release notes document P6 features
+- Zero prohibited terms confirmed via regex sweep
+- All 14 rendered fields (matching P3 reference format) verified per task
+- dag.json edit: replaced last node line (T-110) with T-110 + 22 new nodes, replaced last edge line with last edge + 26 new edges
