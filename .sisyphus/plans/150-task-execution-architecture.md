@@ -437,7 +437,7 @@ Parallel Speedup: Wave 1 (3x), Wave FINAL (4x)
   **Commit**: YES (groups with Tasks 1, 2)
   - Files: `.sisyphus/task-distribution.md`, `.sisyphus/dag.json`
 
-- [ ] 4. Enumerate Phase 0: Foundation Hardening (12 tasks, T-001 to T-012)
+- [x] 4. Enumerate Phase 0: Foundation Hardening (12 tasks, T-001 to T-012)
 
   **What to do**:
   - Create `.sisyphus/phases/P0-tasks.md` with exactly 12 task definitions following the locked schema from Task 1

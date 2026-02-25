@@ -26,6 +26,33 @@
     {"id": "BASE-021", "description": "Import linter integration"},
     {"id": "BASE-022", "description": "PII scrubber for logs"}
   ],
-  "nodes": [],
-  "edges": []
+  "nodes": [
+    {"id": "T-001", "phase": "P0", "cluster": "CL-SEC"},
+    {"id": "T-002", "phase": "P0", "cluster": "CL-SEC"},
+    {"id": "T-003", "phase": "P0", "cluster": "CL-SEC"},
+    {"id": "T-004", "phase": "P0", "cluster": "CL-SEC"},
+    {"id": "T-005", "phase": "P0", "cluster": "CL-SEC"},
+    {"id": "T-006", "phase": "P0", "cluster": "CL-SEC"},
+    {"id": "T-007", "phase": "P0", "cluster": "CL-SEC"},
+    {"id": "T-008", "phase": "P0", "cluster": "CL-SEC"},
+    {"id": "T-009", "phase": "P0", "cluster": "CL-SEC"},
+    {"id": "T-010", "phase": "P0", "cluster": "CL-SEC"},
+    {"id": "T-011", "phase": "P0", "cluster": "CL-TQA"},
+    {"id": "T-012", "phase": "P0", "cluster": "CL-OPS"}
+  ],
+  "edges": [
+    {"from": "T-001", "to": "T-002"},
+    {"from": "T-001", "to": "T-004"},
+    {"from": "T-001", "to": "T-006"},
+    {"from": "T-001", "to": "T-008"},
+    {"from": "T-001", "to": "T-011"},
+    {"from": "T-002", "to": "T-009"},
+    {"from": "T-003", "to": "T-004"},
+    {"from": "T-003", "to": "T-011"},
+    {"from": "T-004", "to": "T-011"},
+    {"from": "T-005", "to": "T-010"},
+    {"from": "T-006", "to": "T-007"},
+    {"from": "T-008", "to": "T-011"},
+    {"from": "T-011", "to": "T-012"}
+  ]
 }

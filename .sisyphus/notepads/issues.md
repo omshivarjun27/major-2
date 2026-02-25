@@ -1,0 +1,4 @@
+- Code additions are the primary driver of documentation drift and require immediate attention.
+- Technical debt in documentation is just as dangerous as debt in code and must be tracked.
+- Drift greater than 5% in core metrics is treated as a documentation bug.
+- Conflicts between parallel tasks can corrupt the single source of truth if not managed correctly.

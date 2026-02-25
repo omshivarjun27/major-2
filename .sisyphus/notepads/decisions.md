@@ -1,0 +1,4 @@
+- Adopted the Documentation as Code (DaC) principle to treat documentation with the same rigor as source code.
+- Decided to use a fragment-based approach for large documents like Memory.md and changelog.md to minimize merge conflicts.
+- Implemented monthly human-in-the-loop review cycles (quality gates) to ensure long-term narrative cohesion.
+- Established a mandatory "Post-Mortem Documentation" requirement for every significant rollback.
