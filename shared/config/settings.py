@@ -189,6 +189,35 @@ CONFIG = {
     "TEMPERATURE": 0.7,
 }
 
+# Secret keys requiring SecretProvider or env-var injection.
+# These MUST NOT have non-empty defaults and MUST NOT be logged.
+SECRETS: frozenset = frozenset({
+    "LIVEKIT_API_KEY",
+    "LIVEKIT_API_SECRET",
+    "DEEPGRAM_API_KEY",
+    "OLLAMA_API_KEY",
+    "ELEVEN_API_KEY",
+    "OLLAMA_VL_API_KEY",
+    "TAVUS_API_KEY",
+    "MEMORY_ENCRYPTION_KEY",
+    "FACE_ENCRYPTION_KEY",
+})
+
+
+def validate_config() -> list:
+    """Return configuration warnings for unset secrets."""
+    from shared.config.secret_provider import SECRET_KEYS
+    warnings: list = []
+    provider = get_secret_provider()
+    for key in sorted(SECRETS):
+        if key in SECRET_KEYS:
+            val = provider.get_secret(key)
+        else:
+            val = os.environ.get(key, "")
+        if not val:
+            warnings.append(f"SECRET {key} is not set")
+    return warnings
+
 def get_config():
     """Get the current configuration."""
     return CONFIG

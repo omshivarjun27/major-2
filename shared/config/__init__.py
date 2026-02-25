@@ -1,6 +1,7 @@
 # shared/config — Configuration management
 from .secret_provider import SecretProvider, create_secret_provider
 from .settings import (
+    SECRETS,
     action_enabled,
     audio_enabled,
     face_enabled,
@@ -16,9 +17,11 @@ from .settings import (
     get_worker_config,
     qr_enabled,
     spatial_enabled,
+    validate_config,
 )
 
 __all__ = [
+    "SECRETS",
     "get_config",
     "spatial_enabled",
     "get_spatial_config",
@@ -36,4 +39,5 @@ __all__ = [
     "get_secret_provider",
     "SecretProvider",
     "create_secret_provider",
+    "validate_config",
 ]
