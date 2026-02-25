@@ -227,3 +227,87 @@ class TestSummaryGeneration:
         response = await ingester.ingest(request)
         
         assert "Obstacles" in response.summary or "car" in response.summary.lower()
+
+
+class TestConsentPersistence:
+    """Tests for consent at-rest persistence."""
+
+    @pytest.fixture
+    def consent_ingester(self, tmp_path, monkeypatch):
+        """Create a MemoryIngester with a temporary consent directory."""
+        monkeypatch.setenv("MEMORY_ENCRYPTION_KEY", "test-consent-key")
+        from shared.utils.encryption import reset_encryption_manager
+        reset_encryption_manager()
+
+        from unittest.mock import MagicMock
+        mock_indexer = MagicMock()
+        mock_indexer.dimension = 768
+        mock_indexer.add = MagicMock()
+        mock_config = MagicMock()
+        mock_config.index_path = str(tmp_path / "memory_index")
+        mock_config.save_raw_media = False
+        mock_config.max_vectors = 1000
+        mock_config.retention_days = 30
+        mock_config.enabled = True
+
+        (tmp_path / "memory_index").mkdir(parents=True, exist_ok=True)
+
+        from core.memory.ingest import MemoryIngester
+        ingester = MemoryIngester(
+            indexer=mock_indexer,
+            config=mock_config,
+        )
+        # Override consent_dir to use tmp_path
+        ingester._consent_dir = tmp_path / "consent"
+        ingester._consent_dir.mkdir(parents=True, exist_ok=True)
+        yield ingester
+        reset_encryption_manager()
+
+    def test_consent_persists_to_file(self, consent_ingester):
+        """record_consent writes an encrypted file."""
+        consent_ingester.record_consent("device-1", opt_in=True, save_raw_media=False)
+        consent_file = consent_ingester._consent_dir / "device-1.json"
+        assert consent_file.exists(), "Consent file should be persisted"
+        raw = consent_file.read_bytes()
+        assert b"opt_in" not in raw, "Consent file should be encrypted"
+
+    def test_consent_loaded_on_restart(self, consent_ingester):
+        """Consent survives MemoryIngester restart."""
+        consent_ingester.record_consent("device-2", opt_in=False, save_raw_media=True, reason="testing")
+        consent_ingester._consent_log.clear()
+        consent_ingester._load_persisted_consent()
+        result = consent_ingester.get_consent("device-2")
+        assert result["memory_enabled"] is False
+        assert result["save_raw_media"] is True  # raw stored value (gating is in record_consent return)
+
+    def test_tampered_consent_rejected(self, consent_ingester):
+        """Tampered consent files are rejected."""
+        consent_ingester.record_consent("device-3", opt_in=True, save_raw_media=False)
+        consent_file = consent_ingester._consent_dir / "device-3.json"
+        data = consent_file.read_bytes()
+        consent_file.write_bytes(data[:-5] + b"XXXXX")
+        consent_ingester._consent_log.clear()
+        consent_ingester._load_persisted_consent()
+        assert "device-3" not in consent_ingester._consent_log
+
+    def test_missing_consent_returns_default(self, consent_ingester):
+        """Missing consent returns default (opt_in=True, save_raw=False)."""
+        result = consent_ingester.get_consent("nonexistent-device")
+        assert result["memory_enabled"] is True
+        assert result["save_raw_media"] is False
+
+    def test_multiple_devices_separate_files(self, consent_ingester):
+        """Multiple device IDs get separate files."""
+        consent_ingester.record_consent("device-a", opt_in=True, save_raw_media=True)
+        consent_ingester.record_consent("device-b", opt_in=False, save_raw_media=False)
+        files = list(consent_ingester._consent_dir.glob("*.json"))
+        assert len(files) == 2
+        assert consent_ingester.get_consent("device-a")["memory_enabled"] is True
+        assert consent_ingester.get_consent("device-b")["memory_enabled"] is False
+
+    def test_get_consent_loads_from_disk_if_not_in_memory(self, consent_ingester):
+        """get_consent tries disk when key not in memory."""
+        consent_ingester.record_consent("device-disk", opt_in=True, save_raw_media=False)
+        del consent_ingester._consent_log["device-disk"]
+        result = consent_ingester.get_consent("device-disk")
+        assert result["memory_enabled"] is True

@@ -14,9 +14,12 @@ import logging
 import time
 import uuid
 from datetime import datetime, timedelta
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
+
+from shared.utils.encryption import get_encryption_manager
 
 from .config import get_memory_config, MemoryConfig
 from .api_schema import (
@@ -70,6 +73,11 @@ class MemoryIngester:
         
         # Consent tracking (in production, use persistent storage)
         self._consent_log: Dict[str, Dict] = {}
+
+        # Consent persistence directory
+        self._consent_dir = Path(self._config.index_path).parent / "consent"
+        self._consent_dir.mkdir(parents=True, exist_ok=True)
+        self._load_persisted_consent()
         
         # Telemetry
         self._ingest_count = 0
@@ -341,6 +349,19 @@ class MemoryIngester:
             except Exception as e:
                 logger.warning(f"Failed to save raw audio: {e}")
     
+
+    def _load_persisted_consent(self) -> None:
+        """Load consent records from encrypted files on disk."""
+        enc = get_encryption_manager()
+        for consent_file in self._consent_dir.glob("*.json"):
+            try:
+                entry = enc.load_json_decrypted(consent_file)
+                device_id = consent_file.stem
+                self._consent_log[device_id] = entry
+                logger.debug("Loaded consent for device=%s", device_id)
+            except Exception as e:
+                logger.error("Failed to load consent file %s: %s", consent_file, e)
+                # Tampered or corrupted — reject (fail-safe to no-consent)
     def record_consent(
         self,
         device_id: Optional[str],
@@ -369,9 +390,17 @@ class MemoryIngester:
         }
         
         self._consent_log[key] = consent_entry
-        
+
+        # Persist encrypted to disk
+        try:
+            enc = get_encryption_manager()
+            consent_path = self._consent_dir / f"{key}.json"
+            enc.save_json_encrypted(consent_path, consent_entry)
+        except Exception as e:
+            logger.error("Failed to persist consent for %s: %s", key, e)
+
         logger.info(f"Consent recorded for {key}: opt_in={opt_in}, save_raw={save_raw_media}")
-        
+
         return {
             "memory_enabled": opt_in,
             "save_raw_media": save_raw_media and opt_in,
@@ -380,8 +409,20 @@ class MemoryIngester:
     def get_consent(self, device_id: Optional[str] = None) -> Dict[str, bool]:
         """Get current consent settings."""
         key = device_id or "default"
-        entry = self._consent_log.get(key, {})
-        
+        entry = self._consent_log.get(key)
+        if entry is None:
+            # Try loading from disk (might have been written by another process)
+            consent_file = self._consent_dir / f"{key}.json"
+            if consent_file.exists():
+                try:
+                    enc = get_encryption_manager()
+                    entry = enc.load_json_decrypted(consent_file)
+                    self._consent_log[key] = entry
+                except Exception as e:
+                    logger.error("Failed to load consent for %s: %s", key, e)
+            if entry is None:
+                entry = {}
+
         return {
             "memory_enabled": entry.get("opt_in", True),  # Default to enabled
             "save_raw_media": entry.get("save_raw_media", False),
