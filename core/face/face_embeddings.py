@@ -14,10 +14,13 @@ import os
 import time
 import uuid
 from dataclasses import dataclass, field
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
+
+from .consent_audit import AuditEntry, ConsentAuditLog
 
 logger = logging.getLogger("face-embeddings")
 
@@ -32,12 +35,14 @@ except ImportError:
 class EmbeddingConfig:
     """Configuration for face embedding storage."""
     storage_dir: str = "data/face_embeddings"
+    audit_dir: str = "data/consent"
     encryption_enabled: bool = True
     encryption_key_env: str = "FACE_ENCRYPTION_KEY"
     embedding_dim: int = 512
     similarity_threshold: float = 0.6
     max_identities: int = 100
     consent_required: bool = True
+    retention_ttl_days: int = 90
 
 
 @dataclass
@@ -53,7 +58,7 @@ class FaceIdentity:
     times_seen: int = 0
     metadata: Dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> Dict[str, Any]:
         return {
             "identity_id": self.identity_id,
             "name": self.name,
@@ -81,6 +86,7 @@ class FaceEmbeddingStore:
         self._identities: Dict[str, FaceIdentity] = {}
         self._consent_log: List[Dict[str, Any]] = []
         self._encryption_key: Optional[bytes] = None
+        self._audit_log: Optional[ConsentAuditLog] = ConsentAuditLog(self.config.audit_dir)
 
         if self.config.encryption_enabled:
             self._init_encryption()
@@ -163,6 +169,47 @@ class FaceEmbeddingStore:
             with open(storage / "identities.json", "w") as f:
                 json.dump(meta, f, indent=2)
 
+    def _log_audit(self, event_type: str, identity_id: str, details: Optional[Dict[str, Any]] = None) -> None:
+        if not self._audit_log:
+            return
+        entry = AuditEntry(
+            timestamp=f"{datetime.utcnow().isoformat()}Z",
+            event_type=event_type,
+            person_id=identity_id,
+            details=details or {},
+        )
+        self._audit_log.log(entry)
+
+    def _check_expiry(self) -> List[str]:
+        if self.config.retention_ttl_days <= 0:
+            return []
+        now = time.time()
+        ttl_seconds = self.config.retention_ttl_days * 24 * 60 * 60
+        expired_ids: List[str] = []
+        storage = Path(self.config.storage_dir)
+        for identity_id, ident in list(self._identities.items()):
+            if ident.registered_at <= 0:
+                continue
+            if now - ident.registered_at <= ttl_seconds:
+                continue
+            expired_ids.append(identity_id)
+            del self._identities[identity_id]
+            for suffix in [".npy", ".npy.enc"]:
+                p = storage / f"{identity_id}{suffix}"
+                if p.exists():
+                    p.unlink()
+            self._log_audit(
+                "data_expired",
+                identity_id,
+                {"name": ident.name, "ttl_days": self.config.retention_ttl_days},
+            )
+        if expired_ids:
+            self._save_to_disk()
+        return expired_ids
+
+    def cleanup_expired(self) -> List[str]:
+        return self._check_expiry()
+
     # ── Consent Management ──
 
     def check_consent(self, identity_id: Optional[str] = None) -> bool:
@@ -218,6 +265,11 @@ class FaceEmbeddingStore:
         )
         self._identities[identity_id] = identity
         self.record_consent(name, consent, "initial_registration")
+        self._log_audit(
+            "consent_granted" if consent else "consent_revoked",
+            identity_id,
+            {"name": name, "reason": "initial_registration"},
+        )
         self._save_to_disk()
         logger.info("Registered face identity: %s (%s)", name, identity_id)
         return identity
@@ -227,6 +279,7 @@ class FaceEmbeddingStore:
             name = self._identities[identity_id].name
             del self._identities[identity_id]
             self.record_consent(name, False, "identity_deleted")
+            self._log_audit("data_deleted", identity_id, {"name": name, "reason": "identity_deleted"})
             self._save_to_disk()
             # Delete embedding file (check both plain and encrypted forms)
             storage = Path(self.config.storage_dir)
@@ -238,11 +291,39 @@ class FaceEmbeddingStore:
             return True
         return False
 
+    def grant_consent(self, identity_id: str, reason: str = "manual") -> bool:
+        identity = self._identities.get(identity_id)
+        if not identity:
+            return False
+        identity.consent_given = True
+        identity.consent_timestamp = time.time()
+        self.record_consent(identity.name, True, reason)
+        self._log_audit("consent_granted", identity_id, {"name": identity.name, "reason": reason})
+        self._save_to_disk()
+        return True
+
+    def revoke_consent(self, identity_id: str, reason: str = "manual") -> bool:
+        identity = self._identities.get(identity_id)
+        if not identity:
+            return False
+        self.record_consent(identity.name, False, reason)
+        self._log_audit("consent_revoked", identity_id, {"name": identity.name, "reason": reason})
+        del self._identities[identity_id]
+        storage = Path(self.config.storage_dir)
+        for suffix in [".npy", ".npy.enc"]:
+            p = storage / f"{identity_id}{suffix}"
+            if p.exists():
+                p.unlink()
+        self._log_audit("data_deleted", identity_id, {"name": identity.name, "reason": "consent_revoked"})
+        self._save_to_disk()
+        return True
+
     def forget_all(self) -> int:
         count = len(self._identities)
         storage = Path(self.config.storage_dir)
         for ident in list(self._identities.values()):
             self.record_consent(ident.name, False, "forget_all")
+            self._log_audit("data_deleted", ident.identity_id, {"name": ident.name, "reason": "forget_all"})
             # Delete embedding files (both plain and encrypted)
             for suffix in [".npy", ".npy.enc"]:
                 p = storage / f"{ident.identity_id}{suffix}"
@@ -255,6 +336,7 @@ class FaceEmbeddingStore:
     # ── Identification ──
 
     def identify(self, query_embedding: np.ndarray) -> Optional[Tuple[FaceIdentity, float]]:
+        self._check_expiry()
         if not self._identities:
             return None
 
@@ -272,6 +354,11 @@ class FaceEmbeddingStore:
         if best_match and best_sim >= self.config.similarity_threshold:
             best_match.last_seen = time.time()
             best_match.times_seen += 1
+            self._log_audit(
+                "data_accessed",
+                best_match.identity_id,
+                {"name": best_match.name, "similarity": best_sim},
+            )
             return (best_match, best_sim)
         return None
 
@@ -297,7 +384,7 @@ class FaceEmbeddingStore:
     def count(self) -> int:
         return len(self._identities)
 
-    def health(self) -> dict:
+    def health(self) -> Dict[str, Any]:
         return {
             "identities_registered": self.count(),
             "max_identities": self.config.max_identities,
