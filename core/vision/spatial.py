@@ -1,26 +1,13 @@
 # ruff: noqa: W293, E402
-# pyright: ignore[
-#     reportAttributeAccessIssue,
-#     reportAny,
-#     reportConstantRedefinition,
-#     reportDeprecated,
-#     reportExplicitAny,
-#     reportImplicitOverride,
-#     reportIndexIssue,
-#     reportMissingImports,
-#     reportMissingParameterType,
-#     reportMissingTypeStubs,
-#     reportOptionalMemberAccess,
-#     reportUnannotatedClassAttribute,
-#     reportUnknownArgumentType,
-#     reportUnknownLambdaType,
-#     reportUnknownMemberType,
-#     reportUnknownParameterType,
-#     reportUnknownVariableType,
-#     reportUnusedExpression,
-#     reportUnusedImport,
-#     reportUnusedParameter,
-# ]
+# pyright: reportAny=false, reportExplicitAny=false, reportDeprecated=false, reportImplicitOverride=false
+# pyright: reportUnknownParameterType=false, reportMissingParameterType=false, reportUnusedParameter=false
+# pyright: reportUnannotatedClassAttribute=false, reportUnknownVariableType=false
+# pyright: reportUnknownMemberType=false, reportUnknownArgumentType=false, reportUnknownLambdaType=false
+# pyright: reportUnusedExpression=false, reportUnusedImport=false, reportUnusedCallResult=false
+# pyright: reportMissingImports=false, reportMissingTypeStubs=false, reportMissingTypeArgument=false
+# pyright: reportOptionalMemberAccess=false, reportAttributeAccessIssue=false, reportIndexIssue=false
+# pyright: reportConstantRedefinition=false, reportCallIssue=false, reportOptionalCall=false
+# pyright: reportReturnType=false, reportUninitializedInstanceVariable=false
 """
 Spatial Perception Module for Voice & Vision Assistant
 =======================================================
@@ -420,35 +407,102 @@ class EdgeAwareSegmenter(BaseSegmenter):
 
     async def segment(self, image: Any, detections: List[Detection]) -> List[SegmentationMask]:
         """ULTRA-FAST segmentation - minimal processing."""
-        if not self._ready or not detections:
+        if not detections:
             return []
 
         try:
-            # FAST PATH: Return cached if available
+            mask_width, mask_height = MAX_MASK_SIZE
+            mask_shape = (mask_height, mask_width)
+
+            # FAST PATH: Return cached if available and valid
             if len(detections) <= len(self._cached_masks):
-                for i, det in enumerate(detections[:MAX_DETECTIONS]):
-                    self._cached_masks[i] = SegmentationMask(
-                        detection_id=det.id,
-                        mask=None,
-                        boundary_confidence=0.75,  # Default confidence
-                        edge_pixels=None
-                    )
-                return self._cached_masks[:len(detections)]
+                cached_slice = self._cached_masks[:len(detections)]
+                cached_ready = all(
+                    cached.mask is not None
+                    and cached.mask.dtype == np.uint8
+                    and cached.mask.shape == mask_shape
+                    for cached in cached_slice
+                )
 
-            # Aggressive downscale - use PIL resize (faster than cv2 for small sizes)
-            small_img = image.resize(MAX_MASK_SIZE, PILImage.Resampling.NEAREST)
-            img_np = np.asarray(small_img, dtype=np.uint8)
+                if cached_ready:
+                    refreshed: List[SegmentationMask] = []
+                    for i, det in enumerate(detections[:MAX_DETECTIONS]):
+                        cached = self._cached_masks[i]
+                        updated = SegmentationMask(
+                            detection_id=det.id,
+                            mask=cached.mask,
+                            boundary_confidence=cached.boundary_confidence,
+                            edge_pixels=cached.edge_pixels,
+                        )
+                        self._cached_masks[i] = updated
+                        refreshed.append(updated)
+                    return refreshed
 
-            if len(img_np.shape) == 3:
-                # Fast grayscale conversion
-                gray = np.mean(img_np, axis=2, dtype=np.uint8)
+            def _downscale_to_gray(source: Any) -> Tuple[np.ndarray, int, int]:
+                if isinstance(source, np.ndarray):
+                    orig_height, orig_width = source.shape[:2]
+                    img_np = source
+                    if img_np.ndim == 3 and img_np.shape[2] == 4:
+                        img_np = img_np[:, :, :3]
+                    if CV2_AVAILABLE:
+                        resized = cv2.resize(img_np, (mask_width, mask_height), interpolation=cv2.INTER_NEAREST)
+                    elif PILImage is not None:
+                        resized = np.asarray(
+                            PILImage.fromarray(img_np).resize((mask_width, mask_height), PILImage.Resampling.NEAREST),
+                            dtype=np.uint8,
+                        )
+                    else:
+                        if (orig_height, orig_width) != mask_shape:
+                            y_idx = np.linspace(0, orig_height - 1, mask_height).astype(np.int32)
+                            x_idx = np.linspace(0, orig_width - 1, mask_width).astype(np.int32)
+                            resized = img_np[y_idx][:, x_idx]
+                        else:
+                            resized = img_np
+                    img_np = resized.astype(np.uint8, copy=False)
+                else:
+                    if PILImage is None:
+                        img_np = np.asarray(source, dtype=np.uint8)
+                        orig_height, orig_width = img_np.shape[:2]
+                        if CV2_AVAILABLE and (orig_height, orig_width) != mask_shape:
+                            img_np = cv2.resize(img_np, (mask_width, mask_height), interpolation=cv2.INTER_NEAREST)
+                    else:
+                        orig_width, orig_height = source.size
+                        small_img = source.resize((mask_width, mask_height), PILImage.Resampling.NEAREST)
+                        img_np = np.asarray(small_img, dtype=np.uint8)
+
+                if img_np.ndim == 3:
+                    gray_local = np.mean(img_np, axis=2, dtype=np.uint8)
+                else:
+                    gray_local = img_np
+                return gray_local, orig_width, orig_height
+
+            gray, orig_width, orig_height = _downscale_to_gray(image)
+            scale_x = mask_width / max(1, orig_width)
+            scale_y = mask_height / max(1, orig_height)
+
+            gradient_mag: Optional[np.ndarray] = None
+            if CV2_AVAILABLE:
+                sobel_x = cv2.Sobel(gray, cv2.CV_32F, 1, 0, ksize=3)
+                sobel_y = cv2.Sobel(gray, cv2.CV_32F, 0, 1, ksize=3)
+                gradient_mag = cv2.magnitude(sobel_x, sobel_y)
             else:
-                gray = img_np
+                gray_float = gray.astype(np.float32)
+                if gray_float.shape[0] >= 3 and gray_float.shape[1] >= 3:
+                    gx = (
+                        -gray_float[:-2, :-2] + gray_float[:-2, 2:]
+                        - 2 * gray_float[1:-1, :-2] + 2 * gray_float[1:-1, 2:]
+                        - gray_float[2:, :-2] + gray_float[2:, 2:]
+                    )
+                    gy = (
+                        -gray_float[:-2, :-2] - 2 * gray_float[:-2, 1:-1] - gray_float[:-2, 2:]
+                        + gray_float[2:, :-2] + 2 * gray_float[2:, 1:-1] + gray_float[2:, 2:]
+                    )
+                    gradient_mag = np.zeros_like(gray_float)
+                    gradient_mag[1:-1, 1:-1] = np.hypot(gx, gy)
+                else:
+                    gradient_mag = np.zeros_like(gray_float)
 
-            scale_x = MAX_MASK_SIZE[0] / image.size[0]
-            scale_y = MAX_MASK_SIZE[1] / image.size[1]
-
-            masks = []
+            masks: List[SegmentationMask] = []
             for det in detections[:MAX_DETECTIONS]:
                 bbox = det.bbox
                 x1, y1 = int(bbox.x1 * scale_x), int(bbox.y1 * scale_y)
@@ -456,21 +510,44 @@ class EdgeAwareSegmenter(BaseSegmenter):
 
                 # Bounds check
                 x1, y1 = max(0, x1), max(0, y1)
-                x2, y2 = min(MAX_MASK_SIZE[0], x2), min(MAX_MASK_SIZE[1], y2)
+                x2, y2 = min(mask_width, x2), min(mask_height, y2)
 
-                if x2 <= x1 or y2 <= y1:
-                    boundary_conf = 0.5
-                else:
-                    # Simple variance-based confidence (faster than Canny)
+                mask = np.zeros(mask_shape, dtype=np.uint8)
+                edge_pixels = np.empty((0, 2), dtype=np.int32)
+                variance = 0.0
+
+                if x2 > x1 and y2 > y1:
                     roi = gray[y1:y2, x1:x2]
-                    variance = np.var(roi) if roi.size > 0 else 0
-                    boundary_conf = min(0.5 + variance / 5000.0, 0.95)
+                    variance = float(np.var(roi)) if roi.size > 0 else 0.0
+                    if CV2_AVAILABLE:
+                        try:
+                            _, roi_mask = cv2.threshold(roi, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+                            mask[y1:y2, x1:x2] = roi_mask
+                        except Exception:
+                            mask[y1:y2, x1:x2] = 255
+                    else:
+                        mask[y1:y2, x1:x2] = 255
+
+                    if CV2_AVAILABLE:
+                        contours_result = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                        contours = contours_result[0] if len(contours_result) == 2 else contours_result[1]
+                        if contours:
+                            edge_pixels = np.vstack([c.reshape(-1, 2) for c in contours]).astype(np.int32, copy=False)
+
+                variance_score = min(variance / 5000.0, 0.35)
+                edge_score = 0.0
+                if edge_pixels.size > 0:
+                    edge_vals = gradient_mag[edge_pixels[:, 1], edge_pixels[:, 0]]
+                    if edge_vals.size > 0:
+                        edge_score = min(float(np.mean(edge_vals)) / 255.0, 0.35)
+
+                boundary_conf = min(0.5 + variance_score + edge_score, 0.95)
 
                 masks.append(SegmentationMask(
                     detection_id=det.id,
-                    mask=None,
+                    mask=mask,
                     boundary_confidence=boundary_conf,
-                    edge_pixels=None
+                    edge_pixels=edge_pixels,
                 ))
 
             self._cached_masks = masks
