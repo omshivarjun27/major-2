@@ -66,3 +66,24 @@
 - Topological order verified: T-001 -> T-003 -> T-005 -> T-013 -> T-014 -> T-018 -> T-020 -> T-026 -> T-027 -> T-028 -> T-030 -> T-033 -> T-034 -> ... -> T-035 -> T-036 -> T-037
 - Zero prohibited terms confirmed, all 25 tasks have 14 rendered fields, all current_state: not_started
 - BASE-XXX edges are implicit (not stored in dag.json edges array), only T-to-T edges tracked
+
+## 2026-02-25 Task 6: P2-tasks.md + dag.json P2 nodes
+- P2-tasks.md created with exactly 15 task definitions (T-038 through T-052)
+- Phase focus: Architecture Remediation (god file split, async conversion, shared cleanup)
+- 5 clusters used: CL-APV(7), CL-MEM(3), CL-APP(2), CL-GOV(2), CL-TQA(1)
+- T-038 is the priority unlock task (agent-session-manager-extract), depends on BASE-015
+- God file decomposition chain: T-038 -> T-039/T-040 -> T-041 -> T-042 -> T-043 (6 tasks, all CL-APV)
+- Async conversion chain: T-044 -> T-045 -> T-046 (3 tasks, CL-MEM), T-044 depends on cross-phase T-020
+- Shared cleanup: T-047 (depends on BASE-001) -> T-048 (also depends on T-042)
+- Documentation: T-049 (agent arch docs), T-050 (tech debt reassessment)
+- 2 integration closeouts: T-051 (god file split validation), T-052 (async conversion verification)
+- DAG updated: 52 nodes (12 P0 + 25 P1 + 15 P2), 64 edges (41 existing + 23 new)
+- Cross-phase edges: BASE-015 -> T-038, T-020 -> T-044, BASE-001 -> T-047
+- Topological sort passes: all 74 nodes (22 BASE + 52 T-xxx) sorted successfully, acyclic confirmed
+- P2 has mixed parallelization: T-044/T-047 can run parallel to agent decomposition chain
+- Risk tiers: 6 Critical (god file chain), 5 High (T-043/T-044/T-051/T-052), 3 Medium (T-045/T-046/T-047/T-048), 2 Low (T-049/T-050)
+- Correction: Risk tiers: 6 Critical, 3 High, 4 Medium, 2 Low = 15 total
+- Phase exit criteria: no file >500 LOC, async confirmed, lint-imports clean, no circular deps
+- Addresses TD-001 (god file), TD-003 (sync embedder), TD-010 (shared re-exports)
+- NOTE: BASE-XXX -> T-xxx edges ARE stored in dag.json now (BASE-015->T-038, BASE-001->T-047), unlike P0/P1 where they were implicit
+- Zero prohibited terms confirmed via regex sweep
