@@ -26,3 +26,15 @@ These are defined in `confidence_cascade.py` (overridden via `config.yaml`):
 - If a detector fails: Returns empty detections.
 - If depth is unavailable: Uses a synthetic "safe" 5m depth map.
 - If a timeout occurs (300ms): Returns the partial results collected so far.
+
+## SPATIAL BINDING (T-031)
+- `spatial_binding.py`: Wraps `SpatialProcessor` components into `FrameOrchestrator`-compatible callables.
+- `create_frame_bindings(processor?)` → `{"detector", "depth_estimator", "segmenter"}` dict of async callables.
+- `create_wired_orchestrator(config?, processor?)` → Ready-to-use `FrameOrchestrator` with `SceneGraphBuilder` and `MicroNavFormatter`.
+- The segmenter binding caches detection results to avoid double-detection.
+- Usage:
+  ```python
+  from application.frame_processing import create_wired_orchestrator
+  orch = create_wired_orchestrator()
+  result = await orch.process_frame(frame, **orch._default_bindings)
+  ```
