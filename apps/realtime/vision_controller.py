@@ -117,7 +117,7 @@ async def analyze_vision(userdata: Any, query: str, *, llm_model: str, llm_base_
 
         # Setup visual context
         visual_ctx = ChatContext()
-        from apps.realtime.agent import VISION_SYSTEM_PROMPT
+        from apps.realtime.prompts import VISION_SYSTEM_PROMPT
 
         visual_ctx.add_message(role="system", content=VISION_SYSTEM_PROMPT)
         visual_ctx.add_message(
