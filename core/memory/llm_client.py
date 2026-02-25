@@ -7,7 +7,7 @@ and local fallbacks.  Abstracts LLM calls behind a thin adapter so
 callers never import provider-specific SDKs.
 """
 
-import json
+import asyncio
 import logging
 import os
 import time
@@ -16,6 +16,15 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
+logger = logging.getLogger("memory-llm-client")
+
+# ---------------------------------------------------------------------------
+# Retry / timeout defaults (override via env)
+# ---------------------------------------------------------------------------
+
+DEFAULT_TIMEOUT_S: float = float(os.environ.get("LLM_TIMEOUT_S", "30"))
+DEFAULT_MAX_RETRIES: int = int(os.environ.get("LLM_MAX_RETRIES", "3"))
+DEFAULT_BACKOFF_BASE: float = 0.5  # seconds
 logger = logging.getLogger("memory-llm-client")
 
 
@@ -88,28 +97,43 @@ class ClaudeClient(BaseLLMClient):
 
     Requires env var ``ANTHROPIC_API_KEY``.  Falls back gracefully
     if the key or the SDK is missing.
+
+    Supports configurable timeout and retry with exponential backoff.
     """
 
     MODEL_ID = "claude-opus-4-6-20250610"  # canonical Anthropic model id
 
-    def __init__(self, api_key: Optional[str] = None, model_id: Optional[str] = None):
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        model_id: Optional[str] = None,
+        timeout_s: Optional[float] = None,
+        max_retries: int = DEFAULT_MAX_RETRIES,
+    ):
         self._api_key = api_key or os.environ.get("ANTHROPIC_API_KEY", "")
         self._model_id = model_id or self.MODEL_ID
+        self._timeout_s = timeout_s or DEFAULT_TIMEOUT_S
+        self._max_retries = max_retries
         self._client: Optional[Any] = None
         self._available = False
         self._init_client()
 
     def _init_client(self):
         if not self._api_key:
-            logger.info("ANTHROPIC_API_KEY not set – Claude backend disabled")
+            logger.info("ANTHROPIC_API_KEY not set \u2013 Claude backend disabled")
             return
         try:
-            import anthropic                        # type: ignore
-            self._client = anthropic.AsyncAnthropic(api_key=self._api_key)
+            import anthropic  # type: ignore
+
+            self._client = anthropic.AsyncAnthropic(
+                api_key=self._api_key,
+                timeout=self._timeout_s,
+                max_retries=0,  # we handle retries ourselves
+            )
             self._available = True
-            logger.info(f"Claude client ready (model={self._model_id})")
+            logger.info("Claude client ready (model=%s, timeout=%.0fs)", self._model_id, self._timeout_s)
         except ImportError:
-            logger.warning("anthropic SDK not installed – pip install anthropic")
+            logger.warning("anthropic SDK not installed \u2013 pip install anthropic")
 
     async def generate(
         self,
@@ -137,21 +161,35 @@ class ClaudeClient(BaseLLMClient):
         if stop:
             kwargs["stop_sequences"] = stop
 
-        resp = await self._client.messages.create(**kwargs)
-        text = resp.content[0].text
-        latency = (time.time() - t0) * 1000
-
-        return LLMResponse(
-            text=text,
-            model=self._model_id,
-            role=LLMRole.MEMORY,
-            usage={
-                "input_tokens": resp.usage.input_tokens,
-                "output_tokens": resp.usage.output_tokens,
-            },
-            latency_ms=latency,
-            raw=resp,
-        )
+        last_exc: Optional[Exception] = None
+        for attempt in range(1, self._max_retries + 1):
+            try:
+                resp = await self._client.messages.create(**kwargs)
+                text = resp.content[0].text
+                latency = (time.time() - t0) * 1000
+                return LLMResponse(
+                    text=text,
+                    model=self._model_id,
+                    role=LLMRole.MEMORY,
+                    usage={
+                        "input_tokens": resp.usage.input_tokens,
+                        "output_tokens": resp.usage.output_tokens,
+                    },
+                    latency_ms=latency,
+                    raw=resp,
+                )
+            except Exception as e:
+                last_exc = e
+                if attempt < self._max_retries:
+                    delay = DEFAULT_BACKOFF_BASE * (2 ** (attempt - 1))
+                    logger.warning(
+                        "Claude generate attempt %d/%d failed: %s. Retrying in %.1fs",
+                        attempt, self._max_retries, e, delay,
+                    )
+                    await asyncio.sleep(delay)
+                else:
+                    logger.error("Claude generate failed after %d retries: %s", self._max_retries, e)
+        raise last_exc  # type: ignore[misc]
 
     @property
     def model_name(self) -> str:
@@ -167,13 +205,18 @@ class ClaudeClient(BaseLLMClient):
 # ============================================================================
 
 class OllamaClient(BaseLLMClient):
-    """OpenAI-compatible client for the local Ollama server (qwen3-vl)."""
+    """OpenAI-compatible client for the local Ollama server (qwen3-vl).
+
+    Supports configurable timeout, connection pool, and retry with backoff.
+    """
 
     def __init__(
         self,
         base_url: Optional[str] = None,
         model_id: Optional[str] = None,
         api_key: Optional[str] = None,
+        timeout_s: Optional[float] = None,
+        max_retries: int = DEFAULT_MAX_RETRIES,
     ):
         self._base_url = base_url or os.environ.get(
             "OPENAI_BASE_URL", "http://localhost:11434/v1"
@@ -182,21 +225,37 @@ class OllamaClient(BaseLLMClient):
             "OLLAMA_VL_MODEL_ID", "qwen3-vl:235b-instruct-cloud"
         )
         self._api_key = api_key or os.environ.get("OLLAMA_VL_API_KEY", "ollama")
+        self._timeout_s = timeout_s or DEFAULT_TIMEOUT_S
+        self._max_retries = max_retries
         self._client: Optional[Any] = None
         self._available = False
         self._init_client()
 
     def _init_client(self):
         try:
-            from openai import AsyncOpenAI           # type: ignore
+            import httpx
+            from openai import AsyncOpenAI  # type: ignore
+
+            # Connection pool limits for concurrent requests
+            transport = httpx.AsyncHTTPTransport(
+                retries=0,  # we handle retries ourselves
+                limits=httpx.Limits(max_connections=20, max_keepalive_connections=10),
+            )
+            http_client = httpx.AsyncClient(transport=transport, timeout=self._timeout_s)
+
             self._client = AsyncOpenAI(
                 base_url=self._base_url,
                 api_key=self._api_key,
+                http_client=http_client,
+                timeout=self._timeout_s,
             )
             self._available = True
-            logger.info(f"Ollama/OpenAI client ready ({self._base_url}, model={self._model_id})")
+            logger.info(
+                "Ollama/OpenAI client ready (%s, model=%s, timeout=%.0fs)",
+                self._base_url, self._model_id, self._timeout_s,
+            )
         except ImportError:
-            logger.warning("openai SDK not installed – pip install openai")
+            logger.warning("openai SDK not installed \u2013 pip install openai")
 
     async def generate(
         self,
@@ -225,21 +284,35 @@ class OllamaClient(BaseLLMClient):
         if stop:
             kwargs["stop"] = stop
 
-        resp = await self._client.chat.completions.create(**kwargs)
-        text = resp.choices[0].message.content or ""
-        latency = (time.time() - t0) * 1000
-
-        return LLMResponse(
-            text=text,
-            model=self._model_id,
-            role=LLMRole.VISION,
-            usage={
-                "prompt_tokens": getattr(resp.usage, "prompt_tokens", 0),
-                "completion_tokens": getattr(resp.usage, "completion_tokens", 0),
-            },
-            latency_ms=latency,
-            raw=resp,
-        )
+        last_exc: Optional[Exception] = None
+        for attempt in range(1, self._max_retries + 1):
+            try:
+                resp = await self._client.chat.completions.create(**kwargs)
+                text = resp.choices[0].message.content or ""
+                latency = (time.time() - t0) * 1000
+                return LLMResponse(
+                    text=text,
+                    model=self._model_id,
+                    role=LLMRole.VISION,
+                    usage={
+                        "prompt_tokens": getattr(resp.usage, "prompt_tokens", 0),
+                        "completion_tokens": getattr(resp.usage, "completion_tokens", 0),
+                    },
+                    latency_ms=latency,
+                    raw=resp,
+                )
+            except Exception as e:
+                last_exc = e
+                if attempt < self._max_retries:
+                    delay = DEFAULT_BACKOFF_BASE * (2 ** (attempt - 1))
+                    logger.warning(
+                        "Ollama generate attempt %d/%d failed: %s. Retrying in %.1fs",
+                        attempt, self._max_retries, e, delay,
+                    )
+                    await asyncio.sleep(delay)
+                else:
+                    logger.error("Ollama generate failed after %d retries: %s", self._max_retries, e)
+        raise last_exc  # type: ignore[misc]
 
     @property
     def model_name(self) -> str:
