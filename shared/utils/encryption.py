@@ -12,8 +12,13 @@ library for symmetric-key encryption of:
 Key Management
 --------------
 The 32-byte raw key is read from an environment variable
-(default ``MEMORY_ENCRYPTION_KEY``), then URL-safe base64-encoded
-for Fernet.  If no key is set the module gracefully degrades to
+(default ``MEMORY_ENCRYPTION_KEY``), then derived via PBKDF2-HMAC-SHA256
+(100 000 iterations) and URL-safe base64-encoded for Fernet.
+
+A legacy SHA-256 fallback is maintained for files encrypted before
+the PBKDF2 upgrade.  Salt is configurable via ``{KEY_ENV_VAR}_SALT``.
+
+If no key is set the module gracefully degrades to
 plain I/O so the assistant still works un-encrypted.
 
 Usage::
@@ -21,8 +26,8 @@ Usage::
     from shared.utils.encryption import EncryptionManager
 
     enc = EncryptionManager()          # reads key from env
-    enc.save_encrypted(path, data)     # bytes → encrypted file
-    data = enc.load_decrypted(path)    # encrypted file → bytes
+    enc.save_encrypted(path, data)     # bytes -> encrypted file
+    data = enc.load_decrypted(path)    # encrypted file -> bytes
 """
 
 from __future__ import annotations
@@ -38,7 +43,7 @@ logger = logging.getLogger("encryption")
 
 _HAS_FERNET = False
 try:
-    from cryptography.fernet import Fernet, InvalidToken  # type: ignore
+    from cryptography.fernet import Fernet  # type: ignore
     _HAS_FERNET = True
 except ImportError:
     logger.debug("cryptography not installed – encryption unavailable")
@@ -64,9 +69,19 @@ class EncryptionManager:
     ):
         self._key_env_var = key_env_var
         self._fernet: Optional["Fernet"] = None  # type: ignore[name-defined]
+        self._legacy_fernet: Optional["Fernet"] = None  # type: ignore[name-defined]
         self._enabled = False
 
         raw_key = os.environ.get(key_env_var, "").strip()
+
+        # Try SecretProvider if env var is empty
+        if not raw_key:
+            try:
+                from shared.config.secret_provider import create_secret_provider
+                provider = create_secret_provider()
+                raw_key = provider.get_secret(key_env_var) or ""
+            except Exception:
+                pass  # Fall back to empty key (no encryption)
 
         if enabled is False:
             return
@@ -86,12 +101,19 @@ class EncryptionManager:
             logger.warning("Key found but cryptography not installed – skipping encryption")
             return
 
-        # Derive a 32-byte key via SHA-256 then base64-encode for Fernet
-        derived = hashlib.sha256(raw_key.encode()).digest()
+        # Hardened KDF: PBKDF2 with configurable salt and 100k iterations
+        salt = os.environ.get(f"{key_env_var}_SALT", "voice-vision-default-salt").encode()
+        derived = hashlib.pbkdf2_hmac("sha256", raw_key.encode(), salt, iterations=100_000)
         fernet_key = base64.urlsafe_b64encode(derived)
         self._fernet = Fernet(fernet_key)
         self._enabled = True
-        logger.info("Encryption enabled (AES-128-CBC via Fernet)")
+
+        # Keep legacy Fernet for migration (old files encrypted with SHA-256-derived key)
+        legacy_derived = hashlib.sha256(raw_key.encode()).digest()
+        legacy_fernet_key = base64.urlsafe_b64encode(legacy_derived)
+        self._legacy_fernet = Fernet(legacy_fernet_key)
+
+        logger.info("Encryption enabled (AES-128-CBC via Fernet, PBKDF2 KDF)")
 
     # ------------------------------------------------------------------
     # Public API
@@ -106,16 +128,24 @@ class EncryptionManager:
         """Encrypt raw bytes.  Returns *data* unchanged if disabled."""
         if not self.active:
             return data
+        logger.debug("encrypt: %d bytes", len(data))
         return self._fernet.encrypt(data)  # type: ignore[union-attr]
 
     def decrypt(self, token: bytes) -> bytes:
-        """Decrypt a Fernet token.  Returns *token* unchanged if disabled."""
+        """Decrypt a Fernet token. Falls back to legacy key if PBKDF2 key fails."""
         if not self.active:
             return token
+        logger.debug("decrypt: %d bytes", len(token))
         try:
             return self._fernet.decrypt(token)  # type: ignore[union-attr]
-        except Exception as exc:
-            logger.error("Decryption failed – is the key correct? %s", exc)
+        except Exception:
+            if self._legacy_fernet:
+                logger.warning("Decrypting with legacy SHA-256 key derivation - re-encrypt recommended")
+                try:
+                    return self._legacy_fernet.decrypt(token)
+                except Exception as exc:
+                    logger.error("Decryption failed with both PBKDF2 and legacy keys: %s", exc)
+                    raise
             raise
 
     def save_encrypted(self, path: str | Path, data: bytes) -> None:
