@@ -1,0 +1,89 @@
+# =============================================================================
+# Voice-Vision Assistant — Development Docker Compose
+# =============================================================================
+# Configuration for local development with hot-reloading and debug features.
+# Usage: docker compose -f deployments/compose/docker-compose.dev.yml up
+# =============================================================================
+
+version: '3.8'
+
+services:
+  # Main application service
+  assistant:
+    build:
+      context: ../..
+      dockerfile: deployments/docker/Dockerfile
+    ports:
+      - '8000:8000'   # REST API
+      - '8081:8081'   # WebRTC Agent
+    volumes:
+      # Mount source for hot-reloading
+      - ../../core:/app/core:ro
+      - ../../application:/app/application:ro
+      - ../../infrastructure:/app/infrastructure:ro
+      - ../../shared:/app/shared:ro
+      - ../../apps:/app/apps:ro
+      - ../../configs:/app/configs:ro
+      # Persistent data
+      - dev_data:/app/data
+      - dev_logs:/app/.runtime/logs
+    env_file:
+      - ../../.env
+    environment:
+      - ENVIRONMENT=development
+      - LOG_LEVEL=DEBUG
+      - LOG_FORMAT=text
+      - PII_SCRUB=false
+      - SPATIAL_PERCEPTION_ENABLED=true
+      - SPATIAL_USE_YOLO=false
+      - ENABLE_QR_SCANNING=true
+      - ENABLE_DEBUG_VISUALIZER=true
+      - HOT_PATH_TIMEOUT_MS=1000
+      - PIPELINE_TIMEOUT_MS=500
+      # Mock service endpoints for local dev
+      - LLM_BASE_URL=http://ollama:11434/v1
+    depends_on:
+      ollama:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'python', '-c', 'import httpx; r=httpx.get("http://localhost:8000/health"); assert r.status_code==200']
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    networks:
+      - dev_network
+    restart: unless-stopped
+
+  # Local Ollama for LLM inference
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - '11434:11434'
+    volumes:
+      - ollama_models:/root/.ollama
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:11434/api/version']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - dev_network
+    restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+networks:
+  dev_network:
+    driver: bridge
+
+volumes:
+  dev_data:
+  dev_logs:
+  ollama_models:

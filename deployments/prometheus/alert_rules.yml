@@ -1,0 +1,259 @@
+# Voice & Vision Assistant - Prometheus Alert Rules
+# Task: T-093 - Alert Rules Configuration
+
+groups:
+  - name: voice_vision_sla
+    interval: 30s
+    rules:
+      # Hot path SLA violation - P95 latency > 500ms for 5 minutes
+      - alert: HotPathSLAViolation
+        expr: |
+          histogram_quantile(0.95, 
+            sum(rate(voice_vision_request_latency_seconds_bucket[5m])) by (le)
+          ) > 0.5
+        for: 5m
+        labels:
+          severity: critical
+          component: hot_path
+        annotations:
+          summary: "Hot path P95 latency exceeds 500ms SLA"
+          description: "P95 request latency is {{ $value | printf \"%.2f\" }}s, exceeding the 500ms SLA threshold for 5 minutes."
+          runbook_url: "https://docs.voice-vision/runbooks/hot-path-latency"
+
+      # STT latency SLA violation - P95 > 100ms
+      - alert: STTLatencySLAViolation
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(voice_vision_stt_latency_seconds_bucket[5m])) by (le)
+          ) > 0.1
+        for: 3m
+        labels:
+          severity: warning
+          component: stt
+        annotations:
+          summary: "STT P95 latency exceeds 100ms SLA"
+          description: "STT P95 latency is {{ $value | printf \"%.3f\" }}s, exceeding the 100ms target."
+
+      # TTS latency SLA violation - P95 > 100ms
+      - alert: TTSLatencySLAViolation
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(voice_vision_tts_latency_seconds_bucket[5m])) by (le)
+          ) > 0.1
+        for: 3m
+        labels:
+          severity: warning
+          component: tts
+        annotations:
+          summary: "TTS P95 latency exceeds 100ms SLA"
+          description: "TTS P95 latency is {{ $value | printf \"%.3f\" }}s, exceeding the 100ms target."
+
+      # Vision pipeline SLA violation - P95 > 300ms
+      - alert: VisionPipelineSLAViolation
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(voice_vision_model_inference_seconds_bucket{model=~"yolo|midas"}[5m])) by (le)
+          ) > 0.3
+        for: 3m
+        labels:
+          severity: warning
+          component: vision
+        annotations:
+          summary: "Vision pipeline P95 latency exceeds 300ms SLA"
+          description: "Vision model inference P95 is {{ $value | printf \"%.3f\" }}s, exceeding 300ms target."
+
+  - name: voice_vision_errors
+    interval: 30s
+    rules:
+      # High error rate - 5xx errors > 5% for 2 minutes
+      - alert: HighErrorRate
+        expr: |
+          (
+            sum(rate(voice_vision_request_count_total{status=~"5.."}[5m]))
+            /
+            sum(rate(voice_vision_request_count_total[5m]))
+          ) > 0.05
+        for: 2m
+        labels:
+          severity: critical
+          component: api
+        annotations:
+          summary: "High 5xx error rate detected"
+          description: "5xx error rate is {{ $value | printf \"%.1f\" }}%, exceeding the 5% threshold."
+          runbook_url: "https://docs.voice-vision/runbooks/high-error-rate"
+
+      # Elevated error rate warning - 5xx errors > 1%
+      - alert: ElevatedErrorRate
+        expr: |
+          (
+            sum(rate(voice_vision_request_count_total{status=~"5.."}[5m]))
+            /
+            sum(rate(voice_vision_request_count_total[5m]))
+          ) > 0.01
+        for: 5m
+        labels:
+          severity: warning
+          component: api
+        annotations:
+          summary: "Elevated error rate detected"
+          description: "5xx error rate is {{ $value | printf \"%.2f\" }}%, above normal levels."
+
+  - name: voice_vision_circuit_breakers
+    interval: 30s
+    rules:
+      # Circuit breaker open for extended period
+      - alert: CircuitBreakerOpen
+        expr: voice_vision_circuit_breaker_state == 1
+        for: 5m
+        labels:
+          severity: critical
+          component: resilience
+        annotations:
+          summary: "Circuit breaker open for {{ $labels.service }}"
+          description: "Service {{ $labels.service }} circuit breaker has been OPEN for more than 5 minutes. Fallback is active."
+          runbook_url: "https://docs.voice-vision/runbooks/circuit-breaker-open"
+
+      # Circuit breaker half-open (recovering)
+      - alert: CircuitBreakerHalfOpen
+        expr: voice_vision_circuit_breaker_state == 2
+        for: 10m
+        labels:
+          severity: warning
+          component: resilience
+        annotations:
+          summary: "Circuit breaker half-open for {{ $labels.service }}"
+          description: "Service {{ $labels.service }} has been in HALF-OPEN state for 10+ minutes, indicating ongoing recovery issues."
+
+      # Multiple circuit breaker trips
+      - alert: FrequentCircuitBreakerTrips
+        expr: increase(voice_vision_circuit_breaker_trips_total[1h]) > 5
+        for: 0m
+        labels:
+          severity: warning
+          component: resilience
+        annotations:
+          summary: "Frequent circuit breaker trips for {{ $labels.service }}"
+          description: "Service {{ $labels.service }} has tripped {{ $value }} times in the last hour."
+
+  - name: voice_vision_resources
+    interval: 30s
+    rules:
+      # High VRAM usage - > 90% of 8GB budget for 10 minutes
+      - alert: HighVRAMUsage
+        expr: (voice_vision_vram_usage_bytes / 8589934592) > 0.9
+        for: 10m
+        labels:
+          severity: critical
+          component: gpu
+        annotations:
+          summary: "VRAM usage exceeds 90% of 8GB budget"
+          description: "VRAM usage is {{ $value | printf \"%.1f\" }}% of budget. Risk of CUDA OOM."
+          runbook_url: "https://docs.voice-vision/runbooks/vram-exhaustion"
+
+      # Elevated VRAM usage warning - > 75%
+      - alert: ElevatedVRAMUsage
+        expr: (voice_vision_vram_usage_bytes / 8589934592) > 0.75
+        for: 5m
+        labels:
+          severity: warning
+          component: gpu
+        annotations:
+          summary: "VRAM usage above 75% of budget"
+          description: "VRAM usage is {{ $value | printf \"%.1f\" }}% of 8GB budget."
+
+      # High CPU usage
+      - alert: HighCPUUsage
+        expr: voice_vision_cpu_usage_percent > 90
+        for: 10m
+        labels:
+          severity: warning
+          component: cpu
+        annotations:
+          summary: "CPU usage exceeds 90%"
+          description: "CPU usage is {{ $value | printf \"%.1f\" }}%."
+
+      # High RAM usage
+      - alert: HighRAMUsage
+        expr: voice_vision_ram_usage_bytes > 14000000000
+        for: 10m
+        labels:
+          severity: warning
+          component: memory
+        annotations:
+          summary: "RAM usage exceeds 14GB"
+          description: "RAM usage is {{ $value | humanize1024 }}."
+
+      # Memory leak detection - RSS growth > 100MB/hour
+      - alert: PossibleMemoryLeak
+        expr: |
+          deriv(voice_vision_ram_usage_bytes[1h]) > 104857600
+        for: 30m
+        labels:
+          severity: warning
+          component: memory
+        annotations:
+          summary: "Possible memory leak detected"
+          description: "RAM usage is growing at {{ $value | humanize1024 }}/hour. Investigate for memory leaks."
+          runbook_url: "https://docs.voice-vision/runbooks/memory-leak"
+
+  - name: voice_vision_availability
+    interval: 60s
+    rules:
+      # No requests received - service may be down
+      - alert: NoRequestsReceived
+        expr: sum(rate(voice_vision_request_count_total[5m])) == 0
+        for: 10m
+        labels:
+          severity: warning
+          component: availability
+        annotations:
+          summary: "No requests received in 10 minutes"
+          description: "The service has not received any requests for 10 minutes. It may be inaccessible."
+
+      # Model not loaded
+      - alert: ModelNotLoaded
+        expr: voice_vision_model_loaded == 0
+        for: 5m
+        labels:
+          severity: warning
+          component: models
+        annotations:
+          summary: "Model {{ $labels.model }} not loaded"
+          description: "Model {{ $labels.model }} has been in unloaded state for 5+ minutes."
+
+      # Queue backlog
+      - alert: QueueBacklog
+        expr: voice_vision_queue_size > 20
+        for: 5m
+        labels:
+          severity: warning
+          component: queues
+        annotations:
+          summary: "Queue {{ $labels.queue_name }} has backlog"
+          description: "Queue {{ $labels.queue_name }} has {{ $value }} items, indicating processing bottleneck."
+
+  - name: voice_vision_capacity
+    interval: 60s
+    rules:
+      # Approaching concurrent user limit
+      - alert: HighConcurrentUsers
+        expr: voice_vision_active_connections{connection_type="webrtc"} >= 8
+        for: 2m
+        labels:
+          severity: warning
+          component: capacity
+        annotations:
+          summary: "Approaching concurrent user limit"
+          description: "{{ $value }} concurrent WebRTC sessions, approaching the 10-user SLA limit."
+
+      # At concurrent user limit
+      - alert: AtConcurrentUserLimit
+        expr: voice_vision_active_connections{connection_type="webrtc"} >= 10
+        for: 1m
+        labels:
+          severity: critical
+          component: capacity
+        annotations:
+          summary: "At concurrent user capacity limit"
+          description: "{{ $value }} concurrent WebRTC sessions. New users may be rejected."
+          runbook_url: "https://docs.voice-vision/runbooks/capacity-limit"

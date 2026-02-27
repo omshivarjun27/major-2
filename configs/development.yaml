@@ -1,0 +1,84 @@
+# =============================================================================
+# Voice-Vision Assistant — Development Configuration
+# =============================================================================
+# Configuration overrides for local development environment.
+# Loaded when ENVIRONMENT=development or when no environment is specified.
+# =============================================================================
+
+# Override base configuration for development
+environment: development
+debug: true
+log_level: DEBUG
+
+# Development-specific settings
+confidence:
+  detected_threshold: 0.50        # Lower threshold for dev testing
+  low_confidence_threshold: 0.25  # More permissive in dev
+  face_verify_threshold: 0.75     # Lower for testing
+  confusion_pair_penalty: 0.20
+
+latency:
+  frame_budget_ms: 500            # More lenient for debugging
+  tts_first_chunk_ms: 500         # Relaxed timeout
+  tts_remote_timeout_ms: 5000     # Extended for slow local services
+  partial_response_window: 10
+
+robustness:
+  motion_stability_frames: 2      # Fewer frames for faster iteration
+  small_crop_min_area: 512        # Smaller crops allowed
+  small_crop_penalty: 0.10
+  edge_density_min: 0.03
+  edge_density_penalty: 0.05
+  misclass_alert_count: 5
+  misclass_window_seconds: 60
+
+tts:
+  chunk_max_seconds: 3.0          # Larger chunks for testing
+  gap_max_ms: 500
+  cache_enabled: true
+  cache_max_entries: 100          # Smaller cache for dev
+
+privacy:
+  face_recognition_opt_in: true   # Allow testing face features
+  memory_consent_required: false  # Disable consent checks in dev
+
+# Feature toggles - all enabled for development
+features:
+  spatial_perception: true
+  qr_scanning: true
+  ocr: true
+  face_detection: true
+  face_recognition: true          # Enabled for testing
+  audio_engine: true
+  action_engine: true
+  braille: true
+  memory_rag: true
+  tavus: false
+  cloud_sync: false
+
+# Development-specific overrides
+development:
+  hot_reload: true
+  mock_services: true
+  verbose_logging: true
+  skip_startup_checks: false
+  local_model_fallback: true
+
+# Mock service endpoints (for development without cloud services)
+mock_endpoints:
+  stt: "http://localhost:9001/stt"
+  tts: "http://localhost:9002/tts"
+  llm: "http://localhost:11434"   # Ollama local
+
+# Resource limits (relaxed for development)
+resources:
+  max_vram_mb: 4096               # Lower VRAM target for dev machines
+  max_ram_mb: 8192
+  worker_pool_size: 2
+
+# Logging configuration
+logging:
+  level: DEBUG
+  format: text                    # Human-readable for dev
+  pii_scrub: false                # Disable PII scrubbing in dev
+  file_output: false              # Console only in dev

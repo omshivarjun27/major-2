@@ -1,0 +1,102 @@
+# =============================================================================
+# Voice-Vision Assistant — Staging Configuration
+# =============================================================================
+# Configuration for staging environment - mirrors production with reduced resources.
+# Loaded when ENVIRONMENT=staging.
+# =============================================================================
+
+# Staging environment settings
+environment: staging
+debug: false
+log_level: INFO
+
+# Staging uses production thresholds
+confidence:
+  detected_threshold: 0.60
+  low_confidence_threshold: 0.30
+  face_verify_threshold: 0.85
+  confusion_pair_penalty: 0.20
+
+latency:
+  frame_budget_ms: 300            # Slightly more lenient than prod
+  tts_first_chunk_ms: 350
+  tts_remote_timeout_ms: 3000
+  partial_response_window: 10
+
+robustness:
+  motion_stability_frames: 3
+  small_crop_min_area: 1024
+  small_crop_penalty: 0.15
+  edge_density_min: 0.05
+  edge_density_penalty: 0.10
+  misclass_alert_count: 3
+  misclass_window_seconds: 30
+
+tts:
+  chunk_max_seconds: 2.0
+  gap_max_ms: 300
+  cache_enabled: true
+  cache_max_entries: 300          # Smaller than prod
+
+privacy:
+  face_recognition_opt_in: false
+  memory_consent_required: true
+
+# Feature toggles - match production but some optional features disabled
+features:
+  spatial_perception: true
+  qr_scanning: true
+  ocr: true
+  face_detection: true
+  face_recognition: false
+  audio_engine: true
+  action_engine: true
+  braille: true
+  memory_rag: true
+  tavus: false                    # Disabled in staging
+  cloud_sync: false               # Disabled in staging
+
+# Staging-specific settings
+staging:
+  synthetic_load_enabled: true    # Allow load testing
+  canary_percentage: 100          # Full rollout in staging
+  feature_flag_override: true     # Allow runtime flag changes
+  detailed_metrics: true          # More metrics for debugging
+
+# Cloud service endpoints (staging instances)
+endpoints:
+  api_base_url: "https://api-staging.voice-vision.example.com"
+  metrics_endpoint: "https://prometheus-staging.voice-vision.example.com"
+  log_aggregator: "https://loki-staging.voice-vision.example.com"
+
+# Resource limits (reduced from production)
+resources:
+  max_vram_mb: 6144               # 75% of production
+  max_ram_mb: 12288               # 75% of production
+  worker_pool_size: 3
+  max_concurrent_sessions: 50     # 50% of production
+
+# Logging configuration
+logging:
+  level: INFO
+  format: json
+  pii_scrub: true
+  file_output: true
+  retention_days: 14              # Shorter retention than prod
+
+# Monitoring configuration
+monitoring:
+  prometheus_enabled: true
+  tracing_enabled: true
+  tracing_sample_rate: 1.0        # 100% sampling for debugging
+  alert_thresholds:
+    error_rate_percent: 10        # Higher threshold for staging
+    latency_p95_ms: 600           # More lenient than production
+    circuit_breaker_open_minutes: 10
+
+# Backup configuration (less frequent than production)
+backup:
+  faiss_schedule: "0 3 * * *"     # Daily at 3 AM
+  sqlite_schedule: "0 4 * * *"    # Daily at 4 AM
+  retention_days: 14
+  verify_after_backup: true

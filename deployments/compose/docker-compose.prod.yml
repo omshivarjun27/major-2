@@ -1,0 +1,244 @@
+# =============================================================================
+# Voice-Vision Assistant — Production Docker Compose
+# =============================================================================
+# Configuration for production environment with full monitoring stack.
+# Usage: docker compose -f deployments/compose/docker-compose.prod.yml up -d
+# =============================================================================
+
+version: '3.8'
+
+services:
+  # Main application service (scaled)
+  assistant:
+    image: ${DOCKER_REGISTRY:-ghcr.io}/voice-vision-assistant:${IMAGE_TAG:-latest}
+    ports:
+      - '8000:8000'   # REST API
+      - '8081:8081'   # WebRTC Agent
+    volumes:
+      # Persistent data volumes with secrets mount
+      - prod_data:/app/data
+      - prod_logs:/app/.runtime/logs
+      - prod_backups:/app/backups
+    secrets:
+      - deepgram_api_key
+      - elevenlabs_api_key
+      - ollama_api_key
+      - livekit_api_key
+      - livekit_api_secret
+    environment:
+      - ENVIRONMENT=production
+      - LOG_LEVEL=WARNING
+      - LOG_FORMAT=json
+      - PII_SCRUB=true
+      - SPATIAL_PERCEPTION_ENABLED=true
+      - HOT_PATH_TIMEOUT_MS=500
+      - PIPELINE_TIMEOUT_MS=300
+      # Production service endpoints
+      - PROMETHEUS_PUSHGATEWAY=http://prometheus-pushgateway:9091
+      - LOKI_URL=http://loki:3100
+      # Secrets from Docker secrets
+      - DEEPGRAM_API_KEY_FILE=/run/secrets/deepgram_api_key
+      - ELEVENLABS_API_KEY_FILE=/run/secrets/elevenlabs_api_key
+      - OLLAMA_VL_API_KEY_FILE=/run/secrets/ollama_api_key
+      - LIVEKIT_API_KEY_FILE=/run/secrets/livekit_api_key
+      - LIVEKIT_API_SECRET_FILE=/run/secrets/livekit_api_secret
+    depends_on:
+      prometheus:
+        condition: service_healthy
+      loki:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'python', '-c', 'import httpx; r=httpx.get("http://localhost:8000/health"); assert r.status_code==200']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - prod_network
+    restart: always
+    deploy:
+      mode: replicated
+      replicas: 2
+      update_config:
+        parallelism: 1
+        delay: 30s
+        failure_action: rollback
+        monitor: 60s
+        order: start-first
+      rollback_config:
+        parallelism: 1
+        delay: 10s
+      resources:
+        limits:
+          cpus: '8'
+          memory: 16G
+        reservations:
+          cpus: '4'
+          memory: 12G
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  # Prometheus monitoring
+  prometheus:
+    image: prom/prometheus:v2.45.0
+    ports:
+      - '9090:9090'
+    volumes:
+      - ../prometheus/prometheus-prod.yml:/etc/prometheus/prometheus.yml:ro
+      - ../prometheus/alert_rules.yml:/etc/prometheus/alert_rules.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '--spider', 'http://localhost:9090/-/healthy']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - prod_network
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 4G
+
+  # Prometheus Alertmanager
+  alertmanager:
+    image: prom/alertmanager:v0.25.0
+    ports:
+      - '9093:9093'
+    volumes:
+      - ../prometheus/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager_data:/alertmanager
+    networks:
+      - prod_network
+    restart: always
+
+  # Prometheus Pushgateway for batch metrics
+  prometheus-pushgateway:
+    image: prom/pushgateway:v1.6.0
+    ports:
+      - '9091:9091'
+    networks:
+      - prod_network
+    restart: always
+
+  # Loki log aggregation
+  loki:
+    image: grafana/loki:2.8.0
+    ports:
+      - '3100:3100'
+    volumes:
+      - ../../infrastructure/logging/loki_config.yml:/etc/loki/local-config.yaml:ro
+      - loki_data:/loki
+    command: -config.file=/etc/loki/local-config.yaml
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '--spider', 'http://localhost:3100/ready']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - prod_network
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 4G
+
+  # Promtail log shipper
+  promtail:
+    image: grafana/promtail:2.8.0
+    volumes:
+      - /var/log:/var/log:ro
+      - prod_logs:/app/logs:ro
+      - ../promtail/promtail-config.yml:/etc/promtail/config.yml:ro
+    command: -config.file=/etc/promtail/config.yml
+    networks:
+      - prod_network
+    restart: always
+
+  # Grafana dashboards
+  grafana:
+    image: grafana/grafana:10.0.0
+    ports:
+      - '3000:3000'
+    volumes:
+      - ../grafana/provisioning:/etc/grafana/provisioning:ro
+      - ../grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD__FILE=/run/secrets/grafana_password
+      - GF_AUTH_ANONYMOUS_ENABLED=false
+      - GF_AUTH_BASIC_ENABLED=true
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-piechart-panel
+      - GF_SERVER_ROOT_URL=https://grafana.voice-vision.example.com
+      - GF_SMTP_ENABLED=true
+    secrets:
+      - grafana_password
+    depends_on:
+      prometheus:
+        condition: service_healthy
+      loki:
+        condition: service_healthy
+    networks:
+      - prod_network
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 2G
+
+  # Nginx reverse proxy (optional - for SSL termination)
+  nginx:
+    image: nginx:alpine
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - ../nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ../nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - assistant
+      - grafana
+    networks:
+      - prod_network
+    restart: always
+
+networks:
+  prod_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
+
+volumes:
+  prod_data:
+  prod_logs:
+  prod_backups:
+  prometheus_data:
+  alertmanager_data:
+  loki_data:
+  grafana_data:
+
+secrets:
+  deepgram_api_key:
+    external: true
+  elevenlabs_api_key:
+    external: true
+  ollama_api_key:
+    external: true
+  livekit_api_key:
+    external: true
+  livekit_api_secret:
+    external: true
+  grafana_password:
+    external: true

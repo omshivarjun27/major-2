@@ -1,0 +1,132 @@
+# =============================================================================
+# Voice-Vision Assistant — Staging Docker Compose
+# =============================================================================
+# Configuration for staging environment - mirrors production with reduced resources.
+# Usage: docker compose -f deployments/compose/docker-compose.staging.yml up -d
+# =============================================================================
+
+version: '3.8'
+
+services:
+  # Main application service
+  assistant:
+    image: ${DOCKER_REGISTRY:-ghcr.io}/voice-vision-assistant:${IMAGE_TAG:-staging}
+    ports:
+      - '8000:8000'   # REST API
+      - '8081:8081'   # WebRTC Agent
+    volumes:
+      # Persistent data volumes
+      - staging_data:/app/data
+      - staging_logs:/app/.runtime/logs
+      - staging_backups:/app/backups
+    env_file:
+      - ../../.env.staging
+    environment:
+      - ENVIRONMENT=staging
+      - LOG_LEVEL=INFO
+      - LOG_FORMAT=json
+      - PII_SCRUB=true
+      - SPATIAL_PERCEPTION_ENABLED=true
+      - HOT_PATH_TIMEOUT_MS=500
+      - PIPELINE_TIMEOUT_MS=350
+      # Staging service endpoints
+      - PROMETHEUS_PUSHGATEWAY=http://prometheus-pushgateway:9091
+      - LOKI_URL=http://loki:3100
+    depends_on:
+      - prometheus
+      - loki
+      - grafana
+    healthcheck:
+      test: ['CMD', 'python', '-c', 'import httpx; r=httpx.get("http://localhost:8000/health"); assert r.status_code==200']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - staging_network
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '4'
+          memory: 12G
+        reservations:
+          memory: 8G
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  # Prometheus monitoring
+  prometheus:
+    image: prom/prometheus:v2.45.0
+    ports:
+      - '9090:9090'
+    volumes:
+      - ../prometheus/prometheus-staging.yml:/etc/prometheus/prometheus.yml:ro
+      - ../prometheus/alert_rules.yml:/etc/prometheus/alert_rules.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=14d'
+      - '--web.enable-lifecycle'
+    networks:
+      - staging_network
+    restart: always
+
+  # Prometheus Alertmanager
+  alertmanager:
+    image: prom/alertmanager:v0.25.0
+    ports:
+      - '9093:9093'
+    volumes:
+      - ../prometheus/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+    networks:
+      - staging_network
+    restart: always
+
+  # Loki log aggregation
+  loki:
+    image: grafana/loki:2.8.0
+    ports:
+      - '3100:3100'
+    volumes:
+      - ../../infrastructure/logging/loki_config.yml:/etc/loki/local-config.yaml:ro
+      - loki_data:/loki
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - staging_network
+    restart: always
+
+  # Grafana dashboards
+  grafana:
+    image: grafana/grafana:10.0.0
+    ports:
+      - '3000:3000'
+    volumes:
+      - ../grafana/provisioning:/etc/grafana/provisioning:ro
+      - ../grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+      - GF_AUTH_ANONYMOUS_ENABLED=false
+      - GF_INSTALL_PLUGINS=grafana-clock-panel
+    depends_on:
+      - prometheus
+      - loki
+    networks:
+      - staging_network
+    restart: always
+
+networks:
+  staging_network:
+    driver: bridge
+
+volumes:
+  staging_data:
+  staging_logs:
+  staging_backups:
+  prometheus_data:
+  loki_data:
+  grafana_data:

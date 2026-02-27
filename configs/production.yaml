@@ -1,0 +1,145 @@
+# =============================================================================
+# Voice-Vision Assistant — Production Configuration
+# =============================================================================
+# Configuration for production environment - strictest settings.
+# Loaded when ENVIRONMENT=production.
+# =============================================================================
+
+# Production environment settings
+environment: production
+debug: false
+log_level: WARNING
+
+# Production thresholds - optimized for accuracy and reliability
+confidence:
+  detected_threshold: 0.60
+  low_confidence_threshold: 0.30
+  face_verify_threshold: 0.85
+  confusion_pair_penalty: 0.20
+
+latency:
+  frame_budget_ms: 250            # Strict SLA compliance
+  tts_first_chunk_ms: 300
+  tts_remote_timeout_ms: 2000
+  partial_response_window: 10
+
+robustness:
+  motion_stability_frames: 3
+  small_crop_min_area: 1024
+  small_crop_penalty: 0.15
+  edge_density_min: 0.05
+  edge_density_penalty: 0.10
+  misclass_alert_count: 3
+  misclass_window_seconds: 30
+
+tts:
+  chunk_max_seconds: 2.0
+  gap_max_ms: 300
+  cache_enabled: true
+  cache_max_entries: 500
+
+privacy:
+  face_recognition_opt_in: false  # Requires explicit consent
+  memory_consent_required: true   # Always require consent
+
+# Feature toggles - conservative production defaults
+features:
+  spatial_perception: true
+  qr_scanning: true
+  ocr: true
+  face_detection: true
+  face_recognition: false         # Disabled until consent
+  audio_engine: true
+  action_engine: true
+  braille: true
+  memory_rag: true
+  tavus: false                    # Optional feature
+  cloud_sync: false               # Optional feature
+
+# Production-specific settings
+production:
+  enforce_https: true
+  require_auth: true
+  rate_limiting_enabled: true
+  ddos_protection: true
+  graceful_degradation: true
+  circuit_breaker_enabled: true
+
+# Cloud service endpoints (production instances)
+endpoints:
+  api_base_url: "https://api.voice-vision.example.com"
+  metrics_endpoint: "https://prometheus.voice-vision.example.com"
+  log_aggregator: "https://loki.voice-vision.example.com"
+  alertmanager: "https://alertmanager.voice-vision.example.com"
+
+# Resource limits (maximum capacity)
+resources:
+  max_vram_mb: 8192
+  max_ram_mb: 16384
+  worker_pool_size: 4
+  max_concurrent_sessions: 100
+  connection_pool_size: 20
+
+# SLA targets
+sla:
+  hot_path_latency_ms: 500
+  stt_latency_ms: 100
+  tts_latency_ms: 100
+  vqa_latency_ms: 300
+  availability_target: 99.9       # 99.9% uptime
+  error_rate_threshold: 0.01      # 1% error rate
+
+# Logging configuration
+logging:
+  level: WARNING
+  format: json
+  pii_scrub: true
+  file_output: true
+  retention_days: 30
+  compression: true
+  max_file_size_mb: 100
+
+# Monitoring configuration
+monitoring:
+  prometheus_enabled: true
+  tracing_enabled: true
+  tracing_sample_rate: 0.1        # 10% sampling to reduce overhead
+  alert_thresholds:
+    error_rate_percent: 5
+    latency_p95_ms: 500
+    circuit_breaker_open_minutes: 5
+    vram_usage_percent: 90
+    disk_usage_percent: 90
+
+# Backup configuration
+backup:
+  faiss_schedule: "0 2 * * *"     # Daily at 2 AM
+  sqlite_schedule: "0 2 30 * *"   # Daily at 2:30 AM
+  incremental_enabled: true
+  retention_days: 30
+  verify_after_backup: true
+  s3_bucket: "voice-vision-backups-prod"
+  encryption_enabled: true
+
+# Deployment configuration
+deployment:
+  blue_green_enabled: true
+  canary_enabled: true
+  canary_percentage: 10
+  canary_duration_hours: 2
+  auto_rollback_enabled: true
+  rollback_threshold_error_rate: 0.01
+  rollback_threshold_latency_ms: 600
+
+# Security configuration
+security:
+  api_key_required: true
+  jwt_expiry_hours: 24
+  refresh_token_expiry_days: 30
+  max_login_attempts: 5
+  lockout_duration_minutes: 15
+  cors_allowed_origins:
+    - "https://app.voice-vision.example.com"
+    - "https://admin.voice-vision.example.com"
+  csp_enabled: true
+  hsts_enabled: true
