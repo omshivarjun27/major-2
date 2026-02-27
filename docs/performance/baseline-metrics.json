@@ -1,0 +1,91 @@
+{
+  "timestamp": "2026-02-28T00:36:06.012916",
+  "measurements": {
+    "config_import": {
+      "component": "config_import",
+      "sample_count": 5,
+      "min_ms": 0.03,
+      "max_ms": 0.04,
+      "median_ms": 0.03,
+      "mean_ms": 0.03,
+      "p95_ms": 0.04,
+      "p99_ms": 0.04
+    },
+    "circuit_breaker_import": {
+      "component": "circuit_breaker_import",
+      "sample_count": 5,
+      "min_ms": 0.04,
+      "max_ms": 0.31,
+      "median_ms": 0.05,
+      "mean_ms": 0.1,
+      "p95_ms": 0.31,
+      "p99_ms": 0.31
+    },
+    "circuit_breaker_overhead": {
+      "component": "circuit_breaker_overhead",
+      "sample_count": 100,
+      "min_ms": 0.03,
+      "max_ms": 0.96,
+      "median_ms": 0.06,
+      "mean_ms": 0.08,
+      "p95_ms": 0.15,
+      "p99_ms": 0.96
+    },
+    "retry_policy_overhead": {
+      "component": "retry_policy_overhead",
+      "sample_count": 50,
+      "min_ms": 0.02,
+      "max_ms": 0.04,
+      "median_ms": 0.03,
+      "mean_ms": 0.03,
+      "p95_ms": 0.04,
+      "p99_ms": 0.04
+    },
+    "health_registry_summary": {
+      "component": "health_registry_summary",
+      "sample_count": 100,
+      "min_ms": 0.05,
+      "max_ms": 4.87,
+      "median_ms": 0.13,
+      "mean_ms": 0.19,
+      "p95_ms": 0.52,
+      "p99_ms": 4.87
+    },
+    "degradation_refresh": {
+      "component": "degradation_refresh",
+      "sample_count": 50,
+      "min_ms": 0.08,
+      "max_ms": 1.23,
+      "median_ms": 0.13,
+      "mean_ms": 0.19,
+      "p95_ms": 0.51,
+      "p99_ms": 1.23
+    },
+    "stt_failover": {
+      "component": "stt_failover",
+      "sample_count": 5,
+      "min_ms": 0.17,
+      "max_ms": 0.64,
+      "median_ms": 0.22,
+      "mean_ms": 0.3,
+      "p95_ms": 0.64,
+      "p99_ms": 0.64
+    },
+    "tts_failover": {
+      "component": "tts_failover",
+      "sample_count": 5,
+      "min_ms": 0.01,
+      "max_ms": 0.03,
+      "median_ms": 0.02,
+      "mean_ms": 0.02,
+      "p95_ms": 0.03,
+      "p99_ms": 0.03
+    }
+  },
+  "vram_idle_mb": 0.0,
+  "vram_peak_mb": 0.0,
+  "ram_usage_mb": 517.06640625,
+  "notes": [
+    "Baseline RAM: 517.1 MB"
+  ]
+}

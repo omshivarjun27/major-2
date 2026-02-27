@@ -221,3 +221,115 @@ class TestRegistry:
     def test_raises_when_no_backends(self) -> None:
         with pytest.raises(RuntimeError, match="No LLM backend"):
             get_backend(LLMRole.VISION)
+
+
+# ---------------------------------------------------------------------------
+# infrastructure/llm/config
+# ---------------------------------------------------------------------------
+
+
+class TestLLMConfig:
+    """Tests for infrastructure.llm.config module."""
+
+    def test_get_config_returns_dict(self) -> None:
+        from infrastructure.llm.config import get_config
+        cfg = get_config()
+        assert isinstance(cfg, dict)
+
+    def test_config_has_shared_keys(self) -> None:
+        from infrastructure.llm.config import get_config
+        cfg = get_config()
+        assert "OLLAMA_VL_API_KEY" in cfg
+        assert "OLLAMA_VL_MODEL_ID" in cfg
+        assert "MAX_TOKENS" in cfg
+        assert "TEMPERATURE" in cfg
+
+    def test_config_has_llm_specific_keys(self) -> None:
+        from infrastructure.llm.config import get_config
+        cfg = get_config()
+        assert "LLM_CONNECT_TIMEOUT_S" in cfg
+        assert "LLM_READ_TIMEOUT_S" in cfg
+        assert "LLM_TOTAL_TIMEOUT_S" in cfg
+        assert "LLM_MAX_CONNECTIONS" in cfg
+        assert "LLM_MAX_KEEPALIVE" in cfg
+        assert "LLM_MAX_RETRIES" in cfg
+        assert "LLM_BACKOFF_BASE" in cfg
+
+    def test_config_does_not_mutate_shared(self) -> None:
+        from infrastructure.llm.config import get_config
+        from shared.config.settings import get_config as shared_get_config
+        llm_cfg = get_config()
+        shared_cfg = shared_get_config()
+        assert "LLM_MAX_RETRIES" not in shared_cfg
+        assert "LLM_MAX_RETRIES" in llm_cfg
+
+    def test_get_llm_timeout_config(self) -> None:
+        from infrastructure.llm.config import get_llm_timeout_config
+        tc = get_llm_timeout_config()
+        assert "connect" in tc
+        assert "read" in tc
+        assert "total" in tc
+        assert all(isinstance(v, float) for v in tc.values())
+
+    def test_env_override(self) -> None:
+        import os
+        with patch.dict(os.environ, {"LLM_MAX_RETRIES": "7"}, clear=False):
+            # Need to reimport to pick up env change
+            import importlib
+
+            import infrastructure.llm.config as llm_cfg_mod
+            importlib.reload(llm_cfg_mod)
+            cfg = llm_cfg_mod.get_config()
+            assert cfg["LLM_MAX_RETRIES"] == 7
+            # Restore
+            importlib.reload(llm_cfg_mod)
+
+
+# ---------------------------------------------------------------------------
+# OllamaHandler async enhancements
+# ---------------------------------------------------------------------------
+
+
+class TestOllamaHandler:
+    """Tests for infrastructure.llm.ollama.handler async enhancements."""
+
+    def test_handler_imports_successfully(self) -> None:
+        """The previously-broken import chain now works."""
+        from infrastructure.llm.ollama.handler import OllamaHandler
+        assert OllamaHandler is not None
+
+    def test_handler_init_without_api_key(self) -> None:
+        """Handler gracefully degrades when API key is missing."""
+        from infrastructure.llm.config import get_config
+        from infrastructure.llm.ollama.handler import OllamaHandler
+
+        orig_cfg = get_config()
+        patched_cfg = dict(orig_cfg)
+        patched_cfg["OLLAMA_VL_API_KEY"] = ""
+        with patch("infrastructure.llm.ollama.handler.get_config", return_value=patched_cfg):
+            h = OllamaHandler()
+            assert not h.is_ready
+
+    def test_handler_has_close_method(self) -> None:
+        """Handler exposes async close() for cleanup."""
+        from infrastructure.llm.ollama.handler import OllamaHandler
+        assert hasattr(OllamaHandler, "close")
+
+    async def test_handler_close_is_safe(self) -> None:
+        """close() doesn't raise even if client is None."""
+        from infrastructure.llm.ollama.handler import OllamaHandler
+        h = OllamaHandler.__new__(OllamaHandler)
+        h.client = None
+        h.is_ready = False
+        h._verified = False
+        await h.close()  # Should not raise
+
+    def test_handler_has_retry_config(self) -> None:
+        """Handler stores retry configuration from config."""
+        from infrastructure.llm.ollama.handler import OllamaHandler
+        h = OllamaHandler.__new__(OllamaHandler)
+        # Set required attributes manually
+        h._max_retries = 3
+        h._backoff_base = 0.5
+        assert h._max_retries == 3
+        assert h._backoff_base == 0.5

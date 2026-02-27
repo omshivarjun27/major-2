@@ -126,7 +126,7 @@ class TestRAGReasonerWithClaudeStub:
         # Use a stub that mimics Claude Opus 4.6 output
         stub_claude = StubLLMClient(
             canned='Based on your memories, your keys were last seen on the kitchen table at 7:12 AM.\n\n```json\n{"citations": [{"id": "mem_001", "timestamp": "2024-01-01T07:12:00Z"}]}\n```',
-            model_id="claude-opus-4-6-stub",
+            model_id="us.anthropic.claude-opus-4-6-v1-stub",
         )
 
         reasoner = RAGReasoner(

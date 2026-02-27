@@ -1,0 +1,130 @@
+{
+  "timestamp": "2026-02-27T23:29:35.322777",
+  "iterations": 10,
+  "summary": {
+    "avg_total_ms": 400.79,
+    "p95_total_ms": 458.99,
+    "sla_pass_rate_pct": 100.0,
+    "sla_target_ms": 500
+  },
+  "timings": [
+    {
+      "iteration": 0,
+      "stt_ms": 100.29190000204835,
+      "llm_ms": 186.5040999982739,
+      "tts_ms": 94.68909999122843,
+      "overhead_ms": 0.008500006515532732,
+      "total_ms": 381.4935999980662
+    },
+    {
+      "iteration": 1,
+      "stt_ms": 83.51389999734238,
+      "llm_ms": 232.94909999822266,
+      "tts_ms": 93.22850000171456,
+      "overhead_ms": 0.004399989848025143,
+      "total_ms": 409.69589998712763
+    },
+    {
+      "iteration": 2,
+      "stt_ms": 102.56049998861272,
+      "llm_ms": 247.98699999519158,
+      "tts_ms": 108.44270000234246,
+      "overhead_ms": 0.004200017428956926,
+      "total_ms": 458.9944000035757
+    },
+    {
+      "iteration": 3,
+      "stt_ms": 104.63339999841992,
+      "llm_ms": 203.6394000024302,
+      "tts_ms": 63.660100000561215,
+      "overhead_ms": 0.003000008291564882,
+      "total_ms": 371.9359000097029
+    },
+    {
+      "iteration": 4,
+      "stt_ms": 102.32429999450687,
+      "llm_ms": 249.80960000539199,
+      "tts_ms": 78.30249999824446,
+      "overhead_ms": 0.0041000021155923605,
+      "total_ms": 430.4405000002589
+    },
+    {
+      "iteration": 5,
+      "stt_ms": 88.92049999849405,
+      "llm_ms": 217.9206000000704,
+      "tts_ms": 108.79159999603871,
+      "overhead_ms": 0.0026000052457675338,
+      "total_ms": 415.63529999984894
+    },
+    {
+      "iteration": 6,
+      "stt_ms": 73.33100000687409,
+      "llm_ms": 170.08709999208804,
+      "tts_ms": 108.11590000230353,
+      "overhead_ms": 0.0023000029614195228,
+      "total_ms": 351.5363000042271
+    },
+    {
+      "iteration": 7,
+      "stt_ms": 87.2218000004068,
+      "llm_ms": 216.21690000756644,
+      "tts_ms": 91.7394999996759,
+      "overhead_ms": 0.0026999914553016424,
+      "total_ms": 395.18089999910444
+    },
+    {
+      "iteration": 8,
+      "stt_ms": 83.56140000978485,
+      "llm_ms": 263.15620000241324,
+      "tts_ms": 93.1230999995023,
+      "overhead_ms": 0.0022999884095042944,
+      "total_ms": 439.8430000001099
+    },
+    {
+      "iteration": 9,
+      "stt_ms": 73.93379999848548,
+      "llm_ms": 202.30720000108704,
+      "tts_ms": 76.91810000687838,
+      "overhead_ms": 0.0034999975468963385,
+      "total_ms": 353.1626000039978
+    }
+  ],
+  "bottlenecks": [
+    {
+      "component": "llm",
+      "avg_ms": 219.06,
+      "max_ms": 263.16,
+      "percentage": 54.7,
+      "file_location": "infrastructure/llm/ollama_client.py",
+      "function_name": "generate()",
+      "recommendation": "LLM latency is within acceptable range"
+    },
+    {
+      "component": "tts",
+      "avg_ms": 91.7,
+      "max_ms": 108.79,
+      "percentage": 22.9,
+      "file_location": "infrastructure/speech/elevenlabs_tts.py",
+      "function_name": "synthesize()",
+      "recommendation": "TTS is within acceptable range"
+    },
+    {
+      "component": "stt",
+      "avg_ms": 90.03,
+      "max_ms": 104.63,
+      "percentage": 22.5,
+      "file_location": "infrastructure/speech/deepgram_stt.py",
+      "function_name": "transcribe()",
+      "recommendation": "STT is within acceptable range"
+    },
+    {
+      "component": "overhead",
+      "avg_ms": 0.0,
+      "max_ms": 0.01,
+      "percentage": 0.0,
+      "file_location": "application/pipelines/voice_pipeline.py",
+      "function_name": "orchestrate()",
+      "recommendation": "Orchestration overhead is acceptable"
+    }
+  ]
+}
