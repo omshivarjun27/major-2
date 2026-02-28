@@ -7,7 +7,7 @@ from __future__ import annotations
 import os
 import pytest
 
-from infrastructure.tavus.tavus_adapter import TavusAdapter, TavusConfig, TavusMessage
+from infrastructure.tavus.adapter import TavusAdapter, TavusConfig, TavusMessage
 
 
 class TestTavusConfig:

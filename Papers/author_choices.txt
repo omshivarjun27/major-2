@@ -1,0 +1,94 @@
+================================================================================
+ AUTHOR CHOICES — Voice & Vision Assistant Conference Paper
+ PLEASE VERIFY AGAINST "sample paper 2.pdf"
+================================================================================
+
+NOTE: The file "sample paper 2.pdf" could not be read programmatically (binary
+PDF format). The following author names, affiliations, and paper title are
+INFERRED from project context and must be verified manually.
+
+================================================================================
+ PAPER TITLE OPTIONS
+================================================================================
+
+Option A (recommended):
+  "Voice and Vision Assistant: A Real-Time Multimodal Accessibility System
+   for Blind and Visually Impaired Users"
+
+Option B (shorter):
+  "VVA: Real-Time Spatial Perception and Conversational AI for Blind Navigation"
+
+Option C (survey-style):
+  "A Comprehensive Survey and System Design for Multimodal Assistive Technology
+   Combining Computer Vision, NLP, and Audio Processing"
+
+Currently used in main.tex: Option A
+
+
+================================================================================
+ AUTHOR NAMES AND AFFILIATIONS
+================================================================================
+
+The following names are inferred from project context at Marwadi University.
+VERIFY these against "sample paper 2.pdf" and update main.tex accordingly.
+
+Author 1: Dharmik Dholu
+  - Role: Primary developer / first author
+  - Affiliation: Department of Computer Science and Engineering
+  - Institution: Marwadi University, Rajkot, Gujarat, India
+  - Email: dharmik.dholu@marwadi.edu.in (VERIFY)
+
+Author 2: Krish Gangadiya
+  - Role: Co-developer / second author
+  - Affiliation: Department of Computer Science and Engineering
+  - Institution: Marwadi University, Rajkot, Gujarat, India
+  - Email: krish.gangadiya@marwadi.edu.in (VERIFY)
+
+Author 3: Samarth Mangukiya
+  - Role: Co-developer / third author
+  - Affiliation: Department of Computer Science and Engineering
+  - Institution: Marwadi University, Rajkot, Gujarat, India
+  - Email: samarth.mangukiya@marwadi.edu.in (VERIFY)
+
+Author 4: Vansh Kothia
+  - Role: Co-developer / fourth author
+  - Affiliation: Department of Computer Science and Engineering
+  - Institution: Marwadi University, Rajkot, Gujarat, India
+  - Email: vansh.kothia@marwadi.edu.in (VERIFY)
+
+Guide / Advisor:
+  - Name: Prof. Jignesh Madrakia
+  - Role: Faculty advisor / corresponding author (if applicable)
+  - Affiliation: Department of Computer Science and Engineering
+  - Institution: Marwadi University, Rajkot, Gujarat, India
+  - Email: jignesh.madrakia@marwadi.edu.in (VERIFY)
+
+
+================================================================================
+ HOW TO UPDATE
+================================================================================
+
+1. Open "sample paper 2.pdf" manually
+2. Verify author names, order, and affiliations
+3. Edit Papers/Overleaf_Project/main.tex lines 15-30 with correct information
+4. Update email addresses in the \author{} block
+5. If the advisor should be listed as an author (not just acknowledged),
+   add them to the \author{} block and adjust \acknowledgements accordingly
+
+
+================================================================================
+ AFFILIATION FORMAT IN MAIN.TEX
+================================================================================
+
+Current format in main.tex:
+
+\author{
+  \IEEEauthorblockN{Dharmik Dholu, Krish Gangadiya, Samarth Mangukiya, Vansh Kothia}
+  \IEEEauthorblockA{
+    Department of Computer Science and Engineering\\
+    Marwadi University, Rajkot, Gujarat, India\\
+    \{dharmik.dholu, krish.gangadiya, samarth.mangukiya, vansh.kothia\}@marwadi.edu.in
+  }
+}
+
+Modify as needed for the actual submission format.

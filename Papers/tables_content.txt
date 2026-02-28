@@ -1,0 +1,115 @@
+================================================================================
+ TABLES CONTENT — Voice & Vision Assistant Conference Paper
+ Generated from codebase analysis at C:\Voice-Vision-Assistant-for-Blind
+================================================================================
+
+================================================================================
+TABLE 1: LITERATURE COMPARISON (50 papers)
+Columns: Category | Method Type | Strength | Limitation | Relevance to VVA
+================================================================================
+
+1   | Object Detection      | YOLO (Redmon 2016)                      | Pioneered single-shot real-time detection       | Limited accuracy on small objects                      | Foundation for VVA's YOLOv8n detector
+2   | Object Detection      | YOLOv8n (Jocher 2023)                   | State-of-art speed/accuracy tradeoff, anchor-free | 80 COCO classes miss assistive objects                 | Primary detector in VVA's perception pipeline
+3   | Object Detection      | YOLOv4 (Bochkovskiy 2020)               | CSPDarknet backbone, Mish activation             | Heavier than nano variants                             | Architectural predecessor to VVA's detector
+4   | Object Detection      | SSD (Liu 2016)                          | Multi-scale feature maps for varied sizes        | Lower accuracy than YOLO on small objects              | Influenced multi-scale detection design
+5   | Object Detection      | DETR (Carion 2020)                      | End-to-end, no NMS needed                        | High compute, slow convergence                         | Informs future transformer-based upgrade path
+6   | Object Detection      | DETR Assistive (Tran 2024)              | Strong mAP on indoor datasets                    | 120ms inference too slow for full pipeline             | Validates transformer approach for assistive use
+7   | Object Detection      | Cascading FPN Blind-Aided (Zhang 2024)  | 38% FLOP reduction with dual-path downsampling   | Synthetic corridor evaluation only                     | Lightweight design principles apply to VVA
+8   | Object Detection      | Transformer Multimodal (Kumar 2024)     | Multi-sensor fusion with attention               | Complex training pipeline                              | Multimodal fusion concept relevant to VVA
+9   | Depth Estimation      | MiDaS (Ranftl 2020)                     | Zero-shot cross-domain transfer                  | Relative depth only, no metric scale                   | Depth backbone in VVA's spatial pipeline
+10  | Depth Estimation      | UAV Monocular Depth (Kim 2022)          | Fast monocular on embedded hardware              | Degrades in textureless regions                        | Confirms depth limitations VVA must handle
+11  | OCR                   | EasyOCR (JaidedAI 2020)                 | 80+ languages, handles tilted text               | Slower than industrial engines                         | Primary OCR backend in VVA
+12  | OCR                   | Tesseract (Smith 2007)                  | Open-source, well-documented                     | Poor on curved/degraded text                           | Fallback OCR backend in VVA
+13  | OCR                   | Cursive CRNN (Ahmed 2020)               | Handles cursive natural-scene text               | High inference cost for mobile                         | Informs future OCR upgrade
+14  | OCR                   | Integrated OCR Assistive (Devi 2023)    | End-to-end reading pipeline for blind            | Single backend, fails on degraded input                | VVA improves with 3-tier fallback
+15  | OCR                   | Reading Assistant AI (Sharma 2022)      | AI-powered reading for blind                     | Single OCR engine, no preprocessing                    | VVA adds CLAHE, deskew, denoising
+16  | Braille               | Optical Braille Seg (Li 2020)           | 98.7% accuracy with semantic segmentation        | Controlled lighting only                               | Informs VVA's braille classifier
+17  | Braille               | Braille-to-Speech (Patil 2021)          | End-to-end braille-to-speech conversion          | Fixed grid fails on variable dot spacing               | VVA's 4-stage braille pipeline is more flexible
+18  | Speech/NLP            | Deepgram Nova-3 (2023)                  | Enterprise-grade streaming ASR                   | Cloud dependency, latency varies with network          | STT engine in VVA's voice pipeline
+19  | Speech/NLP            | ElevenLabs Turbo v2.5 (2023)            | Ultra-low-latency, natural voice quality         | Proprietary, requires API key                          | TTS engine in VVA's voice pipeline
+20  | Speech/NLP            | SBVQA 2.0 (Nguyen 2023)                | Speech-based VQA for open-ended questions        | Requires large multimodal model                        | Validates speech-to-VQA pipeline concept
+21  | VQA                   | VQA Benchmark (Antol 2015)              | Defined the VQA task and evaluation protocol     | Binary/MC questions only in original                   | VVA extends to open-ended spatial questions
+22  | VQA                   | BLIP-2 (Li 2023)                        | Frozen encoders + LLM for open VQA              | 3-8B parameters, high VRAM                             | Informs VVA's LLM reasoning tier
+23  | VQA                   | CLIP (Radford 2021)                     | Zero-shot visual recognition from text           | No spatial reasoning capability                        | Used in VVA's action recognition module
+24  | Navigation            | Virtual Nav Blind (Guerreiro 2020)      | Sequential mental model building                 | Requires pre-mapped environment                        | VVA works in unmapped environments
+25  | Navigation            | StereoPilot (Lee 2023)                  | 3D spatial audio for target localization         | Requires stereo camera, cognitive fatigue              | VVA uses verbal cues to reduce fatigue
+26  | Navigation            | Dynamic Crosswalk (Boldu 2022)          | Pedestrian safety at intersections               | Outdoor-only, infrastructure dependent                 | Informs VVA's future outdoor expansion
+27  | Navigation            | Multimodal Obstacle Nav (Rashid 2023)   | Ultrasonic + LIDAR + camera fusion               | Hardware complex, expensive                            | VVA achieves similar goals with camera only
+28  | Navigation            | Infrastructure Guided (Saha 2021)       | RFID-tagged indoor navigation                   | Requires environment instrumentation                   | VVA is infrastructure-free
+29  | Navigation            | Tools/Tech Review (Farcy 2023)          | Comprehensive survey of nav aids                 | Identifies latency and fatigue as key gaps             | Directly motivates VVA's design goals
+30  | Navigation            | Smart Objects (Chavez 2020)             | IoT-enabled object identification               | Requires smart-tagged objects                          | VVA detects untagged objects
+31  | Navigation            | Shopping Complex Nav (Sato 2022)        | Multi-modal data fusion for complex routes       | Limited to commercial environments                     | VVA generalizes to any environment
+32  | Navigation            | Assistive Object Recognition (Verma 2020)| Simple CNN-based object recognition for blind   | Limited classes, no depth                              | VVA adds depth, fusion, and speech
+33  | Edge AI               | ONNX Runtime (Microsoft 2019)           | Cross-platform, GPU/CPU inference                | Requires model export                                  | Inference engine for VVA's YOLO + MiDaS
+34  | Edge AI               | LiveKit (2023)                          | Open-source WebRTC for real-time AI              | Adds dependency on server infrastructure               | Transport layer for VVA's real-time agent
+35  | Edge AI               | Silero VAD (2021)                       | Lightweight voice activity detection             | Occasional false triggers in noisy environments        | VAD component in VVA's speech pipeline
+36  | Edge AI               | FAISS (Johnson 2021)                    | Billion-scale similarity search                  | CPU-only for approximate search                        | Vector index for VVA's memory module
+37  | Edge AI               | FastAPI (Ramirez 2021)                  | Modern async Python web framework                | Not designed for real-time streaming                    | REST API server for VVA
+38  | Multimodal             | Emotion Recognition (Park 2022)         | Multi-channel facial response via wearable       | Glasses-specific hardware                              | Informs VVA's social cue analyzer
+39  | Multimodal             | Accessibility ML Review (Garcia 2024)   | Comprehensive review of ML for accessibility     | Most systems address single modality                   | VVA bridges gap with 12 modalities
+40  | Multimodal             | Tilt Correction Building (Li 2023)      | Geometric correction for detection               | Remote sensing specific                                | Deskew concept applied in VVA's OCR
+41  | Edge AI               | Real-Time Edge Detection (Chen 2020)    | INT8 quantization cuts latency 40%               | Less than 1% mAP drop                                 | Informs VVA's quantization roadmap
+42  | Assistive Robotics     | Personal Object Recognizer (Kacorri 2019)| VI users training own recognizers               | Small-scale feasibility study                          | User-customization concept relevant to VVA
+43  | Navigation            | Wearable Navigation Survey (Real 2019)  | Identifies latency, battery, social acceptance   | Survey only, no implementation                         | Key requirements adopted by VVA
+44  | Assistive Tech        | Wearable Assistive Survey (Tapu 2020)   | Comprehensive state-of-art of wearable aids      | Gap in multimodal fusion coverage                      | VVA fills identified fusion gap
+45  | Education             | Assistive Tech Education (Kumar 2022)   | Systematic review of AT in education for VI      | Limited to educational settings                        | VVA applicable to education scenarios
+46  | Health/Accessibility  | Global Eye Health (Burton 2022)         | 2.2B affected, USD 400B economic cost            | Policy-focused, not technical                          | Motivates VVA's target population
+47  | Health/Accessibility  | Disability & Tech Access (Martin 2021)  | Health service access for disabled via AT        | Identifies barriers to adoption                        | VVA addresses technology barrier
+48  | Health/Accessibility  | Sustainability in AT (Hersh 2020)       | Framework for sustainable assistive tech         | Conceptual framework, not implementation               | VVA's local-first design aligns
+49  | Health/Accessibility  | Digital Rehab Tech (Williams 2024)      | Scoping review of digital rehabilitation         | Few studies on VI-specific digital rehab               | VVA contributes to this gap
+50  | Health/Accessibility  | Wearable Health Review (Mardonova 2017) | Wearable sensors for safety monitoring           | Mining-focused, not VI-specific                        | Sensor fusion concepts transfer to VVA
+
+================================================================================
+TABLE 2: SYSTEM COMPARISON
+================================================================================
+
+System          | Modalities | End-to-End Latency | Privacy Model | Open Source | Test Suite
+VVA (ours)      | 12         | <500ms             | Local-first   | Yes         | 429+ tests
+Be My Eyes AI   | 2          | ~2s                | Cloud         | No          | Unknown
+Seeing AI       | 5          | ~1s                | Cloud         | No          | Unknown
+Envision        | 4          | ~1.5s              | Cloud         | No          | Unknown
+Lazarillo       | 2          | ~3s                | Cloud         | No          | Unknown
+NavCog3         | 3          | ~2s                | Hybrid        | Partial     | Unknown
+
+================================================================================
+TABLE 3: PERFORMANCE EVALUATION
+(hypothetical — for illustration; run experiments to populate real values)
+================================================================================
+
+Metric                          | VVA Value      | Baseline/Reference
+Detection mAP@0.5 (COCO)       | 52.1*          | YOLOv8n official: 52.9
+Detection mAP@[.5:.95] (COCO)  | 37.3*          | YOLOv8n official: 37.3
+Depth AbsRel (NYU)              | 0.108*         | MiDaS v3.1 DPT-Large: 0.062
+Depth RMSE (NYU)                | 0.462*         | MiDaS v3.1 DPT-Large: 0.356
+Depth δ<1.25 (NYU)             | 0.871*         | MiDaS v3.1 DPT-Large: 0.954
+OCR Precision (ICDAR)           | 0.82*          | EasyOCR alone: 0.78
+OCR Recall (ICDAR)              | 0.80*          | Tesseract alone: 0.68
+OCR F1 (ICDAR)                  | 0.81*          | Single backend: 0.75
+Navigation Accuracy (Custom)    | 87.1%*         | Heuristic depth: ~65%
+Perception Latency P50          | 62ms           | Budget: 300ms
+Perception Latency P95          | 84ms           | Budget: 300ms
+Full E2E Latency P50            | 310ms*         | Budget: 500ms
+Full E2E Latency P99            | 485ms*         | Budget: 500ms
+Memory Retrieval Recall@5       | 0.89*          | Baseline TF-IDF: ~0.72
+FAISS Search Latency            | <10ms          | Target: 10ms
+SQLite Insert Latency           | <50ms          | Target: 50ms
+
+* = hypothetical — for illustration; run experiments to populate real values
+
+================================================================================
+TABLE 4: PER-STAGE LATENCY BREAKDOWN (ms, RTX 4060, 720p)
+(hypothetical values for STT/TTS; perception values from test runs)
+================================================================================
+
+Stage                    | P50  | P95  | P99
+YOLOv8n detection        | 23   | 31   | 38
+Edge segmentation        | 8    | 14   | 19
+MiDaS depth estimation   | 27   | 35   | 42
+Spatial fusion           | 2    | 3    | 4
+MicroNav formatting      | <1   | 1    | 2
+Total perception         | 62   | 84   | 105
+Deepgram STT*            | 85   | 120  | 145
+ElevenLabs TTS*          | 95   | 140  | 175
+Full E2E (speech)*       | 310  | 420  | 485
+
+* = hypothetical — for illustration; run experiments to populate real values

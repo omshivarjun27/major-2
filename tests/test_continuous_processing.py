@@ -40,7 +40,7 @@ from application.frame_processing.frame_orchestrator import (
     FrameTelemetry,
 )
 from application.pipelines.worker_pool import WorkerPool, WorkItem, WorkResult, PoolStats
-from application.frame_processing.debouncer import Debouncer
+from application.pipelines.debouncer import Debouncer
 from application.pipelines.watchdog import Watchdog
 
 

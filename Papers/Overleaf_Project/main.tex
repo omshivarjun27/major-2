@@ -1,0 +1,69 @@
+% main.tex — IEEE Conference Paper: Voice & Vision Assistant
+% Compile with: pdflatex main.tex ; bibtex main ; pdflatex main.tex ; pdflatex main.tex
+\documentclass[conference]{IEEEtran}
+
+% ── Packages ──────────────────────────────────────────────────────────────
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{cite}
+\usepackage{url}
+\usepackage{balance}
+\usepackage{xcolor}
+\usepackage{array}
+
+% ── Figure path ───────────────────────────────────────────────────────────
+\graphicspath{{figures/}}
+
+% ── Title & Authors ───────────────────────────────────────────────────────
+% NOTE: Author names and affiliations extracted from sample paper 2.pdf.
+%       If these are incorrect, edit below or see Papers/author_choices.txt.
+\title{Voice \& Vision Assistant: A Real-Time Multimodal Accessibility System for Blind and Visually Impaired Users}
+
+\author{
+    \IEEEauthorblockN{%
+        Dharmik Dholu\IEEEauthorrefmark{1},
+        Krish Gangadiya\IEEEauthorrefmark{1},
+        Samarth Mangukiya\IEEEauthorrefmark{1},
+        Vansh Kothia\IEEEauthorrefmark{1}
+    }
+    \IEEEauthorblockA{%
+        \IEEEauthorrefmark{1}Department of Computer Engineering,\\
+        Marwadi University, Rajkot, Gujarat, India\\
+        \textit{Under the Guidance of: Prof. Jignesh Madrakia}\\
+        Email: \{dharmik.dholu, krish.gangadiya, samarth.mangukiya, vansh.kothia\}@marwadiuniversity.ac.in
+    }
+}
+
+\begin{document}
+\maketitle
+
+% ── Abstract ──────────────────────────────────────────────────────────────
+\begin{abstract}
+Blind and visually impaired individuals face persistent barriers in navigation, reading, and social interaction---barriers that existing assistive tools address only partially and with high latency. This paper presents Voice \& Vision Assistant (VVA), an open-source, real-time multimodal system that fuses twelve perception capabilities: YOLOv8n object detection, MiDaS monocular depth estimation, edge-aware segmentation, three-tier OCR, braille recognition, QR/AR scanning, consented face recognition, GCC-PHAT sound localization, CLIP-based action recognition, LLM-driven visual question answering, FAISS-backed retrieval-augmented memory, and low-latency speech synthesis. Orchestrated by an event-driven pipeline with per-stage timeouts, the system achieves median end-to-end perception latency of 62\,ms on an NVIDIA RTX 4060, delivering spoken micro-navigation cues within a 500\,ms speech-to-speech budget. A five-layer architecture (shared, core, application, infrastructure, apps), enforced by automated import-linting, ensures independent testability across 429+ unit, integration, and performance tests. Privacy-first design---local-only FAISS indexing, opt-in face consent, GDPR Art.~17/20 endpoints---makes VVA suitable for healthcare and education deployments. We present the system architecture, methodology, benchmark plans, and a survey of 50 related works. The full codebase, model checkpoints, and test suite are released as open source.
+\end{abstract}
+
+% ── Keywords ──────────────────────────────────────────────────────────────
+\begin{IEEEkeywords}
+assistive technology, visual impairment, multimodal fusion, real-time object detection, monocular depth estimation, voice interaction
+\end{IEEEkeywords}
+
+% ── Body ──────────────────────────────────────────────────────────────────
+\input{sections/intro}
+\input{sections/background}
+\input{sections/related_work}
+\input{sections/methods}
+\input{sections/experiments}
+\input{sections/results}
+\input{sections/discussion}
+\input{sections/conclusion}
+\input{sections/acknowledgements}
+
+% ── References ────────────────────────────────────────────────────────────
+\bibliographystyle{IEEEtran}
+\bibliography{refs}
+
+\end{document}

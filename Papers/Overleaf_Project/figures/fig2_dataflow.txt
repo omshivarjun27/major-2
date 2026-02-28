@@ -1,0 +1,6 @@
+PLACEHOLDER — Replace with actual diagram PNG/SVG
+
+Diagram: Perception Data Flow Pipeline (Six-Stage with Parallel Branches)
+Source prompt: Papers/diagram_prompts.txt — DIAGRAM 2
+Expected filename: fig2_dataflow.png
+Resolution: 3000x2000 pixels, white background, vector-style

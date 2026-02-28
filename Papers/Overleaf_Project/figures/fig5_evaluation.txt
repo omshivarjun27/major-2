@@ -1,0 +1,6 @@
+PLACEHOLDER — Replace with actual diagram PNG/SVG
+
+Diagram: Evaluation and User Testing Flow
+Source prompt: Papers/diagram_prompts.txt — DIAGRAM 5
+Expected filename: fig5_evaluation.png
+Resolution: 3000x2000 pixels, white background, vector-style

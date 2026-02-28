@@ -1,0 +1,145 @@
+% methods.tex — System Architecture & Methodology
+\section{System Architecture}
+\label{sec:architecture}
+
+VVA is organized as a strict five-layer monorepo, where each layer may depend only on layers below it:
+
+\begin{enumerate}
+    \item \textbf{Shared} (\texttt{shared/}) --- canonical data types, configuration, structured logging, encryption utilities. No imports from any other layer.
+    \item \textbf{Core} (\texttt{core/}) --- perception engines, speech handling, memory, OCR, braille, face, audio, QR, action recognition, VQA reasoning. Depends only on Shared.
+    \item \textbf{Application} (\texttt{application/}) --- pipeline orchestration, event bus, frame processing, session management. Depends on Shared and Core.
+    \item \textbf{Infrastructure} (\texttt{infrastructure/}) --- external service adapters (Ollama, Deepgram, ElevenLabs, Tavus, cloud storage, monitoring). Depends on Shared, Core, and Application.
+    \item \textbf{Apps} (\texttt{apps/}) --- entry points: FastAPI REST server (\texttt{apps/api/server.py}), LiveKit WebRTC agent (\texttt{apps/realtime/agent.py}), CLI tools (\texttt{apps/cli/}). Depends on all lower layers.
+\end{enumerate}
+
+Architecture constraints are enforced programmatically by \texttt{import-linter} contracts defined in \texttt{pyproject.toml}. Any pull request that introduces a forbidden cross-layer import is rejected at CI.
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=\columnwidth]{figures/fig1_architecture.png}
+    \caption{Five-layer architecture of VVA. Arrows indicate permitted dependency directions. Each layer is independently testable; 429+ tests span unit, integration, and performance suites.}
+    \label{fig:architecture}
+    % ALT TEXT: Block diagram showing five horizontal layers labeled Shared, Core, Application, Infrastructure, and Apps from bottom to top. Arrows point upward only. Core contains boxes for Vision, VQA, Speech, Memory, OCR, Braille, Face, Audio, QR, Action. Apps contains API Server and LiveKit Agent.
+\end{figure}
+
+
+\section{Methodology}
+\label{sec:methods}
+
+\subsection{Perception Pipeline}
+
+The central perception pipeline implements a six-stage data flow:
+
+\begin{center}
+\texttt{FRAME} $\to$ \texttt{DETECT} $\to$ \texttt{SEGMENT} $\to$ \texttt{DEPTH} $\to$ \texttt{FUSE} $\to$ \texttt{NAV}
+\end{center}
+
+This is realized in \texttt{core/vision/spatial.py} by the \texttt{SpatialProcessor} class, with a target latency of under 100\,ms per frame. Segmentation and depth estimation execute in parallel via \texttt{asyncio.gather()}, and each stage has an independent timeout:
+
+\begin{itemize}
+    \item \textbf{Detection} (100\,ms): YOLOv8n ONNX inference at $640{\times}640$ with greedy NMS (IoU threshold 0.45). The \texttt{YOLODetector.\_onnx\_detect()} method letterbox-resizes the input, runs the ONNX session, parses the $(1, 84, 8400)$ output tensor (4 box coordinates + 80 class scores), applies confidence filtering, and rescales boxes to original image coordinates. COCO's 80 classes cover the most common indoor and outdoor obstacles. On our RTX~4060 test machine the median detection time was 23\,ms.
+    \item \textbf{Segmentation} (parallel, 50\,ms budget): The \texttt{EdgeAwareSegmenter} downscales the frame to $160{\times}120$, computes Sobel gradients (or a pure-NumPy fallback when OpenCV is unavailable), applies per-detection Otsu thresholding to produce binary masks, and scores boundary confidence via a weighted combination of gradient magnitude and ROI variance.
+    \item \textbf{Depth estimation} (parallel, 100\,ms budget): MiDaS~v2.1 small ONNX model~\cite{ranftl2020midas}, with $256{\times}256$ input, ImageNet normalization ($\mu{=}[0.485,0.456,0.406]$, $\sigma{=}[0.229,0.224,0.225]$), and output rescaled to $[0.5,\allowbreak 10.0]$\,m pseudo-metric depth. A heuristic fallback (\texttt{SimpleDepthEstimator}) generates a linear gradient when the ONNX model is unavailable.
+    \item \textbf{Fusion}: The \texttt{SpatialFuser} (Section~\ref{sec:fusion}) merges detection, mask, and depth data into \texttt{ObstacleRecord} instances.
+    \item \textbf{Navigation formatting}: The \texttt{MicroNavFormatter} converts obstacle records into spoken micro-navigation cues (``Stop!\ Chair half meter left''), verbose descriptions, and JSON telemetry payloads.
+\end{itemize}
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=\columnwidth]{figures/fig2_dataflow.png}
+    \caption{Data flow pipeline. Detection, segmentation, and depth run concurrently. Fusion produces ranked obstacle records that the navigation formatter converts to spoken cues and telemetry JSON.}
+    \label{fig:dataflow}
+    % ALT TEXT: Flowchart with a camera icon on the left feeding into three parallel branches labeled YOLO Detection, Edge Segmentation, and MiDaS Depth. The three branches merge at a Spatial Fuser box, which outputs to MicroNav Formatter, which produces Short Cue, Verbose, and Telemetry outputs.
+\end{figure}
+
+\subsection{Spatial Fusion and Priority Ranking}
+\label{sec:fusion}
+
+Given detections $\{d_i\}$, masks $\{m_i\}$, and a depth map $D$, the \texttt{SpatialFuser} (\texttt{core/vision/spatial.py}) computes for each detection:
+
+\begin{enumerate}
+    \item \textbf{Distance}: median depth within the bounding box, queried via \texttt{DepthMap.get\_region\_depth(bbox)} which returns (min, median, max). When depth is unreliable ($>$ 100\,m or inf), a position-based heuristic is used: $d_{\text{est}} = 0.5 + (1 - y_2/h) \times 9.5$.
+    \item \textbf{Direction}: the horizontal angle in a $70^{\circ}$ field of view, discretized into seven bins (FAR\_LEFT through FAR\_RIGHT) at thresholds of $\pm5$, $\pm15$, $\pm25$ degrees.
+    \item \textbf{Priority}: distance-based classification into four levels:
+    \begin{itemize}
+        \item CRITICAL: $<$ 1\,m
+        \item NEAR\_HAZARD: 1--2\,m
+        \item FAR\_HAZARD: 2--5\,m
+        \item SAFE: $>$ 5\,m
+    \end{itemize}
+    \item \textbf{Action recommendation}: direction-aware suggestions (``step right'', ``stop and reassess'', ``proceed with caution'').
+\end{enumerate}
+
+Additionally, the \texttt{PrioritySceneAnalyzer} (\texttt{core/vqa/priority\_scene.py}) applies a weighted composite risk score:
+
+\begin{equation}
+R_i = 0.35 \cdot f_{\text{dist}}(d_i) + 0.25 \cdot f_{\text{dir}}(\theta_i) + 0.15 \cdot c_i + 0.25 \cdot f_{\text{coll}}(v_i)
+\label{eq:risk}
+\end{equation}
+
+\noindent where $f_{\text{dist}}$ penalizes proximity, $f_{\text{dir}}$ penalizes center-of-path obstacles, $c_i$ is detection confidence, and $f_{\text{coll}}$ estimates collision risk from velocity when temporal tracking is available via the \texttt{TemporalFilter} (EMA smoothing with IOU-based track matching in \texttt{core/vqa/spatial\_fuser.py}).
+
+\subsection{Visual Question Answering}
+
+The VQA subsystem (\texttt{core/vqa/vqa\_reasoner.py}) accepts a natural-language question and a perception snapshot and generates a spoken answer. Three answer-generation tiers operate in order of increasing latency:
+
+\begin{enumerate}
+    \item \textbf{QuickAnswers} ($<$ 10\,ms): pre-computed regex-matched responses for common queries (``is the path clear?'', ``what obstacles?''). No LLM invocation.
+    \item \textbf{MicroNavFormatter} ($<$ 20\,ms): template-based formatting of the current \texttt{ObstacleRecord} list into a spoken sentence.
+    \item \textbf{LLM reasoning} (100--300\,ms): the question, together with a structured prompt (system, spatial context, and safety warnings from \texttt{PromptTemplates}), is sent to an OpenAI-compatible endpoint (qwen3-vl via Ollama or SiliconFlow cloud). Responses are cached for 5\,s with a 128-entry LRU to avoid redundant inference.
+\end{enumerate}
+
+\subsection{Speech Pipeline}
+
+Voice interaction follows a strict end-to-end path (\texttt{core/speech/voice\_ask\_pipeline.py}):
+
+\begin{center}
+\texttt{Audio} $\xrightarrow{\text{STT (5\,s)}}$ \texttt{Text} $\xrightarrow{\text{VQA (10\,s)}}$ \texttt{Answer} $\xrightarrow{\text{TTS (5\,s)}}$ \texttt{Speech}
+\end{center}
+
+\begin{itemize}
+    \item \textbf{STT}: Deepgram Nova-3~\cite{deepgram2023nova} streaming ASR at 16\,kHz, with PCM format auto-detection and conversion in \texttt{core/speech/speech\_handler.py}.
+    \item \textbf{Intent routing}: \texttt{VoiceRouter} (\texttt{core/speech/voice\_router.py}) classifies the user utterance into one of 17 intent types via compiled regex patterns. Intents route to prioritized handlers: spatial queries go to the perception pipeline, identification queries to VQA, QR requests to the scanner, and fallback to the LLM.
+    \item \textbf{TTS}: ElevenLabs Turbo~v2.5~\cite{elevenlabs2023tts} with the ``Rachel'' voice profile. \texttt{TTSHandler} (\texttt{core/speech/tts\_handler.py}) preprocesses text (Markdown removal, unit abbreviations, hazard formatting) before synthesis.
+    \item \textbf{Audio output}: \texttt{AudioOutputManager} (\texttt{application/pipelines/audio\_manager.py}) enforces single-writer TTS output with interrupt/resume semantics---a critical detail, because overlapping TTS fragments are confusing to users.
+\end{itemize}
+
+\subsection{OCR and Braille}
+
+The OCR pipeline (\texttt{core/ocr/\_\_init\_\_.py}) preprocesses the image---CLAHE enhancement, bilateral denoising, and Hough-line-based deskew---then chains EasyOCR~\cite{jaided2020easyocr} and Tesseract~\cite{smith2007tesseract} as fallback backends. Overlapping detections are merged using IOU-based deduplication. The braille module (\texttt{core/braille/}) implements a four-stage pipeline: plate capture, dot segmentation, character classification, and embossing layout verification~\cite{li2020optical_braille}.
+
+\subsection{Memory and Retrieval-Augmented Generation}
+
+VVA's memory system (\texttt{core/memory/}) provides context-aware responses by storing and retrieving conversation history, user preferences, and environmental observations. The architecture mirrors a hybrid document store:
+
+\begin{itemize}
+    \item \textbf{FAISS vector index}~\cite{faiss2024}: 384-dimensional embeddings generated by an on-device text embedder (qwen3-embedding:4b), with approximate nearest-neighbor search completing in under 10\,ms.
+    \item \textbf{SQLite structured store}: tables for conversation logs, user preferences, engine settings, and telemetry logs, with insert latency below 50\,ms.
+    \item \textbf{RAG reasoner}: retrieves top-$k$ memory hits, assembles a context window, and invokes Ollama (qwen3.5:cloud or local) for a grounded answer.
+\end{itemize}
+
+Memory is \emph{opt-in}: \texttt{MEMORY\_ENABLED} defaults to \texttt{false}, and the first store request triggers a consent flow. Face embeddings, when consented, are encrypted at rest.
+
+\subsection{Face Detection and Social Cues}
+
+The face engine (\texttt{core/face/}) detects faces, generates embeddings, tracks identities across frames, and optionally analyzes social cues (emotion, head pose). All face features require explicit consent; the consent state is persisted in a local file and exposed via \texttt{/face/consent} REST endpoints. We deliberately chose not to store face embeddings in the shared memory index to limit re-identification risk.
+
+\subsection{Audio Event Detection and Localization}
+
+The audio engine (\texttt{core/audio/}) provides GCC-PHAT-based sound source localization (\texttt{SoundSourceLocalizer}), event classification for common urban sounds (\texttt{AudioEventDetector}), and vision--audio fusion (\texttt{AudioVisionFuser}) that correlates detected sound directions with visible object locations. The system supports both multi-channel microphone arrays and a degraded single-mic mode.
+
+\subsection{QR/AR Scanning and Action Recognition}
+
+QR and AR tags are scanned by the \texttt{core/qr/} module, which includes an offline TTL cache (\texttt{qr\_cache/} directory) for previously seen codes. The action recognition module (\texttt{core/action/}) uses a \texttt{ClipBuffer} to accumulate short video clips and a CLIP-based recognizer to infer user activities and environmental events.
+
+\subsection{Real-Time Agent Integration}
+
+The FastAPI REST server~\cite{fastapi2021} provides HTTP endpoints for batch processing and GDPR compliance, while the LiveKit WebRTC agent (\texttt{apps/realtime/agent.py}, \(\sim\)1900 lines) ties all subsystems together for real-time interaction. The \texttt{AllyVisionAgent} class registers 12 function tools---\texttt{analyze\_vision}, \texttt{detect\_obstacles}, \texttt{analyze\_spatial\_scene}, \texttt{ask\_visual\_question}, \texttt{get\_navigation\_cue}, \texttt{scan\_qr\_code}, \texttt{read\_text}, and others---that the agent's LLM backbone can invoke. Continuous frame processing runs in a background loop: \texttt{LiveFrameManager} captures frames from the WebRTC video track, \texttt{FrameOrchestrator} dispatches them to the perception pipeline, and \texttt{ProactiveAnnouncer} speaks critical hazard warnings without waiting for a user query. A debouncer prevents duplicate announcements, and a watchdog auto-restarts stalled camera or worker threads.
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=\columnwidth]{figures/fig3_fusion.png}
+    \caption{Multimodal fusion mechanism. Detection bounding boxes are matched with segmentation masks and depth values. The spatial fuser computes risk scores and the scene analyzer ranks the top-3 hazards for spoken output.}
+    \label{fig:fusion}
+    % ALT TEXT: Diagram with three input columns labeled Detections, Masks, and Depth Map converging into a central Spatial Fuser block. The fuser outputs ObstacleRecords with attributes distance_m, direction, priority, and action_recommendation. A PrioritySceneAnalyzer ranks the top-3 hazards.
+\end{figure}

@@ -165,6 +165,22 @@ type = "forbidden"
 source_modules = ["application"]
 forbidden_modules = ["infrastructure", "apps"]
 
+[[tool.importlinter.contracts]]
+name = "Architecture layers are respected top-to-bottom"
+type = "layers"
+layers = ["apps", "application", "infrastructure", "core", "shared"]
+# apps may import all; application may import core+shared;
+# infrastructure may import shared; core may import shared; shared imports none.
+
+[[tool.importlinter.contracts]]
+name = "Extracted realtime modules have no circular dependencies"
+type = "layers"
+layers = [
+    "apps.realtime.tool_router",
+    "apps.realtime.voice_controller",
+    "apps.realtime.vision_controller",
+    "apps.realtime.prompts | apps.realtime.user_data | apps.realtime.session_manager",
+]
 
 # ================================================================
 # bandit — Python SAST

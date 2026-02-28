@@ -42,7 +42,7 @@ class LLMRole(str, Enum):
 # Default mapping – override via env  LLM_BACKEND_<ROLE>
 DEFAULT_BACKENDS: Dict[str, str] = {
     LLMRole.VISION: "qwen3-vl",
-    LLMRole.MEMORY: "claude-opus-4-6",
+    LLMRole.MEMORY: "us.anthropic.claude-opus-4-6-v1",
     LLMRole.FALLBACK: "qwen3-vl",
 }
 
@@ -101,7 +101,7 @@ class ClaudeClient(BaseLLMClient):
     Supports configurable timeout and retry with exponential backoff.
     """
 
-    MODEL_ID = "claude-opus-4-6-20250610"  # canonical Anthropic model id
+    MODEL_ID = "us.anthropic.claude-opus-4-6-v1"  # Amazon Bedrock global (cross-region) model id
 
     def __init__(
         self,

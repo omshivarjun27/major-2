@@ -1,0 +1,33 @@
+% background.tex — Background
+\section{Background}
+\label{sec:background}
+
+This section provides technical context for the algorithms and frameworks underlying VVA.
+
+\subsection{Single-Shot Object Detection}
+
+Modern real-time object detectors follow the single-shot paradigm introduced by YOLO~\cite{redmon2016yolo} and SSD~\cite{liu2016ssd}, where the network predicts bounding boxes and class probabilities in a single forward pass rather than a two-stage pipeline (region proposal followed by classification). YOLOv8~\cite{jocher2023yolov8}, the detector used in VVA, is the latest iteration and features an anchor-free head with decoupled classification and regression branches. The ``nano'' variant (YOLOv8n) has roughly 3.2 million parameters and is designed for edge deployment, achieving a balance of accuracy and speed that is suitable for real-time assistive applications.
+
+When exported to ONNX format, the YOLOv8n model produces an output tensor of shape $(1, 84, 8400)$: 8400 candidate detections, each carrying 4 bounding-box coordinates (center-$x$, center-$y$, width, height) and 80 COCO class scores. Post-processing involves confidence filtering followed by non-maximum suppression (NMS) to remove overlapping predictions.
+
+\subsection{Monocular Depth Estimation}
+
+Estimating per-pixel depth from a single image is inherently underdetermined, but learning-based methods have achieved striking results by exploiting scene priors from large training sets. MiDaS~\cite{ranftl2020midas} pioneered cross-dataset training by mixing data from several depth benchmarks (MegaDepth, ReDWeb, DIML, Movies, WSVD, and 3D Ken Burns) with a scale- and shift-invariant loss function. The resulting model generalizes to unseen domains without fine-tuning---a property VVA relies on for zero-shot indoor/outdoor operation. The ``small'' variant used here (MiDaS~v2.1, EfficientNet-Lite3 backbone, $256{\times}256$ input) runs in under 30\,ms on an RTX~4060 via ONNX Runtime.
+
+The output is an inverse-depth map: higher values indicate closer surfaces. To convert to a pseudo-metric range, VVA normalizes the output linearly to $[0.5, 10.0]$\,m. This linearization is a known simplification; dedicated metric-depth networks such as ZoeDepth provide absolute scale, but at higher computational cost.
+
+\subsection{Edge-Aware Segmentation}
+
+Traditional semantic segmentation networks (DeepLab, Mask R-CNN) are too slow for VVA's sub-100\,ms budget. Instead, we use a lightweight edge-aware approach: Sobel gradient computation on a downscaled ($160{\times}120$) grayscale frame, followed by per-detection Otsu thresholding within the bounding box. Boundary confidence is estimated from gradient magnitude along the contour and ROI variance, providing a segmentation-quality score without a dedicated segmentation network.
+
+\subsection{Visual Question Answering}
+
+Visual Question Answering (VQA) requires a system to answer a natural-language question about an image~\cite{antol2015vqa}. Recent vision-language models such as BLIP-2~\cite{li2023blip2} and CLIP~\cite{radford2021clip} achieve open-vocabulary understanding by aligning visual and textual representations. VVA routes VQA through three tiers of increasing latency: cached regex-matched quick answers, template-based micro-navigation formatting, and LLM-backed reasoning via an OpenAI-compatible API.
+
+\subsection{Retrieval-Augmented Generation}
+
+Retrieval-Augmented Generation (RAG) grounds language model responses in external knowledge. VVA's memory module uses FAISS~\cite{faiss2024} for approximate nearest-neighbor search over 384-dimensional text embeddings, paired with a SQLite store for structured metadata. The RAG reasoner retrieves top-$k$ memory hits, assembles them into a context window, and invokes the LLM for a grounded answer---enabling context-aware responses such as ``You asked about this intersection yesterday; the crosswalk button is on the left pole.''
+
+\subsection{WebRTC and Real-Time Communication}
+
+WebRTC (Web Real-Time Communication) provides peer-to-peer audio and video streaming with sub-second latency. VVA uses the LiveKit Agent SDK~\cite{livekit2023} to establish a WebRTC session between the user's device and the server-side agent. LiveKit manages DTLS-SRTP encryption, adaptive bitrate, and jitter buffering. On top of this transport, Silero VAD~\cite{silero2021vad} detects voice activity, Deepgram Nova-3 transcribes speech in real time, and ElevenLabs Turbo v2.5 synthesizes responses---all routed through the LiveKit agent's event loop.

@@ -1,0 +1,43 @@
+{
+  "phase": "P2",
+  "date": "2026-02-27",
+  "agent_decomposition": {
+    "agent_py_loc": 288,
+    "session_manager_py_loc": 739,
+    "vision_controller_py_loc": 499,
+    "tool_router_py_loc": 446,
+    "voice_controller_py_loc": 281,
+    "total_modules": 8,
+    "import_linter_contracts": 6,
+    "import_linter_broken": 0
+  },
+  "async_conversion": {
+    "blocking_calls_in_hot_path": 0,
+    "files_using_asyncio_to_thread": [
+      "infrastructure/llm/internet_search.py",
+      "core/memory/maintenance.py",
+      "core/memory/ingest.py"
+    ],
+    "embedder_async_client": true,
+    "sync_http_in_hot_path": 0
+  },
+  "test_suite": {
+    "total_passed": 779,
+    "total_failed": 14,
+    "total_errors": 20,
+    "total_skipped": 3,
+    "new_failures_from_p2": 0,
+    "pre_existing_failures": 14,
+    "pre_existing_errors": 20
+  },
+  "startup_time": {
+    "full_agent_import_s": 17.6,
+    "tool_router_import_s": 0.01,
+    "note": "Dominated by ML dependencies (torch, FAISS, easyocr), not module structure"
+  },
+  "tech_debt": {
+    "resolved": ["TD-001", "TD-003", "TD-010"],
+    "active": ["TD-011", "TD-012"],
+    "todo_fixme_hack_count": 0
+  }
+}

@@ -1,21 +1,87 @@
+# =============================================================================
+# Voice-Vision Assistant — Test Docker Compose
+# =============================================================================
+# Configuration for integration testing environment.
+# Usage: docker compose -f deployments/compose/docker-compose.test.yml up
+# =============================================================================
+
 version: '3.8'
+
 services:
+  # Application under test
   assistant:
     build:
       context: ../..
       dockerfile: deployments/docker/Dockerfile
     ports:
       - '8000:8000'
-    env_file: .env
+      - '8081:8081'
+    env_file:
+      - ../../.env.test
     environment:
+      - ENVIRONMENT=test
+      - LOG_LEVEL=DEBUG
+      - LOG_FORMAT=json
+      - PII_SCRUB=false
       - SPATIAL_PERCEPTION_ENABLED=true
       - SPATIAL_USE_YOLO=false
       - ENABLE_QR_SCANNING=true
-      - LLM_BASE_URL=http://localhost:11434/v1
+      - ENABLE_DEBUG_VISUALIZER=false
+      - HOT_PATH_TIMEOUT_MS=5000
+      - PIPELINE_TIMEOUT_MS=2000
+      # Test-specific settings
+      - MEMORY_REQUIRE_CONSENT=false
+      - FACE_CONSENT_REQUIRED=false
+      # Mock endpoints
+      - LLM_BASE_URL=http://mock-llm:8080/v1
+    depends_on:
+      mock-llm:
+        condition: service_started
     healthcheck:
       test: ['CMD', 'python', '-c', 'import httpx; r=httpx.get("http://localhost:8000/health"); assert r.status_code==200']
       interval: 10s
-      timeout: 5s
+      timeout: 10s
       retries: 10
-      start_period: 30s
+      start_period: 60s
+    networks:
+      - test_network
     command: ["uvicorn", "apps.api.server:app", "--host", "0.0.0.0", "--port", "8000"]
+
+  # Mock LLM service for testing
+  mock-llm:
+    image: python:3.11-slim
+    ports:
+      - '8080:8080'
+    volumes:
+      - ../../tests/mocks:/app/mocks:ro
+    working_dir: /app/mocks
+    command: ["python", "-m", "http.server", "8080"]
+    networks:
+      - test_network
+
+  # Test runner service
+  test-runner:
+    build:
+      context: ../..
+      dockerfile: deployments/docker/Dockerfile
+    volumes:
+      - ../../tests:/app/tests:ro
+      - test_results:/app/test_results
+    environment:
+      - ENVIRONMENT=test
+      - TEST_API_URL=http://assistant:8000
+    depends_on:
+      assistant:
+        condition: service_healthy
+    networks:
+      - test_network
+    command: ["pytest", "tests/integration/", "-v", "--junitxml=/app/test_results/results.xml"]
+    profiles:
+      - run-tests
+
+networks:
+  test_network:
+    driver: bridge
+
+volumes:
+  test_results:

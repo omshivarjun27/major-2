@@ -1,0 +1,12 @@
+PLACEHOLDER — Replace with actual diagram PNG/SVG
+
+Diagram: Overall System Architecture (Five-Layer Clean Architecture)
+Source prompt: Papers/diagram_prompts.txt — DIAGRAM 1
+Expected filename: fig1_architecture.png
+Resolution: 3000x2000 pixels, white background, vector-style
+
+Instructions:
+1. Copy the prompt from diagram_prompts.txt (DIAGRAM 1) into Paper Banana / Nano Banana Pro
+2. Generate the diagram
+3. Export as PNG (and optionally SVG)
+4. Replace THIS FILE with the exported fig1_architecture.png

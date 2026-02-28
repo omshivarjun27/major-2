@@ -78,7 +78,7 @@ class TestFreshness:
 # ---------------------------------------------------------------------------
 # Debouncer
 # ---------------------------------------------------------------------------
-from application.frame_processing.debouncer import Debouncer, DebouncerConfig
+from application.pipelines.debouncer import Debouncer, DebouncerConfig
 
 
 class TestDebouncer:

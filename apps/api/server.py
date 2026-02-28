@@ -292,6 +292,36 @@ async def health():
     }
 
 
+# ── Prometheus Metrics endpoint ───────────────────────────────────────
+@app.get("/metrics")
+async def prometheus_metrics():
+    """Prometheus metrics endpoint for scraping.
+    
+    Returns metrics in Prometheus text format.
+    """
+    from fastapi.responses import Response
+    try:
+        from infrastructure.monitoring.prometheus_metrics import (
+            get_metrics,
+            is_prometheus_available,
+        )
+        if not is_prometheus_available():
+            return Response(
+                content="# prometheus_client not available\n",
+                media_type="text/plain",
+            )
+        metrics = get_metrics()
+        return Response(
+            content=metrics.generate_metrics(),
+            media_type=metrics.get_content_type(),
+        )
+    except ImportError as exc:
+        return Response(
+            content=f"# Metrics unavailable: {exc}\n",
+            media_type="text/plain",
+        )
+
+
 # ── Debug Metrics (perception telemetry counters) ──────────────────────
 @app.get("/debug/metrics", dependencies=[Depends(require_debug_auth)])
 async def debug_metrics():
@@ -386,6 +416,43 @@ async def health_workers():
     except ImportError:
         return {"status": "unavailable"}
 
+
+@app.get("/health/services")
+async def health_services():
+    """Service health summary: circuit breaker states for all external services.
+
+    Returns per-service health status, overall system score, and degradation info.
+    """
+    try:
+        from infrastructure.resilience.health_registry import get_health_registry
+        registry = get_health_registry()
+        summary = registry.get_health_summary()
+        return summary.to_dict()
+    except ImportError as exc:
+        return {
+            "status": "unavailable",
+            "error": str(exc),
+            "message": "Health registry not available",
+        }
+
+
+@app.get("/health/services/{service_name}")
+async def health_service_detail(service_name: str):
+    """Get health status for a specific service.
+
+    Args:
+        service_name: Name of the service (deepgram, elevenlabs, ollama, etc.)
+    """
+    try:
+        from infrastructure.resilience.health_registry import get_health_registry
+        registry = get_health_registry()
+        health = registry.get_service_health(service_name)
+        return health.to_dict()
+    except ImportError as exc:
+        return {
+            "status": "unavailable",
+            "error": str(exc),
+        }
 
 # ── Enhanced Debug endpoints ──────────────────────────────────────────
 

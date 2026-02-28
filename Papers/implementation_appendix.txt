@@ -1,0 +1,419 @@
+================================================================================
+ IMPLEMENTATION APPENDIX — Voice & Vision Assistant for Blind
+ Supplement to IEEE Conference Paper
+================================================================================
+
+A.1  PROJECT STRUCTURE AND FILE MAP
+================================================================================
+
+Voice-Vision-Assistant-for-Blind/
+├── pyproject.toml              # Build config, import-linter contracts, pytest config
+├── requirements.txt            # Core dependencies (~45 packages)
+├── requirements-extras.txt     # Optional GPU/OCR/avatar packages
+├── configs/config.yaml         # Runtime configuration (thresholds, flags, budgets)
+├── docker-compose.test.yml     # Integration test orchestration
+├── Dockerfile                  # Production container image
+│
+├── shared/                     # LAYER 1: Shared types, config, logging, encryption
+│   ├── __init__.py
+│   ├── schemas/__init__.py     # BoundingBox, Detection, DepthMap, PerceptionResult,
+│   │                           # ObstacleRecord, NavigationOutput, Priority, Direction
+│   ├── config/
+│   │   ├── settings.py         # Feature flags, environment variable loading
+│   │   └── __init__.py
+│   ├── logging/
+│   │   ├── logger.py           # Structured JSON logging with PII scrubbing
+│   │   └── __init__.py
+│   ├── utils/
+│   │   ├── __init__.py         # retry helpers, image conversion, debounce
+│   │   └── encryption.py       # Fernet-based encryption for face embeddings
+│   └── debug/
+│       └── visualizer.py       # Debug overlay rendering for development
+│
+├── core/                       # LAYER 2: Domain logic (no infrastructure deps)
+│   ├── vision/
+│   │   ├── spatial.py          # ★ 1278 lines — Full spatial perception pipeline
+│   │   │                       #   Classes: YOLODetector, EdgeAwareSegmenter,
+│   │   │                       #   MiDaSDepthEstimator, SpatialFuser,
+│   │   │                       #   MicroNavFormatter, SpatialProcessor
+│   │   │                       #   Factory: create_spatial_processor()
+│   │   └── visual.py           # Visual feature extraction helpers
+│   │
+│   ├── vqa/
+│   │   ├── vqa_reasoner.py     # ★ 582 lines — VQAReasoner with LRU cache (128),
+│   │   │                       #   TTL 5s, QuickAnswers (<10ms), PromptTemplates
+│   │   ├── priority_scene.py   # ★ 577 lines — PrioritySceneAnalyzer,
+│   │   │                       #   Risk = 0.35·dist + 0.25·dir + 0.15·conf + 0.25·coll
+│   │   ├── orchestrator.py     # VQA pipeline coordinator
+│   │   └── scene_graph.py      # Spatial relationship graph builder
+│   │
+│   ├── speech/
+│   │   ├── voice_router.py     # VoiceRouter: 17 IntentTypes, regex matching
+│   │   ├── voice_ask_pipeline.py # STT→VQA→TTS with per-stage timeouts
+│   │   ├── handler.py          # Speech event handler
+│   │   └── tts_bridge.py       # TTS backend abstraction
+│   │
+│   ├── memory/
+│   │   ├── __init__.py         # FAISSIndexer (384-dim), TextEmbedder,
+│   │   │                       # MemoryIngester, MemoryRetriever, RAGReasoner
+│   │   └── ...
+│   │
+│   ├── ocr/
+│   │   ├── __init__.py         # ★ 383 lines — 3-tier OCR: EasyOCR → Tesseract → MSER
+│   │   │                       # CLAHE + bilateral denoise + Hough deskew, IOU dedup
+│   │   └── ...
+│   │
+│   ├── braille/
+│   │   ├── __init__.py         # BrailleCapture, BrailleSegmenter,
+│   │   │                       # BrailleClassifier, BrailleOCR, EmbossingGuide
+│   │   └── ...
+│   │
+│   ├── face/
+│   │   ├── __init__.py         # FaceDetector, FaceEmbeddingStore,
+│   │   │                       # FaceTracker, SocialCueAnalyzer
+│   │   │                       # Opt-in consent, encrypted storage
+│   │   └── ...
+│   │
+│   ├── audio/
+│   │   ├── __init__.py         # SoundSourceLocalizer (GCC-PHAT),
+│   │   │                       # AudioEventDetector, AudioVisionFuser
+│   │   └── ...
+│   │
+│   ├── qr/
+│   │   ├── __init__.py         # QRScanner, QRDecoder, QRCacheManager
+│   │   │                       # Offline TTL cache → qr_cache/ directory
+│   │   └── ...
+│   │
+│   ├── action/
+│   │   ├── __init__.py         # CLIP-based action recognition from video buffer
+│   │   └── ...
+│   │
+│   └── reasoning/
+│       └── __init__.py         # LLM-based contextual reasoning engine
+│
+├── application/                # LAYER 3: Use-case orchestration
+│   ├── pipelines/
+│   │   └── __init__.py         # StreamingTTSPipeline, PerceptionWorkerPool,
+│   │                           # AudioOutputManager, CancellationScope
+│   ├── frame_processing/
+│   │   └── __init__.py         # AdaptiveFrameSampler, frame deduplication
+│   ├── event_bus/
+│   │   └── __init__.py         # Async event pub/sub for pipeline coordination
+│   └── session_management/
+│       └── __init__.py         # Session lifecycle, state persistence
+│
+├── infrastructure/             # LAYER 4: External service adapters
+│   ├── llm/
+│   │   ├── ollama/             # Ollama LLM client (qwen3-vl, qwen3-embedding)
+│   │   ├── siliconflow/        # SiliconFlow cloud LLM fallback
+│   │   └── embeddings/         # Embedding model management
+│   ├── speech/
+│   │   ├── deepgram/           # Deepgram Nova-3 streaming STT adapter
+│   │   └── elevenlabs/         # ElevenLabs Turbo v2.5 TTS adapter
+│   ├── tavus/                  # Tavus virtual avatar integration
+│   ├── storage/                # Cloud storage adapters
+│   └── monitoring/             # Telemetry export, health checks
+│
+├── apps/                       # LAYER 5: Entry points
+│   ├── realtime/
+│   │   └── agent.py            # ★ ~1900 lines — AllyVisionAgent, LiveKit WebRTC
+│   │                           # 12 function tools, Silero VAD, ProactiveAnnouncer,
+│   │                           # LiveFrameManager, FrameOrchestrator, Debouncer
+│   ├── api/
+│   │   └── server.py           # ★ 679 lines — FastAPI v3.0.0, GDPR endpoints,
+│   │                           # conditional router registration
+│   └── cli/                    # CLI tools for development and testing
+│
+├── models/                     # Pre-trained model checkpoints
+│   ├── yolov8n.onnx            # YOLOv8n (12 MB), 640×640 input, 80 COCO classes
+│   └── midas_v21_small_256.onnx # MiDaS v2.1 small (64 MB), 256×256 input
+│
+├── scripts/
+│   ├── download_models.py      # ★ 208 lines — Downloads YOLO + MiDaS from GitHub
+│   ├── capture_baseline.py     # Captures performance baseline metrics
+│   ├── check_deps.py           # Dependency verification script
+│   ├── generate_scenarios.py   # Test scenario generator
+│   └── verify_hybrid_memory.py # Memory subsystem verification
+│
+├── tests/                      # 429+ tests across 3 categories
+│   ├── unit/                   # Fast isolated tests (mock everything)
+│   ├── integration/            # Cross-module tests
+│   ├── performance/            # Latency and resource benchmarks
+│   └── conftest.py             # Shared fixtures (mock images, detections, etc.)
+│
+├── data/
+│   ├── consent/                # GDPR consent records
+│   ├── memory_backup/          # Memory state snapshots
+│   └── memory_index/           # FAISS index persistence
+│
+├── qr_cache/                   # Offline QR code cache (JSON files, TTL-based)
+│   └── _index.json
+│
+├── deployments/
+│   ├── docker/
+│   │   └── Dockerfile          # Canonical production Dockerfile
+│   └── compose/                # Docker Compose orchestration files
+│
+└── Papers/                     # This paper and supporting documents
+    ├── Overleaf_Project/       # LaTeX project (this appendix's parent)
+    └── *.pdf                   # Reference papers (health, technical, reports)
+
+
+A.2  KEY ALGORITHMS AND IMPLEMENTATION DETAILS
+================================================================================
+
+A.2.1  YOLOv8n ONNX Inference (core/vision/spatial.py)
+------------------------------------------------------
+- Model: Ultralytics YOLOv8n exported to ONNX format
+- Input tensor: (1, 3, 640, 640), float32, normalized [0, 1]
+- Output tensor: (1, 84, 8400) — 80 class scores + 4 box coordinates per anchor
+- Preprocessing: Letterbox resize to 640×640, BGR→RGB, CHW transpose
+- Post-processing: Confidence threshold 0.25, greedy NMS with IoU > 0.45
+- Maximum detections capped at MAX_DETECTIONS = 2 for real-time performance
+- Fallback: MockObjectDetector returns empty detections for testing
+
+A.2.2  MiDaS v2.1 Depth Estimation (core/vision/spatial.py)
+------------------------------------------------------------
+- Model: Intel ISL MiDaS v2.1 small, ONNX format
+- Input: (1, 3, 256, 256), ImageNet normalization (mean=[0.485,0.456,0.406], std=[0.229,0.224,0.225])
+- Output: (1, 256, 256) inverse relative depth map
+- Post-processing: Invert values, normalize, clip to [0.5, 10.0] meters pseudo-metric
+- Downscale factor: DEPTH_DOWNSCALE = 4 for efficiency
+- Fallback: SimpleDepthEstimator uses bbox-size heuristic when ONNX unavailable
+
+A.2.3  Edge-Aware Segmentation (core/vision/spatial.py)
+-------------------------------------------------------
+- Algorithm: Sobel gradient computation on grayscale input
+- Downscale to MAX_MASK_SIZE = (160, 120) for real-time processing
+- Otsu automatic thresholding on gradient magnitude
+- Boundary confidence = mean gradient along detected edges
+- Edge pixels extracted from thresholded gradient map
+- Per-detection binary mask extracted from bbox region
+
+A.2.4  Spatial Fusion (core/vision/spatial.py)
+----------------------------------------------
+- FOV: 70° horizontal field of view
+- Direction mapping: 7 bins (FAR_LEFT, LEFT, SLIGHT_LEFT, CENTER, SLIGHT_RIGHT, RIGHT, FAR_RIGHT)
+  Thresholds: ±5° center dead zone, ±15° slight, ±25° moderate, beyond = far
+- Priority classification:
+  - CRITICAL:     distance < 1.0 m
+  - NEAR_HAZARD:  1.0 m ≤ distance < 2.0 m  
+  - FAR_HAZARD:   2.0 m ≤ distance < 5.0 m
+  - SAFE:         distance ≥ 5.0 m
+- Action recommendation: Direction-aware suggestion strings
+  Example: "Stop! Chair half meter ahead" → for CRITICAL + CENTER
+
+A.2.5  Risk Scoring (core/vqa/priority_scene.py)
+-------------------------------------------------
+- Formula:  R = 0.35·f_dist + 0.25·f_dir + 0.15·confidence + 0.25·f_collision
+  - f_dist: inverse distance function (closer = higher score)
+  - f_dir: centrality bias (center obstacles score higher)
+  - confidence: raw detection confidence from YOLO
+  - f_collision: estimated collision probability from trajectory analysis
+- Returns top-3 hazards sorted by descending risk score
+- Each hazard annotated with navigation cue text
+
+A.2.6  OCR Pipeline (core/ocr/__init__.py)
+-------------------------------------------
+- Preprocessing: CLAHE contrast enhancement → bilateral denoising → Hough deskew
+- Engine 1: EasyOCR (GPU-accelerated, multiple scripts)
+- Engine 2: Tesseract fallback (when EasyOCR unavailable)
+- Engine 3: MSER region detection (last resort)
+- Deduplication: Intersection-over-Union (IoU) > 0.5 suppression
+- Auto-probed at startup; engine availability cached
+
+A.2.7  Memory and RAG (core/memory/__init__.py)
+------------------------------------------------
+- FAISS index: 384-dimensional embedding vectors (qwen3-embedding:4b)
+- SQLite: Structured conversation logs, user preferences, face associations
+- RAG pipeline: Query → FAISS top-k retrieval → context injection → LLM response
+- Memory opt-in only (MEMORY_ENABLED default false)
+- Backup/restore: periodic snapshots to data/memory_backup/
+
+A.2.8  Voice Router (core/speech/voice_router.py)
+--------------------------------------------------
+- 17 intent types recognized via regex pattern matching
+- Intent examples: DESCRIBE_SCENE, READ_TEXT, IDENTIFY_PERSON, NAVIGATE,
+  FIND_OBJECT, CHECK_TIME, READ_BRAILLE, SCAN_QR, etc.
+- Priority routing: Safety intents preempt informational queries
+- Quick answers for time, date, and system status (<10ms)
+
+
+A.3  MODEL CHECKPOINTS
+================================================================================
+
+| Model               | File                         | Size  | Source                          |
+|---------------------|------------------------------|-------|---------------------------------|
+| YOLOv8n             | models/yolov8n.onnx          | 12 MB | Ultralytics GitHub Release      |
+| MiDaS v2.1 small    | models/midas_v21_small_256.onnx | 64 MB | Intel ISL GitHub Release     |
+| qwen3-embedding:4b  | (Ollama managed)             | ~2 GB | Ollama model registry           |
+| qwen3-vl            | (Ollama managed)             | ~4 GB | Ollama model registry           |
+| Silero VAD          | (LiveKit managed)            | ~2 MB | Silero GitHub Release           |
+| EasyOCR models      | (~/.EasyOCR/)                | ~100 MB | JaidedAI GitHub Release       |
+
+Download script: scripts/download_models.py
+  - Verifies file integrity via size checks
+  - Supports --force flag for re-download
+  - Creates models/ directory automatically
+
+
+A.4  CONFIGURATION REFERENCE (configs/config.yaml)
+================================================================================
+
+Key configuration parameters:
+
+perception:
+  confidence_threshold: 0.25        # YOLO detection confidence minimum
+  nms_iou_threshold: 0.45           # NMS overlap suppression
+  max_detections: 2                 # Cap for real-time performance
+  depth_range: [0.5, 10.0]          # Depth estimation range (meters)
+  fov_degrees: 70                   # Horizontal field of view
+  pipeline_timeout_ms: 300          # Hard perception deadline
+
+latency_budgets:
+  stt_ms: 100                       # Speech-to-text target
+  vqa_ms: 300                       # Visual Q&A target
+  tts_ms: 100                       # Text-to-speech target
+  total_ms: 500                     # End-to-end hot path maximum
+
+priority:
+  critical_distance_m: 1.0          # CRITICAL threshold
+  near_distance_m: 2.0              # NEAR_HAZARD threshold
+  far_distance_m: 5.0               # FAR_HAZARD threshold
+
+features:
+  spatial_enabled: true
+  qr_enabled: true
+  face_enabled: false               # Opt-in only
+  audio_enabled: true
+  action_enabled: false             # Requires CLIP model
+  memory_enabled: false             # Requires explicit consent
+  tavus_enabled: false              # Optional avatar
+
+privacy:
+  face_encryption: true             # Fernet encryption at rest
+  pii_scrub_logs: true              # Scrub face/name data from logs
+  gdpr_endpoints: true              # Enable Art. 17/20 API endpoints
+  consent_required: true            # Consent before face/memory storage
+
+
+A.5  ENVIRONMENT SETUP
+================================================================================
+
+System Requirements:
+  - Python 3.10+
+  - NVIDIA GPU with CUDA 11.8+ (RTX 4060 recommended, 8 GB VRAM)
+  - 16 GB RAM minimum
+  - Ubuntu 22.04 / Windows 11
+
+Installation Steps:
+  1. Clone repository:
+     git clone https://github.com/<org>/Voice-Vision-Assistant-for-Blind.git
+     cd Voice-Vision-Assistant-for-Blind
+
+  2. Create virtual environment:
+     python -m venv .venv
+     source .venv/bin/activate        # Linux/macOS
+     .venv\Scripts\activate           # Windows
+
+  3. Install dependencies:
+     pip install -e ".[dev]"
+     pip install -r requirements.txt
+     pip install -r requirements-extras.txt  # Optional
+
+  4. Download models:
+     python scripts/download_models.py
+
+  5. Configure environment:
+     cp .env.example .env
+     # Edit .env with API keys (Deepgram, ElevenLabs, etc.)
+
+  6. Start services:
+     # Start Ollama (required for VQA and embeddings)
+     ollama serve
+     ollama pull qwen3-embedding:4b
+     ollama pull qwen3-vl
+
+  7. Run application:
+     # LiveKit WebRTC agent:
+     python -m apps.realtime.agent
+     # FastAPI REST server:
+     python -m apps.api.server
+
+
+A.6  TESTING AND VALIDATION
+================================================================================
+
+Test Suite Overview:
+  - Total tests: 429+
+  - Async mode: auto (no @pytest.mark.asyncio needed)
+  - Coverage target: >80%
+
+Commands:
+  # All tests
+  pytest tests/ --timeout=180
+
+  # Unit tests only (fast, mocked)
+  pytest tests/unit/ -v --tb=short -q --timeout=60
+
+  # Integration tests (cross-module)
+  pytest tests/integration/ -v --tb=short -q --timeout=120
+
+  # Performance benchmarks
+  pytest tests/performance/ --timeout=300
+
+  # With coverage report
+  pytest tests/ --cov=. --cov-report=xml --timeout=180
+
+  # Linting
+  ruff check .
+  ruff format .
+  lint-imports  # Architecture boundary enforcement
+
+CI Pipeline Stages:
+  1. secrets-scan: Verify .env has no real API keys
+  2. test: Run full suite on Python 3.10-3.12
+  3. lint: ruff check + lint-imports
+  4. docker: Build image + smoke tests (main branch only)
+
+
+A.7  DOCKER DEPLOYMENT
+================================================================================
+
+Production Image:
+  docker build -t voice-vision-assistant -f deployments/docker/Dockerfile .
+
+Integration Testing:
+  docker compose -f docker-compose.test.yml up
+
+Default Ports:
+  - 8000: FastAPI REST API
+  - 8081: LiveKit WebRTC Agent
+
+Image Specifications:
+  - Base: python:3.10-slim
+  - Multi-stage build for minimal image size
+  - Non-root user for security
+  - Health check endpoint at /health
+
+
+A.8  KNOWN LIMITATIONS AND WORKAROUNDS
+================================================================================
+
+1. MAX_DETECTIONS=2 limits scene complexity but ensures <100ms latency.
+   Workaround: Increase for non-real-time batch processing.
+
+2. MiDaS v2.1 small provides relative (not metric) depth.
+   Workaround: Calibrated pseudo-metric mapping with [0.5, 10.0]m range.
+
+3. Edge-aware segmentation uses Sobel gradients (not learned segmentation).
+   Workaround: SAM or DeepLabV3+ integration planned for v2.
+
+4. Face recognition requires opt-in consent and encrypted storage.
+   Workaround: Social cue analyzer works without stored identities.
+
+5. VQA response quality depends on Ollama model availability.
+   Workaround: SiliconFlow cloud fallback automatically engaged.
+
+6. OCR deskew uses Hough transform (fragile on curved surfaces).
+   Workaround: TrOCR or PaddleOCR integration planned.

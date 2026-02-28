@@ -233,7 +233,7 @@ class TestOCRHealth:
     """Verify OCR module loads without crashing."""
 
     def test_ocr_engine_imports(self):
-        import core.ocr
+        import core.ocr as ocr_engine
         assert hasattr(ocr_engine, "OCRResult") or hasattr(ocr_engine, "EASYOCR_AVAILABLE")
 
     def test_ocr_has_backend_flags(self):

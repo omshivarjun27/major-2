@@ -12,12 +12,22 @@ All latency and engine info is tracked for per-frame telemetry.
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import logging
 import time
 from collections import OrderedDict
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Callable, Dict, Generator, List, Optional
+
+from infrastructure.resilience.circuit_breaker import (
+    CircuitBreakerConfig,
+    CircuitBreakerState,
+    register_circuit_breaker,
+)
+from infrastructure.resilience.retry_policy import RetryPolicy, get_retry_policy
+from infrastructure.resilience.timeout_config import TimeoutError as ServiceTimeoutError
+from infrastructure.resilience.timeout_config import get_timeout, run_sync_with_timeout
 
 logger = logging.getLogger("tts-manager")
 
@@ -25,6 +35,7 @@ logger = logging.getLogger("tts-manager")
 # ---------------------------------------------------------------------------
 # TTS Cache
 # ---------------------------------------------------------------------------
+
 
 class TTSCache:
     """LRU cache for synthesised audio keyed by text fingerprint (SHA-256).
@@ -74,6 +85,7 @@ class TTSCache:
 # TTS Chunker
 # ---------------------------------------------------------------------------
 
+
 class TTSChunker:
     """Split text into chunks ≤ ``max_seconds`` of speech.
 
@@ -91,7 +103,8 @@ class TTSChunker:
 
         # Try sentence-level split first
         import re
-        sentences = re.split(r'(?<=[.!?])\s+', text.strip())
+
+        sentences = re.split(r"(?<=[.!?])\s+", text.strip())
 
         chunks: List[str] = []
         current: List[str] = []
@@ -126,13 +139,15 @@ class TTSChunker:
 # TTS Result
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class TTSResult:
     """Result of a TTS synthesis operation."""
+
     audio_bytes: bytes = b""
-    engine: str = "local"           # "local" | "remote"
+    engine: str = "local"  # "local" | "remote"
     latency_ms: float = 0.0
-    fallback_used: bool = False     # True if remote failed → local
+    fallback_used: bool = False  # True if remote failed → local
     cache_hit: bool = False
     text: str = ""
     chunk_index: int = 0
@@ -142,6 +157,14 @@ class TTSResult:
 # ---------------------------------------------------------------------------
 # TTS Manager
 # ---------------------------------------------------------------------------
+
+_ELEVENLABS_CB_CONFIG = CircuitBreakerConfig(
+    failure_threshold=3,
+    reset_timeout_s=30.0,
+    half_open_max_calls=1,
+    success_threshold=1,
+)
+
 
 class TTSManager:
     """Orchestrate TTS with cache, remote-with-timeout, and local fallback.
@@ -167,9 +190,22 @@ class TTSManager:
     ):
         self.local_fn = local_fn or self._stub_tts
         self.remote_fn = remote_fn
-        self.remote_timeout_ms = remote_timeout_ms
+        # Use centralized timeout config if remote_timeout_ms not explicitly set
+        if remote_timeout_ms == 2000:  # Default value
+            self.remote_timeout_ms = get_timeout("tts") * 1000  # Convert to ms
+        else:
+            self.remote_timeout_ms = remote_timeout_ms
         self.cache = TTSCache(max_entries=cache_max_entries) if cache_enabled else None
         self.chunker = TTSChunker(max_seconds=chunk_max_seconds)
+
+        # Circuit breaker for remote TTS
+        self._cb = register_circuit_breaker(
+            "elevenlabs",
+            config=_ELEVENLABS_CB_CONFIG,
+        )
+
+        # Shared retry policy for ElevenLabs
+        self._retry_policy: RetryPolicy = get_retry_policy("elevenlabs")
 
         # Counters
         self.total_calls: int = 0
@@ -208,13 +244,20 @@ class TTSManager:
         fallback = False
 
         if self.remote_fn is not None:
-            try:
-                audio = self._call_with_timeout(self.remote_fn, text)
-                engine = "remote"
-            except Exception as exc:
-                self.remote_failures += 1
-                logger.warning("Remote TTS failed (%s), falling back to local", exc)
+            # Check circuit breaker state (sync-safe read)
+            if self._cb.state is CircuitBreakerState.OPEN:
+                logger.info("ElevenLabs circuit OPEN — skipping remote, using local fallback")
                 fallback = True
+            else:
+                try:
+                    audio = self._call_with_timeout(self.remote_fn, text)
+                    engine = "remote"
+                    self._schedule_cb_async(self._cb._on_success)
+                except Exception as exc:
+                    self.remote_failures += 1
+                    logger.warning("Remote TTS failed (%s), falling back to local", exc)
+                    fallback = True
+                    self._schedule_cb_async(self._cb._on_failure, exc)
 
         # 3. Local fallback
         if audio is None:
@@ -255,23 +298,44 @@ class TTSManager:
             result.total_chunks = len(chunks)
             yield result
 
+    def _schedule_cb_async(self, coro_fn, *args) -> None:
+        """Best-effort async task scheduling from sync context.
+
+        Accepts a coroutine-function (not a coroutine) plus args so the
+        coroutine is only instantiated when a running event loop exists.
+        This avoids 'coroutine was never awaited' warnings.
+        """
+        try:
+            loop = asyncio.get_running_loop()
+            loop.create_task(coro_fn(*args))
+        except RuntimeError:
+            pass  # No running event loop — CB update skipped
+
+    def health(self) -> Dict[str, Any]:
+        """Health snapshot including circuit breaker state."""
+        return {
+            "total_calls": self.total_calls,
+            "remote_failures": self.remote_failures,
+            "cache_hits": self.cache_hits,
+            "circuit_breaker": self._cb.snapshot(),
+        }
+
     def _call_with_timeout(self, fn: Callable[[str], bytes], text: str) -> bytes:
-        """Call fn with a timeout in milliseconds.
+        """Call fn with a timeout using centralized timeout config.
 
         Uses threading-based timeout on platforms that don't support signals
         in non-main threads (i.e. Windows).
         """
-        import concurrent.futures
-
         timeout_s = self.remote_timeout_ms / 1000.0
-        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
-            future = pool.submit(fn, text)
-            try:
-                return future.result(timeout=timeout_s)
-            except concurrent.futures.TimeoutError:
-                raise TimeoutError(
-                    f"Remote TTS timed out after {self.remote_timeout_ms}ms"
-                )
+        try:
+            return run_sync_with_timeout(
+                fn,
+                text,
+                timeout=timeout_s,
+                service="tts",
+            )
+        except ServiceTimeoutError:
+            raise TimeoutError(f"Remote TTS timed out after {self.remote_timeout_ms}ms")
 
     @staticmethod
     def _stub_tts(text: str) -> bytes:

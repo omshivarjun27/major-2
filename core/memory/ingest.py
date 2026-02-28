@@ -7,6 +7,7 @@ Multimodal memory ingestion pipeline.
 Handles image, audio, text, and scene graph inputs.
 """
 
+import asyncio
 import base64
 import hashlib
 import io
@@ -472,23 +473,26 @@ class MemoryIngester:
         media_path = self._config.ensure_index_dir() / "raw_media"
         media_path.mkdir(exist_ok=True)
 
-        if image_base64:
-            img_path = media_path / f"{memory_id}.jpg"
-            try:
-                data = base64.b64decode(image_base64)
-                with open(img_path, "wb") as f:
-                    f.write(data)
-            except Exception as e:
-                logger.warning(f"Failed to save raw image: {e}")
+        def _write_files() -> None:
+            if image_base64:
+                img_path = media_path / f"{memory_id}.jpg"
+                try:
+                    data = base64.b64decode(image_base64)
+                    with open(img_path, "wb") as f:
+                        f.write(data)
+                except Exception as e:
+                    logger.warning(f"Failed to save raw image: {e}")
 
-        if audio_base64:
-            audio_path = media_path / f"{memory_id}.wav"
-            try:
-                data = base64.b64decode(audio_base64)
-                with open(audio_path, "wb") as f:
-                    f.write(data)
-            except Exception as e:
-                logger.warning(f"Failed to save raw audio: {e}")
+            if audio_base64:
+                audio_path = media_path / f"{memory_id}.wav"
+                try:
+                    data = base64.b64decode(audio_base64)
+                    with open(audio_path, "wb") as f:
+                        f.write(data)
+                except Exception as e:
+                    logger.warning(f"Failed to save raw audio: {e}")
+
+        await asyncio.to_thread(_write_files)
 
     def _load_persisted_consent(self) -> None:
         """Load consent records from encrypted files on disk."""

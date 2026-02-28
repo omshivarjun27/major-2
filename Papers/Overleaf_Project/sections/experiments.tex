@@ -1,0 +1,81 @@
+% experiments.tex — Dataset & Experiments
+\section{Dataset and Experimental Setup}
+\label{sec:experiments}
+
+\subsection{Hardware Environment}
+
+All experiments were conducted on a single workstation equipped with an NVIDIA RTX~4060 GPU (8\,GB VRAM, peak measured 3.1\,GB during inference), an Intel Core i7-13700K CPU, and 32\,GB DDR5 RAM. The system runs Windows~11 with Python~3.10, ONNX Runtime~1.17 (CUDA EP), and the full VVA dependency stack as specified in \texttt{requirements.txt}. The WebRTC connection for real-time tests was tunneled through localhost to eliminate network variability.
+
+\subsection{Models and Checkpoints}
+
+Two pre-trained models are used, stored in \texttt{models/}:
+
+\begin{itemize}
+    \item \textbf{YOLOv8n (ONNX)}: \texttt{models/yolov8n.onnx}, approximately 12\,MB. 80 COCO classes. Input: $640{\times}640$. Downloaded and exported via \texttt{scripts/download\_models.py}.
+    \item \textbf{MiDaS v2.1 small (ONNX)}: \texttt{models/midas\_v21\_small\_256.onnx}, approximately 64\,MB. Input: $256{\times}256$, ImageNet-normalized. Downloaded from the official Intel ISL release.
+\end{itemize}
+
+Embeddings for the memory module use \texttt{qwen3-embedding:4b} via Ollama, producing 384-dimensional vectors. The VQA LLM backend is \texttt{qwen3-vl} accessed through an OpenAI-compatible API (local Ollama or SiliconFlow cloud).
+
+\subsection{Datasets}
+
+No single standard benchmark captures VVA's full span of modalities. We therefore define a multi-faceted evaluation plan:
+
+\begin{enumerate}
+    \item \textbf{COCO val 2017}: 5,000 images for object detection (mAP\@[.5:.95]). The dataset's 80 object classes cover many common indoor and outdoor obstacles.
+    \item \textbf{NYU Depth V2}: 654 indoor depth images for monocular depth evaluation (AbsRel, RMSE, $\delta < 1.25$).
+    \item \textbf{ICDAR 2015}: 500 natural-scene images for OCR evaluation (word-level precision, recall, F1).
+    \item \textbf{VQAv2}~\cite{antol2015vqa}: a subset of 1,000 yes/no and short-answer questions for VQA accuracy.
+    \item \textbf{Custom indoor navigation set}: 200 annotated frames from three office environments, each labeled with obstacle locations, distances (laser rangefinder ground truth), and a ``safe path'' annotation. This dataset is not yet public but is described in the supplementary materials.
+    \item \textbf{Simulated braille pages}: 50 page images with Grade 1 and Grade 2 English braille, generated from Project Gutenberg texts and printed on a PIAF tactile diagram copier.
+\end{enumerate}
+
+\subsection{Evaluation Metrics}
+
+\begin{itemize}
+    \item \textbf{Detection}: mAP\@0.5 and mAP\@[.5:.95] on COCO val.
+    \item \textbf{Depth}: Absolute Relative Error (AbsRel), Root Mean Square Error (RMSE), and $\delta < 1.25$ threshold accuracy.
+    \item \textbf{OCR}: Word-level precision, recall, and F1. Case-insensitive matching.
+    \item \textbf{VQA}: Top-1 accuracy against reference answers.
+    \item \textbf{End-to-end latency}: Measured from frame capture to TTS audio chunk ready, decomposed into five stages (detection, segmentation, depth, fusion, TTS). Reported as P50, P95, and P99.
+    \item \textbf{Navigation accuracy}: Percentage of frames where the top-1 obstacle priority (CRITICAL / NEAR / FAR / SAFE) matches the ground-truth distance-based label, on the custom indoor set.
+    \item \textbf{Memory retrieval}: Recall@5 and mean reciprocal rank (MRR) for conversational context recall.
+\end{itemize}
+
+\subsection{Reproducibility}
+
+All experiments can be reproduced by running:
+
+\begin{verbatim}
+# Install
+python -m venv .venv
+.venv\Scripts\activate
+pip install -e ".[dev]"
+pip install -r requirements.txt
+python scripts/download_models.py
+
+# Unit + integration + performance tests
+pytest tests/ --timeout=180
+
+# Performance-specific tests
+pytest tests/performance/ --timeout=300
+
+# Coverage report
+pytest tests/ --cov=. --cov-report=xml
+\end{verbatim}
+
+The 429+ existing tests include timing assertions for the hot path: any regression that pushes end-to-end latency above 500\,ms will cause the performance suite to fail.
+
+\subsection{Experimental Plan for Unreported Benchmarks}
+
+Since several of the benchmarks listed above (NYU Depth, VQAv2, custom indoor set) have not yet been run at the time of writing, we outline the planned evaluation protocol so that results can be added in a camera-ready revision:
+
+\begin{enumerate}
+    \item Run \texttt{pytest tests/performance/ -k "depth"} with NYU Depth V2 images placed in \texttt{data/benchmarks/nyu/}.
+    \item Evaluate COCO mAP using the official \texttt{pycocotools} evaluation script against YOLOv8n predictions.
+    \item Measure OCR word accuracy on ICDAR~2015 using the VVA three-tier pipeline (\texttt{core/ocr/}).
+    \item Conduct VQA evaluation by feeding VQAv2 questions through \texttt{core/vqa/vqa\_reasoner.py} and comparing predicted answers against reference.
+    \item Time 500 consecutive frames through the full pipeline with GPU warm-up (50 frames discarded) and report per-stage percentile latencies.
+\end{enumerate}
+
+\textit{Note: All numeric results in Section~\ref{sec:results} that are not backed by completed experiment runs are marked ``hypothetical---for illustration; run experiments to populate real values.''}

@@ -1,0 +1,6 @@
+PLACEHOLDER — Replace with actual diagram PNG/SVG
+
+Diagram: Multimodal Fusion Mechanism (Detection + Segmentation + Depth → Risk Scoring)
+Source prompt: Papers/diagram_prompts.txt — DIAGRAM 3
+Expected filename: fig3_fusion.png
+Resolution: 3000x2000 pixels, white background, vector-style

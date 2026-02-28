@@ -1,0 +1,6 @@
+PLACEHOLDER — Replace with actual diagram PNG/SVG
+
+Diagram: Edge-Cloud Hybrid Deployment Architecture
+Source prompt: Papers/diagram_prompts.txt — DIAGRAM 4
+Expected filename: fig4_deployment.png
+Resolution: 3000x2000 pixels, white background, vector-style

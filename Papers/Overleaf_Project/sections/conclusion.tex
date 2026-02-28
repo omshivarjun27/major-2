@@ -1,0 +1,13 @@
+% conclusion.tex — Conclusion
+\section{Conclusion}
+\label{sec:conclusion}
+
+We presented Voice \& Vision Assistant (VVA), an open-source, multimodal real-time accessibility system that fuses twelve perception and interaction capabilities---object detection, monocular depth estimation, edge-aware segmentation, OCR, braille reading, QR/AR scanning, face recognition, sound localization, action recognition, visual question answering, retrieval-augmented memory, and natural speech---into a single spoken assistant for blind and visually impaired users.
+
+Three architectural decisions distinguish VVA from prior work. First, the layered architecture with import-linter enforcement at CI time guarantees that no perception module accidentally depends on infrastructure or application code, making each component independently testable (429+ tests and counting). Second, the parallel perception pipeline with per-stage timeouts and multi-tier fallbacks keeps the system responsive within a 500\,ms end-to-end budget on consumer GPU hardware, even when individual components degrade---a practical necessity that many academic systems overlook. Third, the privacy-first design (local FAISS indexing, opt-in consent, GDPR erasure/portability endpoints) makes VVA deployable in healthcare and education settings where cloud-resident personal data is unacceptable.
+
+We demonstrated that the perception stack---YOLOv8n detection, MiDaS~v2.1 depth, edge-aware segmentation, and spatial fusion---processes frames at a median latency of 62\,ms on RTX~4060, well within the 300\,ms perception budget. The priority-weighted risk scoring formula (Eq.~\ref{eq:risk}) produces actionable micro-navigation cues that convey the most important hazard in under ten words.
+
+Significant work remains. The COCO class set is too narrow for assistive use; metric depth is still approximated; and formal user studies are essential before any real-world deployment claim can be substantiated. We release the full codebase, model checkpoints, pipeline configurations, and test suite as open source to enable community replication, extension, and rigorous evaluation.
+
+Ultimately, the goal of VVA is not to replace the white cane or the guide dog, but to add an intelligent layer of environmental awareness that speaks when something matters---and stays silent when the path is clear.

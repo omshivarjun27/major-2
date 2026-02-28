@@ -1,0 +1,227 @@
+================================================================================
+ DIAGRAM PROMPTS — Voice & Vision Assistant Conference Paper
+ For use with Paper Banana / Nano Banana Pro
+================================================================================
+
+================================================================================
+DIAGRAM 1: Overall System Architecture Diagram
+================================================================================
+
+Title: VVA Five-Layer System Architecture
+
+Description: Block diagram showing the five-layer clean architecture with all major modules.
+
+Full Prompt for Paper Banana / Nano Banana Pro:
+---
+Create a technical system architecture diagram with a white background, vector-style rendering, and a resolution of 3000x2000 pixels. Export as both PNG and SVG.
+
+The diagram shows five horizontal layers stacked vertically, with the bottom layer being the foundation and the top layer being the entry points. Each layer is a wide rounded rectangle with a distinct but muted color fill (bottom to top: light blue, light green, light yellow, light orange, light purple). Arrows between layers point UPWARD ONLY to indicate permitted dependency direction.
+
+Layer 1 (bottom, light blue): Label "SHARED LAYER" in bold. Inside, place five labeled boxes arranged horizontally: "Schemas (BoundingBox, Detection, DepthMap, PerceptionResult, ObstacleRecord, NavigationOutput)", "Config & Settings", "Structured Logging", "Encryption Utilities", "Utils".
+
+Layer 2 (light green): Label "CORE LAYER" in bold. Inside, place twelve labeled boxes in two rows of six: Row 1: "Vision (spatial.py, visual.py)", "VQA (orchestrator, reasoner, scene_graph)", "Speech (handler, TTS, router)", "Memory (FAISS, SQLite, RAG)", "OCR (EasyOCR, Tesseract)", "Braille (capture, segment, classify)". Row 2: "Face (detector, embeddings, tracker)", "Audio (SSL, event detector, fusion)", "QR/AR (scanner, decoder, cache)", "Action (CLIP buffer, recognizer)", "Reasoning", "Priority Scene Analyzer".
+
+Layer 3 (light yellow): Label "APPLICATION LAYER" in bold. Inside: "Pipeline Orchestration (StreamingTTS, PerceptionWorkerPool, AudioOutputManager)", "Frame Processing (AdaptiveFrameSampler)", "Event Bus", "Session Management", "CancellationScope".
+
+Layer 4 (light orange): Label "INFRASTRUCTURE LAYER" in bold. Inside: "Ollama LLM Handler", "Deepgram STT Adapter", "ElevenLabs TTS Adapter", "Tavus Avatar", "Cloud Storage", "Monitoring".
+
+Layer 5 (top, light purple): Label "APPS LAYER" in bold. Inside: "FastAPI REST Server (server.py, port 8000)", "LiveKit WebRTC Agent (agent.py, port 8081)", "CLI Tools".
+
+On the right side, add a vertical annotation arrow labeled "Import-Linter Enforced — No Upward Dependencies". Use legible sans-serif font (minimum 14pt equivalent). All boxes should have thin dark borders. Add a small legend in the bottom-right corner showing "Arrow = permitted dependency direction".
+---
+
+Component labels to use (exact wording):
+- SHARED LAYER, CORE LAYER, APPLICATION LAYER, INFRASTRUCTURE LAYER, APPS LAYER
+- Schemas, Config & Settings, Structured Logging, Encryption Utilities, Utils
+- Vision, VQA, Speech, Memory, OCR, Braille, Face, Audio, QR/AR, Action, Reasoning, Priority Scene Analyzer
+- Pipeline Orchestration, Frame Processing, Event Bus, Session Management, CancellationScope
+- Ollama LLM, Deepgram STT, ElevenLabs TTS, Tavus Avatar, Cloud Storage, Monitoring
+- FastAPI REST Server, LiveKit WebRTC Agent, CLI Tools
+
+Save as: figures/fig1_architecture.png
+
+
+================================================================================
+DIAGRAM 2: Data Flow Pipeline Diagram
+================================================================================
+
+Title: VVA Perception Data Flow Pipeline
+
+Description: Flowchart showing the six-stage perception pipeline with parallel branches.
+
+Full Prompt for Paper Banana / Nano Banana Pro:
+---
+Create a technical data flow diagram with a white background, vector-style rendering, and a resolution of 3000x2000 pixels. Export as both PNG and SVG.
+
+The diagram flows LEFT to RIGHT. On the far left, place a camera icon labeled "WebRTC Video Frame (720p)". A single arrow leads to a box labeled "Frame Preprocessing (PIL → NumPy, color conversion)".
+
+From the preprocessing box, THREE parallel arrows branch out to three concurrent processing boxes, each with a dashed border labeled "asyncio.gather()":
+  - Top branch: "YOLOv8n ONNX Detection (640×640 input, 80 COCO classes, NMS IoU>0.45)" with a timing label "≤100ms"
+  - Middle branch: "Edge-Aware Segmentation (160×120 downscale, Sobel gradient, Otsu threshold)" with timing "≤50ms"  
+  - Bottom branch: "MiDaS v2.1 Depth Estimation (256×256, ImageNet norm, 0.5-10m range)" with timing "≤100ms"
+
+The three branches converge with arrows into a central box labeled "Spatial Fuser (direction from 70° FOV, priority by distance thresholds, risk score Eq.1)".
+
+From the Spatial Fuser, an arrow leads to "MicroNav Formatter" which has three output arrows:
+  - "Short Cue (≤10 words, e.g. 'Stop! Chair half meter left')"
+  - "Verbose Description (multi-sentence scene summary)"
+  - "Telemetry JSON (obstacle records with coordinates)"
+
+Add a timing bar at the bottom showing total pipeline target: "Total Perception: ≤300ms target, 62ms P50 measured". Use clean sans-serif font, minimum 12pt. All arrows should have directional arrowheads. Use thin black arrows. Add subtle gray background to the parallel processing zone with label "Parallel Execution Zone".
+---
+
+Component labels to use (exact wording):
+- WebRTC Video Frame, Frame Preprocessing
+- YOLOv8n ONNX Detection, Edge-Aware Segmentation, MiDaS v2.1 Depth Estimation
+- Spatial Fuser, MicroNav Formatter
+- Short Cue, Verbose Description, Telemetry JSON
+- asyncio.gather(), Parallel Execution Zone
+
+Save as: figures/fig2_dataflow.png
+
+
+================================================================================
+DIAGRAM 3: Multimodal Fusion Mechanism Diagram
+================================================================================
+
+Title: VVA Multimodal Fusion and Priority Ranking
+
+Description: Detailed diagram of how detection, segmentation, and depth data merge into ranked obstacle records.
+
+Full Prompt for Paper Banana / Nano Banana Pro:
+---
+Create a technical fusion mechanism diagram with a white background, vector-style rendering, and a resolution of 3000x2000 pixels. Export as both PNG and SVG.
+
+The diagram has three input columns on the left and a processing pipeline on the right.
+
+LEFT COLUMN 1: "Detections" box containing stacked items: "Detection(id, class_name, confidence, bbox=[x1,y1,x2,y2])". Show 2-3 detection entries with example values.
+
+LEFT COLUMN 2: "Segmentation Masks" box containing: "SegmentationMask(detection_id, mask=160×120 binary, boundary_confidence, edge_pixels)".
+
+LEFT COLUMN 3: "Depth Map" box containing: "DepthMap(HxW float32 array, min_depth, max_depth, get_region_depth()→(min,median,max))".
+
+The three columns feed arrows into a large central box labeled "SpatialFuser" with internal sub-blocks:
+  - "Distance Calculation: median depth within bbox"
+  - "Direction Mapping: 70° FOV → 7 bins (FAR_LEFT to FAR_RIGHT), thresholds ±5°/±15°/±25°"
+  - "Priority Classification: CRITICAL <1m, NEAR_HAZARD 1-2m, FAR_HAZARD 2-5m, SAFE >5m"
+  - "Action Recommendation: direction-aware suggestions"
+
+From the SpatialFuser, an arrow leads to "ObstacleRecord" showing fields: id, class_name, distance_m, direction, priority, action_recommendation.
+
+Below, a separate arrow from ObstacleRecord leads to "PrioritySceneAnalyzer" with the formula displayed: "Risk = 0.35·f_dist + 0.25·f_dir + 0.15·confidence + 0.25·f_collision". Output: "Top-3 Ranked Hazards with Navigation Cues".
+
+Use clean lines, sans-serif font 12pt minimum, thin black borders. Color code priority levels: CRITICAL=red, NEAR_HAZARD=orange, FAR_HAZARD=yellow, SAFE=green (as small colored dots or badges).
+---
+
+Component labels to use (exact wording):
+- Detections, Segmentation Masks, Depth Map
+- SpatialFuser, Distance Calculation, Direction Mapping, Priority Classification, Action Recommendation
+- ObstacleRecord, PrioritySceneAnalyzer
+- CRITICAL, NEAR_HAZARD, FAR_HAZARD, SAFE
+- Risk = 0.35·f_dist + 0.25·f_dir + 0.15·confidence + 0.25·f_collision
+
+Save as: figures/fig3_fusion.png
+
+
+================================================================================
+DIAGRAM 4: Edge-Cloud Hybrid Deployment Diagram
+================================================================================
+
+Title: VVA Edge-Cloud Hybrid Deployment Architecture
+
+Description: Deployment topology showing local GPU processing and cloud API connections.
+
+Full Prompt for Paper Banana / Nano Banana Pro:
+---
+Create a deployment architecture diagram with a white background, vector-style rendering, and a resolution of 3000x2000 pixels. Export as both PNG and SVG.
+
+The diagram has three zones arranged left-to-right:
+
+ZONE 1 (left, labeled "User Device"): A smartphone/laptop icon with labels: "Camera (WebRTC video)", "Microphone (16kHz PCM)", "Speaker (TTS output)". A bidirectional WebRTC arrow connects to Zone 2.
+
+ZONE 2 (center, labeled "Local GPU Server (RTX 4060, 8GB VRAM)" with a dashed border): Contains stacked boxes:
+  - "LiveKit Agent (WebRTC server, port 8081)"
+  - "Perception Pipeline: YOLOv8n ONNX + MiDaS ONNX (3.1GB peak VRAM)"
+  - "FastAPI REST API (port 8000)"
+  - "FAISS Vector Index (384-dim, <10ms search)"
+  - "SQLite Store (conversation logs, preferences)"
+  - "Ollama LLM (qwen3-embedding:4b, ~2GB VRAM)"
+  - "OCR Pipeline (EasyOCR + Tesseract)"
+  - "Local Model Files: models/yolov8n.onnx (12MB), models/midas_v21_small_256.onnx (64MB)"
+
+ZONE 3 (right, labeled "Cloud APIs (optional)" with a cloud shape): Contains:
+  - "Deepgram Nova-3 (streaming STT)"
+  - "ElevenLabs Turbo v2.5 (TTS)"
+  - "SiliconFlow (fallback VQA LLM)"
+  - "Tavus (optional avatar)"
+
+Arrows from Zone 2 to Zone 3: labeled "HTTPS/WSS, API key auth". Add a note: "Cloud APIs are optional; edge-tts and local Ollama provide offline fallback."
+
+Below the three zones, add a horizontal bar labeled "Privacy Boundary" with a lock icon, showing: "All perception data stays in Zone 2. Only text transcripts and TTS requests cross to Zone 3. Face embeddings encrypted at rest. Memory opt-in only. GDPR Art. 17/20 endpoints available."
+
+Use clean sans-serif font, 12pt minimum. Thin arrows with labels. Color Zone 2 with a slight gray fill to indicate the primary processing node.
+---
+
+Component labels to use (exact wording):
+- User Device, Local GPU Server, Cloud APIs
+- LiveKit Agent, Perception Pipeline, FastAPI REST API
+- FAISS Vector Index, SQLite Store, Ollama LLM, OCR Pipeline
+- Deepgram Nova-3, ElevenLabs Turbo v2.5, SiliconFlow, Tavus
+- Privacy Boundary
+
+Save as: figures/fig4_deployment.png
+
+
+================================================================================
+DIAGRAM 5: Evaluation & User Testing Flow Diagram
+================================================================================
+
+Title: VVA Evaluation and User Testing Flow
+
+Description: Flowchart of the evaluation methodology from benchmarks to user testing.
+
+Full Prompt for Paper Banana / Nano Banana Pro:
+---
+Create an evaluation flow diagram with a white background, vector-style rendering, and a resolution of 3000x2000 pixels. Export as both PNG and SVG.
+
+The diagram flows TOP to BOTTOM with three main phases:
+
+PHASE 1 (top, labeled "Automated Benchmark Evaluation"):
+Five parallel boxes horizontally:
+  - "COCO val 2017 (5000 images) → mAP@0.5, mAP@[.5:.95]"
+  - "NYU Depth V2 (654 images) → AbsRel, RMSE, δ<1.25"
+  - "ICDAR 2015 (500 images) → Word Precision, Recall, F1"
+  - "VQAv2 (1000 questions) → Top-1 Accuracy"
+  - "Braille Pages (50 pages) → Character Accuracy"
+All five feed arrows into a box labeled "Aggregate Metrics Report".
+
+PHASE 2 (middle, labeled "System Performance Testing"):
+From Aggregate Metrics Report, an arrow leads to:
+  - "Pipeline Latency Profiling (500 frames, P50/P95/P99)"
+  - "Memory Usage Monitoring (peak VRAM, RAM)"
+  - "Fallback Coverage Testing (detector fallback, depth fallback, OCR fallback)"
+  - "429+ Automated Tests (pytest: unit, integration, performance)"
+These four boxes feed into "System Performance Report".
+
+PHASE 3 (bottom, labeled "User Testing (Planned)"):
+From System Performance Report, an arrow leads to:
+  - "IRB-Approved Study (N=20+ blind participants)"
+  - "Indoor Navigation Task (3 office environments, 200 frames)"
+  - "Reading Task (signage, labels, braille)"
+  - "Social Interaction Task (face identification, emotion cues)"
+These feed into "User Experience Metrics: Task Completion Time, Safety Incidents, SUS Score".
+
+Add a vertical timeline on the right showing: "Phase 1: Implemented ✓", "Phase 2: Implemented ✓", "Phase 3: Planned (future work)".
+
+Use clean sans-serif font, 12pt minimum. Subtle rounded rectangles. Arrows with directional tips. Phase labels in bold.
+---
+
+Component labels to use (exact wording):
+- Automated Benchmark Evaluation, System Performance Testing, User Testing
+- COCO val 2017, NYU Depth V2, ICDAR 2015, VQAv2, Braille Pages
+- Pipeline Latency Profiling, Memory Usage Monitoring, Fallback Coverage Testing
+- 429+ Automated Tests
+- IRB-Approved Study, Indoor Navigation Task, Reading Task, Social Interaction Task
+- Task Completion Time, Safety Incidents, SUS Score
+
+Save as: figures/fig5_evaluation.png

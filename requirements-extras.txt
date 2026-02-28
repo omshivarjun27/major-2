@@ -36,3 +36,13 @@ httpx>=0.26.0
 # Security scanning
 bandit[toml]>=1.7.0
 pip-audit>=2.6.0
+
+# -- Local STT Fallback (Whisper) --
+faster-whisper>=1.0.0
+
+# -- Local TTS Fallback (Edge TTS / pyttsx3) --
+edge-tts>=6.1.0
+pyttsx3>=2.90
+
+# -- Load Testing --
+locust>=2.20.0

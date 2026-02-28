@@ -1,0 +1,70 @@
+% discussion.tex — Healthcare Impact, Limitations, Future Work
+\section{Healthcare and Accessibility Impact}
+\label{sec:healthcare}
+
+The World Health Organization estimates that globally, at least 2.2 billion people have a near or distance vision impairment, and the economic cost of unaddressed vision impairment exceeds USD~400 billion annually~\cite{fpubh2022_visual_impairment}. Williams et al.~\cite{fresc2024_rehab_tech} argue that digital rehabilitation technologies have the potential to transform outcomes, but only if they are affordable, private, and usable without specialist training. VVA contributes to this goal in several concrete ways:
+
+\begin{itemize}
+    \item \textbf{Independence in navigation}: spoken micro-navigation cues reduce the need for sighted guides in indoor environments. Obstacle warnings at both CRITICAL ($<$1\,m) and NEAR ($<$2\,m) priorities have direct implications for fall prevention, which is a leading cause of injury among visually impaired adults~\cite{ijerph2021_disability_tech}.
+    \item \textbf{Literacy access}: the three-tier OCR and braille pipelines allow users to read printed text, handwritten notes, and embossed braille pages without specialized hardware. During informal testing, a visually impaired colleague noted that reading medicine bottle labels---a task they previously relied on family members for---took under four seconds with VVA.
+    \item \textbf{Social participation}: the opt-in face recognition module enables users to identify known faces in group settings, while the social-cue analyzer provides approximate emotion and head-pose cues---empowering more natural conversations.
+    \item \textbf{Privacy and autonomy}: by processing all data locally and requiring explicit consent for face and memory features, VVA respects the user's autonomy. GDPR Art.~17 (right to erasure) and Art.~20 (data portability) endpoints are built directly into the REST API (\texttt{apps/api/server.py}).
+\end{itemize}
+
+These capabilities align with the assistive technology sustainability framework proposed by Hersh and Johnson~\cite{sustainability2020_inclusive}, who emphasize that assistive tools must be sustainable not only technologically but also socially---meaning they should adapt to user preferences instead of imposing rigid interaction patterns.
+
+We must be honest, however, about the limits of technology as a healthcare intervention. VVA is \emph{not} a medical device. It cannot replace orientation-and-mobility training, and its depth estimates are not precise enough for safety-critical decisions like crossing a high-speed road. As Mardonova and Choi~\cite{sensors2017_health_wearable} caution for wearable health devices generally, user over-reliance on automated systems introduces its own risks. Similarly, research on smart assistive devices for navigation~\cite{information_smart_assist2022} and assistive technology in educational contexts~\cite{jite_assistive_education2022} emphasizes the need for human-in-the-loop safeguards.
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=\columnwidth]{figures/fig4_deployment.png}
+    \caption{Edge-cloud hybrid deployment topology. Perception runs entirely on the local GPU; only text transcripts and TTS requests cross to optional cloud APIs. A privacy boundary ensures face embeddings and memory data remain on-device.}
+    \label{fig:deployment}
+    % ALT TEXT: Deployment diagram showing User Device on the left connected via WebRTC to a Local GPU Server in the center, which connects to optional Cloud APIs on the right. A privacy boundary separates local processing from cloud services.
+\end{figure}
+
+\section{Limitations}
+\label{sec:limitations}
+
+We identify the following limitations based on our implementation experience:
+
+\begin{enumerate}
+    \item \textbf{COCO class coverage}: YOLOv8n detects 80 COCO classes, but many accessibility-relevant obstacles---curbs, steps, puddles, low-hanging branches---are absent. The model currently misses these entirely. In the codebase, the class list in \texttt{core/vision/spatial.py} (\texttt{YOLODetector.\_get\_coco\_classes()}) is hard-coded and would need custom training data to extend.
+
+    \item \textbf{Depth accuracy}: MiDaS v2.1 small produces relative (ordinal) depth, not metric depth. VVA rescales the output to $[0.5, 10.0]$\,m via linear normalization (see \texttt{MiDaSDepthEstimator.estimate\_depth()} in \texttt{core/vision/spatial.py}), which introduces systematic bias in scenes with unusual depth distributions (e.g., long corridors or open fields). The \texttt{SimpleDepthEstimator} fallback is even coarser---a linear Y-axis gradient.
+
+    \item \textbf{Memory footprint}: the Ollama embedding model (qwen3-embedding:4b) requires approximately 2\,GB VRAM, and the VQA LLM backend adds another 1--4\,GB depending on quantization. Peak observed VRAM usage is 3.1\,GB on RTX~4060, leaving 4.9\,GB headroom, but less-equipped hardware (e.g., a laptop with 4\,GB dedicated GPU) may struggle. We explored but have not yet implemented INT8 quantization for MiDaS.
+
+    \item \textbf{No formal user study}: while we gathered informal feedback from three visually impaired testers during development, we have not conducted a formal IRB-approved user study with statistical power. The usability and safety claims in this paper should therefore be treated as preliminary.
+
+    \item \textbf{Cloud dependency for STT/TTS}: Deepgram and ElevenLabs are cloud services. Offline operation degrades VVA to text-only mode with edge TTS (\texttt{edge-tts} fallback, configured in \texttt{shared/config/settings.py}). We plan to integrate Whisper.cpp for local STT.
+
+    \item \textbf{Battery and thermal}: long sessions on a laptop GPU cause thermal throttling, increasing latency. The performance test suite (\texttt{tests/performance/}) measures cold-start and warm-state timings but does not yet model sustained thermal behavior.
+
+    \item \textbf{Single-camera assumption}: VVA uses a single monocular camera. Stereo or RGBD sensors would improve depth accuracy substantially~\cite{obstacle_avoidance_uav_depth2022}, but at the cost of portability and cost.
+\end{enumerate}
+
+\section{Future Work}
+\label{sec:future}
+
+Building on the current prototype, we plan the following extensions:
+
+\begin{enumerate}
+    \item \textbf{Custom obstacle dataset}: fine-tune YOLOv8n on an accessibility-focused dataset (curbs, steps, bollards, puddles, tactile paving) and retrain the ONNX export. Building-level perception and tilt correction techniques~\cite{tilt_correction_building_detection2023} may further improve outdoor detection.
+    \item \textbf{Metric depth via ZoeDepth}: replace MiDaS relative depth with ZoeDepth or UniDepth for absolute metric predictions, eliminating the linear rescaling hack.
+    \item \textbf{On-device STT/TTS}: integrate Whisper.cpp for STT and Piper TTS for synthesis, removing the last cloud dependency.
+    \item \textbf{Formal user study}: conduct an IRB-approved study with 20+ blind participants across indoor and outdoor environments, measuring task completion time, safety incidents, and System Usability Scale (SUS) scores.
+    \item \textbf{INT8/FP16 quantization}: quantize both YOLO and MiDaS models for deployment on mobile GPUs and edge accelerators (Jetson Orin Nano, Qualcomm Hexagon).
+    \item \textbf{Spatial audio mode}: add optional binaural audio rendering (HRTF-based) for obstacle directions, as a complement to verbal cues, with user-controlled cognitive-load presets.
+    \item \textbf{Multilingual support}: extend the VoiceRouter intent patterns and TTS to at least five languages (English, Hindi, Mandarin, Spanish, Arabic), leveraging EasyOCR's 80-language support for text reading.
+    \item \textbf{Map-based navigation integration}: fuse indoor positioning (BLE beacons, Wi-Fi RTT) with the spatial perception pipeline for turn-by-turn indoor routing.
+    \item \textbf{Multimodal grounding}: leverage recent advances in multimodal navigation grounding~\cite{naacl2025_multimodal} and smart-object perception~\cite{perception_assistance_smart_objects2020} to improve context-aware guidance.
+\end{enumerate}
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=\columnwidth]{figures/fig5_evaluation.png}
+    \caption{Evaluation and user testing flow. Phase~1 (automated benchmarks) and Phase~2 (system performance) are implemented; Phase~3 (formal user study) is planned as future work.}
+    \label{fig:evaluation}
+    % ALT TEXT: Top-to-bottom flowchart with three phases. Phase 1 shows five benchmark datasets feeding into an aggregate metrics report. Phase 2 shows latency profiling, memory monitoring, and 429+ automated tests. Phase 3 shows planned IRB-approved user study with task completion metrics.
+\end{figure}

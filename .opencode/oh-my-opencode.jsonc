@@ -1,0 +1,226 @@
+{
+    "google_auth": false,
+    "agents": {
+        "prometheus": {
+            "model": "amazon-bedrock/global.anthropic.claude-opus-4-5-20251101-v1:0",
+            "permission": {
+                "edit": "allow",
+                "bash": "allow",
+                "webfetch": "allow",
+                "doom_loop": "allow",
+                "external_directory": "allow"
+            }
+        },
+        "metis": {
+            "model": "amazon-bedrock/global.anthropic.claude-opus-4-5-20251101-v1:0",
+            "permission": {
+                "edit": "allow",
+                "bash": "allow",
+                "webfetch": "allow",
+                "doom_loop": "allow",
+                "external_directory": "allow"
+            }
+        },
+        "momus": {
+            "model": "amazon-bedrock/global.anthropic.claude-opus-4-5-20251101-v1:0",
+            "permission": {
+                "edit": "allow",
+                "bash": "allow",
+                "webfetch": "allow",
+                "doom_loop": "allow",
+                "external_directory": "allow"
+            }
+        },
+        "atlas": {
+            "model": "amazon-bedrock/global.anthropic.claude-opus-4-5-20251101-v1:0",
+            "permission": {
+                "edit": "allow",
+                "bash": "allow",
+                "webfetch": "allow",
+                "doom_loop": "allow",
+                "external_directory": "allow"
+            }
+        },
+        "sisyphus": {
+            "model": "amazon-bedrock/global.anthropic.claude-opus-4-5-20251101-v1:0",
+            "permission": {
+                "edit": "allow",
+                "bash": "allow",
+                "webfetch": "allow",
+                "doom_loop": "allow",
+                "external_directory": "allow"
+            }
+        },
+        "sisyphus-junior": {
+            "model": "amazon-bedrock/global.anthropic.claude-opus-4-5-20251101-v1:0",
+            "permission": {
+                "edit": "allow",
+                "bash": "allow",
+                "webfetch": "allow",
+                "doom_loop": "allow",
+                "external_directory": "allow"
+            }
+        },
+        "hephaestus": {
+            "model": "amazon-bedrock/global.anthropic.claude-opus-4-5-20251101-v1:0",
+            "permission": {
+                "edit": "allow",
+                "bash": "allow",
+                "webfetch": "allow",
+                "doom_loop": "allow",
+                "external_directory": "allow"
+            }
+        },
+        "oracle": {
+            "model": "amazon-bedrock/global.anthropic.claude-opus-4-5-20251101-v1:0",
+            "permission": {
+                "edit": "allow",
+                "bash": "allow",
+                "webfetch": "allow",
+                "doom_loop": "allow",
+                "external_directory": "allow"
+            }
+        },
+        "explore": {
+            "model": "amazon-bedrock/global.anthropic.claude-opus-4-5-20251101-v1:0",
+            "stream": false,
+            "permission": {
+                "edit": "allow",
+                "bash": "allow",
+                "webfetch": "allow",
+                "doom_loop": "allow",
+                "external_directory": "allow"
+            }
+        },
+        "librarian": {
+            "model": "amazon-bedrock/global.anthropic.claude-opus-4-5-20251101-v1:0",
+            "stream": false,
+            "permission": {
+                "edit": "allow",
+                "bash": "allow",
+                "webfetch": "allow",
+                "doom_loop": "allow",
+                "external_directory": "allow"
+            }
+        },
+        "multimodal-looker": {
+            "model": "amazon-bedrock/global.anthropic.claude-opus-4-5-20251101-v1:0",
+            "permission": {
+                "edit": "allow",
+                "bash": "allow",
+                "webfetch": "allow",
+                "doom_loop": "allow",
+                "external_directory": "allow"
+            }
+        }
+    },
+    "categories": {
+        "visual-engineering": {
+            "model": "amazon-bedrock/global.anthropic.claude-opus-4-5-20251101-v1:0"
+        },
+        "artistry": {
+            "model": "amazon-bedrock/global.anthropic.claude-opus-4-5-20251101-v1:0"
+        },
+        "quick": {
+            "model": "amazon-bedrock/global.anthropic.claude-opus-4-5-20251101-v1:0"
+        },
+        "unspecified-low": {
+            "model": "amazon-bedrock/global.anthropic.claude-opus-4-5-20251101-v1:0"
+        },
+        "unspecified-high": {
+            "model": "amazon-bedrock/global.anthropic.claude-opus-4-5-20251101-v1:0"
+        },
+        "writing": {
+            "model": "amazon-bedrock/global.anthropic.claude-opus-4-5-20251101-v1:0"
+        },
+        "deep": {
+            "model": "amazon-bedrock/global.anthropic.claude-opus-4-5-20251101-v1:0"
+        },
+        "ultrabrain": {
+            "model": "amazon-bedrock/global.anthropic.claude-opus-4-5-20251101-v1:0"
+        },
+        "ultrawork": {
+            "model": "amazon-bedrock/global.anthropic.claude-opus-4-5-20251101-v1:0"
+        }
+    },
+    "routing": {
+        "coding": "hephaestus",
+        "architecture": "sisyphus",
+        "structured_writing": "prometheus",
+        "multimodal": "multimodal-looker",
+        "lightweight": "explore",
+        "retrieval": "librarian",
+        "hybrid": "dominant_capability"
+    },
+    "truncate_all_tool_outputs": false,
+    "aggressive_truncation": false,
+    "auto_resume": true,
+    "disable_omo_env": true,
+    "task_system": true,
+    "dynamic_context_pruning": {
+        "enabled": true,
+        "notification": "detailed"
+    },
+    "turn_protection": {
+        "turns": 5
+    },
+    "strategies": {
+        "deduplication": true,
+        "supersede_writes": {
+            "true": true,
+            "aggressive": false
+        },
+        "purge_errors": {
+            "turns": 5
+        }
+    },
+    "hooks": {
+        "enabled": true
+    },
+    "disabled_hooks": [],
+    "claude_code": {
+        "mcp": true,
+        "commands": true,
+        "skills": true,
+        "agents": true,
+        "hooks": true,
+        "plugins": true
+    },
+    "validation": {
+        "enabled": true,
+        "run_at": "initialization",
+        "abort_on_failure": true,
+        "test_cases": [
+            {
+                "id": "coding_test",
+                "prompt": "Refactor this Python function.",
+                "expected_agent": "hephaestus"
+            },
+            {
+                "id": "architecture_test",
+                "prompt": "Design a scalable AI microservices system.",
+                "expected_agent": "sisyphus"
+            },
+            {
+                "id": "structured_writing_test",
+                "prompt": "Explain OAuth 2.0 in structured format.",
+                "expected_agent": "prometheus"
+            },
+            {
+                "id": "multimodal_test",
+                "prompt": "Analyze this uploaded image.",
+                "expected_agent": "multimodal-looker"
+            },
+            {
+                "id": "retrieval_test",
+                "prompt": "Summarize this 200-page PDF.",
+                "expected_agent": "librarian"
+            },
+            {
+                "id": "exploration_test",
+                "prompt": "Give 5 AI startup ideas.",
+                "expected_agent": "explore"
+            }
+        ]
+    }
+}
