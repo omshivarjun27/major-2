@@ -1,0 +1,83 @@
+# ================================================================
+# Security Scanning Workflow
+# ================================================================
+# Runs SAST (Bandit), DAST (ZAP mock), and dependency vulnerability
+# scanning on every push and pull request.
+# ================================================================
+
+name: Security Scanning
+
+on: [push, pull_request]
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  sast:
+    name: SAST (Bandit)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install bandit
+      - run: python scripts/run_sast.py
+      - name: Upload SAST report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sast-report
+          path: reports/sast/
+
+  dast:
+    name: DAST (ZAP Mock)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python scripts/run_dast.py --mock
+      - name: Upload DAST report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dast-report
+          path: reports/dast/
+
+  dep-scan:
+    name: Dependency Vulnerability Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install pip-audit
+      - run: python scripts/run_dep_scan.py
+      - name: Upload SBOM and scan report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dep-scan-report
+          path: |
+            reports/sbom.json
+            reports/dep_scan.json
+
+  security-audit:
+    name: Security Hardening Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python scripts/security_audit.py
+      - name: Upload audit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-audit-report
+          path: reports/security_audit.json

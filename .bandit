@@ -1,0 +1,18 @@
+# ================================================================
+# .bandit — Bandit SAST Configuration
+# ================================================================
+# Custom profile for Voice-Vision Assistant security scanning.
+# Excludes test files, research, and known false positives.
+#
+# Run:  bandit -r . -f json --configfile .bandit
+# ================================================================
+
+[bandit]
+exclude_dirs = tests,research,scripts,.sisyphus,.venv,.git,docs,Papers,data,models,.benchmarks
+skips = B101,B601
+# B101: assert_used — tests rely on assert; also used defensively in non-test code
+# B601: paramiko_calls — not used in this project
+
+targets = shared,core,application,infrastructure,apps
+
+# Severity: block on HIGH and CRITICAL (enforced by run_sast.py)

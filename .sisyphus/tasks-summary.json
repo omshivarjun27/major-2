@@ -1,11 +1,11 @@
 {
   "schema_version": "1.0",
-  "generated_at": "2026-02-27T12:00:00Z",
+  "generated_at": "2026-03-02T15:31:00Z",
   "total_tasks": 150,
-  "completed_tasks": 44,
+  "completed_tasks": 136,
   "in_progress_tasks": 0,
-  "remaining_tasks": 106,
-  "completion_percentage": 29.3,
+  "remaining_tasks": 14,
+  "completion_percentage": 90.7,
   "phases": {
     "P0": {
       "name": "Foundation Hardening",
@@ -61,34 +61,89 @@
     "P2": {
       "name": "Architecture Remediation",
       "task_count": 15,
-      "status": "in_progress",
-      "completed": 7,
-      "remaining": 8,
+      "status": "completed",
+      "completed": 15,
+      "remaining": 0,
       "tasks": [
         {"id": "T-038", "title": "Agent session manager extract", "status": "completed", "commit": "76323c3"},
         {"id": "T-039", "title": "Agent vision controller extract", "status": "completed", "commit": "f1e879d"},
         {"id": "T-040", "title": "Agent voice controller extract", "status": "completed", "commit": "be2aaf3"},
         {"id": "T-041", "title": "Agent tool router extract", "status": "completed", "commit": "66e8881"},
         {"id": "T-042", "title": "Agent coordinator slim", "status": "completed", "commit": "1145eab"},
-        {"id": "T-043", "title": "Agent split test suite", "status": "todo", "path": ".sisyphus/tasks/P2/T-043-agent-split-test-suite.md"},
+        {"id": "T-043", "title": "Agent split test suite", "status": "completed", "note": "Tests in tests/unit/test_{session_manager,vision_controller,voice_controller,tool_router}.py + tests/integration/test_agent_coordinator.py"},
         {"id": "T-044", "title": "OllamaEmbedder async", "status": "completed", "commit": "967b6a2"},
-        {"id": "T-045", "title": "LLM client async", "status": "todo", "path": ".sisyphus/tasks/P2/T-045-llm-client-async.md"},
-        {"id": "T-046", "title": "Async audit sweep", "status": "todo", "path": ".sisyphus/tasks/P2/T-046-async-audit-sweep.md"},
+        {"id": "T-045", "title": "LLM client async", "status": "completed", "note": "Tests in tests/unit/test_llm_client_async.py, config in infrastructure/llm/config.py"},
+        {"id": "T-046", "title": "Async audit sweep", "status": "completed", "note": "Audit report at docs/audits/p2_async_audit.md, regression tests in tests/unit/test_async_audit.py"},
         {"id": "T-047", "title": "Shared init cleanup", "status": "completed", "commit": "eb26e6f"},
-        {"id": "T-048", "title": "Import boundary enforcement", "status": "todo", "path": ".sisyphus/tasks/P2/T-048-import-boundary-enforcement.md"},
-        {"id": "T-049", "title": "Agent architecture documentation", "status": "todo", "path": ".sisyphus/tasks/P2/T-049-agent-architecture-documentation.md"},
-        {"id": "T-050", "title": "P2 tech debt reassessment", "status": "todo", "path": ".sisyphus/tasks/P2/T-050-p2-tech-debt-reassessment.md"},
-        {"id": "T-051", "title": "P2 god file split validation", "status": "todo", "path": ".sisyphus/tasks/P2/T-051-p2-god-file-split-validation.md"},
-        {"id": "T-052", "title": "P2 async conversion verification", "status": "todo", "path": ".sisyphus/tasks/P2/T-052-p2-async-conversion-verification.md"}
+        {"id": "T-048", "title": "Import boundary enforcement", "status": "completed", "note": "Boundary tests in tests/unit/test_import_boundaries.py (239 LOC, AST-based 5-layer validation)"},
+        {"id": "T-049", "title": "Agent architecture documentation", "status": "completed", "note": "Decomposition guide at docs/architecture/agent-decomposition.md"},
+        {"id": "T-050", "title": "P2 tech debt reassessment", "status": "completed", "note": "Tech debt register at docs/tech-debt.md"},
+        {"id": "T-051", "title": "P2 god file split validation", "status": "completed", "note": "Validation report at docs/validations/p2_god_file_split.md, startup test at tests/performance/test_agent_startup.py"},
+        {"id": "T-052", "title": "P2 async conversion verification", "status": "completed", "note": "Verification report at docs/validations/p2_async_verification.md, metrics at docs/baselines/p2_metrics.json, perf tests at tests/performance/test_async_verification.py"}
       ]
     },
-    "P3": {"name": "Resilience & Reliability", "task_count": 20, "status": "not_started", "task_range": "T-053..T-072"},
-    "P4": {"name": "Performance & Validation", "task_count": 18, "status": "not_started", "task_range": "T-073..T-090"},
-    "P5": {"name": "Operational Readiness", "task_count": 20, "status": "not_started", "task_range": "T-091..T-110"},
-    "P6": {"name": "Feature Evolution", "task_count": 22, "status": "not_started", "task_range": "T-111..T-132"},
-    "P7": {"name": "Hardening & Release", "task_count": 18, "status": "not_started", "task_range": "T-133..T-150"}
+    "P3": {
+      "name": "Resilience & Reliability",
+      "task_count": 20,
+      "status": "completed",
+      "task_range": "T-053..T-072",
+      "commit": "cedc1a6",
+      "note": "All 20 tasks committed as part of Phase 3-5 batch"
+    },
+    "P4": {
+      "name": "Performance & Validation",
+      "task_count": 18,
+      "status": "completed",
+      "task_range": "T-073..T-090",
+      "commit": "c62f6cc",
+      "note": "feat(perf): complete Phase 4 Performance & Validation"
+    },
+    "P5": {
+      "name": "Operational Readiness",
+      "task_count": 20,
+      "status": "completed",
+      "task_range": "T-091..T-110",
+      "commit": "cedc1a6",
+      "note": "feat(ops): complete Phase 5 Operational Readiness"
+    },
+    "P6": {
+      "name": "Feature Evolution",
+      "task_count": 22,
+      "status": "completed",
+      "task_range": "T-111..T-132",
+      "commit": "9c08ffe",
+      "note": "feat(features): complete Phase 6 Feature Evolution"
+    },
+    "P7": {
+      "name": "Hardening & Release",
+      "task_count": 18,
+      "status": "in_progress",
+      "completed": 4,
+      "remaining": 14,
+      "task_range": "T-133..T-150",
+      "tasks": [
+        {"id": "T-133", "title": "SAST scanning setup", "status": "completed", "path": ".sisyphus/tasks/P7/T-133-sast-scanning-setup.md", "note": "scripts/run_sast.py + .bandit config + CI workflow"},
+        {"id": "T-134", "title": "DAST scanning setup", "status": "completed", "path": ".sisyphus/tasks/P7/T-134-dast-scanning-setup.md", "note": "scripts/run_dast.py + mock mode + CI workflow"},
+        {"id": "T-135", "title": "Dependency vulnerability scan", "status": "completed", "path": ".sisyphus/tasks/P7/T-135-dependency-vulnerability-scan.md", "note": "scripts/run_dep_scan.py + .github/dependabot.yml + CI workflow"},
+        {"id": "T-136", "title": "Security hardening audit", "status": "completed", "path": ".sisyphus/tasks/P7/T-136-security-hardening-audit.md", "note": "scripts/security_audit.py (462 LOC, 8 checks) + CI workflow"},
+        {"id": "T-137", "title": "Load test 50 users", "status": "not_started"},
+        {"id": "T-138", "title": "Chaos testing suite", "status": "not_started"},
+        {"id": "T-139", "title": "Canary deployment setup", "status": "not_started"},
+        {"id": "T-140", "title": "Release notes automation", "status": "not_started"},
+        {"id": "T-141", "title": "API documentation finalization", "status": "not_started"},
+        {"id": "T-142", "title": "Production readiness checklist", "status": "not_started"},
+        {"id": "T-143", "title": "User documentation", "status": "not_started"},
+        {"id": "T-144", "title": "Regression test completion", "status": "not_started"},
+        {"id": "T-145", "title": "Accessibility compliance", "status": "not_started"},
+        {"id": "T-146", "title": "Docker image optimization", "status": "not_started"},
+        {"id": "T-147", "title": "Smoke test suite", "status": "not_started"},
+        {"id": "T-148", "title": "P7 release documentation", "status": "not_started"},
+        {"id": "T-149", "title": "P7 final regression suite", "status": "not_started"},
+        {"id": "T-150", "title": "Release artifact packaging", "status": "not_started"}
+      ]
+    }
   },
-  "next_task": "T-043",
-  "critical_path_next": ["T-043", "T-051", "T-052", "T-053"],
+  "next_task": "T-137",
+  "critical_path_next": ["T-137", "T-138", "T-139", "T-144", "T-149", "T-150"],
   "blockers": []
 }
