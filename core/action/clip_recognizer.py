@@ -15,7 +15,7 @@ import logging
 import time
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 
@@ -237,7 +237,6 @@ class CLIPActionRecognizer:
             return True
 
         try:
-            import torch
 
             # Try to import CLIP
             try:
