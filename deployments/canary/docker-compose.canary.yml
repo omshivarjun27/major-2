@@ -1,0 +1,79 @@
+version: "3.9"
+
+# ================================================================
+# Canary Deployment Docker Compose (T-139)
+# ================================================================
+# Traffic split: CANARY_WEIGHT% to canary, (100-CANARY_WEIGHT)% to stable
+#
+# Usage:
+#   docker compose -f deployments/canary/docker-compose.canary.yml up -d
+# ================================================================
+
+services:
+  nginx:
+    image: nginx:1.25-alpine
+    ports:
+      - "8000:80"
+      - "8081:8181"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./.nginx-weights.env:/etc/nginx/conf.d/weights.env:ro
+    depends_on:
+      app-stable:
+        condition: service_healthy
+      app-canary:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  app-stable:
+    image: "voice-vision-assistant:${STABLE_IMAGE:-latest}"
+    env_file:
+      - ../../.env
+    environment:
+      - SERVICE_VARIANT=stable
+    expose:
+      - "8000"
+      - "8081"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c",
+             "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  app-canary:
+    image: "voice-vision-assistant:${CANARY_IMAGE:-canary}"
+    env_file:
+      - ../../.env
+      - .canary.env
+    environment:
+      - SERVICE_VARIANT=canary
+    expose:
+      - "8000"
+      - "8081"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c",
+             "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # Prometheus for metrics collection
+  prometheus:
+    image: prom/prometheus:v2.48.0
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    expose:
+      - "9090"
+    restart: unless-stopped
