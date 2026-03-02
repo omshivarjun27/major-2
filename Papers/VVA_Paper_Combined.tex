@@ -681,6 +681,12 @@ Collectively, these contributions move assistive AI from isolated laboratory pro
 % SECTION 5: SURVEY
 % =============================================================================
 \section{SURVEY}
+We conducted a comprehensive review of 53 publications spanning object detection, depth estimation, OCR, braille recognition, speech processing, visual question answering, navigation assistance, edge AI deployment, multimodal fusion, and health/accessibility policy. The survey identifies key trends, evaluates the strengths and limitations of existing approaches, and positions the contributions of VVA within the broader research landscape.
+\subsection{Object Detection for Assistive Systems}
+
+Real-time object detection forms the perceptual foundation of any vision-based assistive system. The YOLO family has driven significant progress in single-shot detection~\cite{redmon2016yolo}, with YOLOv4 introducing CSPDarknet and Mish activation for improved accuracy~\cite{bochkovskiy2020yolov4} and YOLOv8n achieving state-of-the-art speed-accuracy trade-offs through anchor-free design at nano-scale parameter counts~\cite{jocher2023yolov8}. Multi-scale feature map approaches such as SSD~\cite{liu2016ssd} also influenced detection at varied object sizes.
+
+Transformer-based methods have emerged as alternatives. DETR eliminates the need for non-maximum suppression through end-to-end detection~\cite{carion2020detr}, while assistive-specific DETR variants have shown strong mAP on indoor datasets but with inference times (120\,ms) that may strain full perception pipelines~\cite{enhancing_detr_assistive2024}. Zhang et al.\ proposed a cascading feature pyramid network with lightweight dual-path downsampling, achieving a 38\% FLOP reduction, though evaluation was limited to synthetic corridors~\cite{blind_aided_cascading2024}. Multi-sensor transformer fusion has been explored by Kumar et al., albeit with complex training requirements~\cite{transformer_multimodal_detection2024}.
 
 
 

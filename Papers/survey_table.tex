@@ -1,0 +1,150 @@
+%% ---------- AUTO-GENERATED SECTION START ----------
+%% survey_table.tex — Literature Survey Table for VVA Paper
+%% 45 papers + 5 health/accessibility papers = 50 rows total
+%% Columns: No. | Platform / Title | Evaluation Metrics | Acc. | Future Enhancement
+%% ---------- AUTO-GENERATED SECTION START ----------
+
+\begin{table*}[!htbp]
+\caption{Survey of Assistive Systems and Related Technologies}
+\label{tab:survey}
+\centering
+\footnotesize
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{@{}c p{4.2cm} p{3.6cm} c p{4.0cm}@{}}
+\toprule
+\textbf{No.} & \textbf{Platform / Title} & \textbf{Evaluation Metrics} & \textbf{Acc.} & \textbf{Future Enhancement} \\
+\midrule
+
+%% ── OBJECT DETECTION ───────────────────────────────────────────────────────
+1 & YOLO --- Unified Real-Time Object Detection~\cite{redmon2016yolo} & mAP, FPS, IoU & 63.4\% mAP & Improve small-object detection via feature pyramids \\
+
+2 & YOLOv8n --- Ultralytics~\cite{jocher2023yolov8} & mAP@0.5, FPS, params & 37.3\% mAP@0.5 & Anchor-free nano variant for edge deployment \\
+
+3 & YOLOv4 --- Optimal Speed and Accuracy~\cite{bochkovskiy2020yolov4} & mAP, FPS on Tesla V100 & 65.7\% mAP & Self-attention integration for context \\
+
+4 & SSD --- Single Shot MultiBox Detector~\cite{liu2016ssd} & mAP on VOC/COCO, FPS & 74.3\% VOC & Multi-scale attention for small objects \\
+
+5 & DETR --- End-to-End Detection with Transformers~\cite{carion2020detr} & AP, AP50, AP75 & 42.0\% AP & Deformable attention for faster convergence \\
+
+6 & DETR Assistive --- Enhanced for VI~\cite{enhancing_detr_assistive2024} & mAP, inference latency & NA\footnote{See Enhancing\_Object\_Detection\_in\_Assistive\_Technology.pdf for details.} & Lightweight transformer heads for mobile \\
+
+7 & Blind-Aided Cascading FPN~\cite{blind_aided_cascading2024} & FLOP reduction, mAP & 38\% FLOP$\downarrow$ & Real-world corridor testing beyond synthetic data \\
+
+8 & Transformer Multimodal Detection~\cite{transformer_multimodal_detection2024} & mAP, multi-sensor acc. & NA\footnote{See A\_Transformer-Based\_Multimodal\_Object\_Detection\_System.pdf for details.} & Simplify training pipeline for edge use \\
+
+\midrule
+%% ── DEPTH ESTIMATION ───────────────────────────────────────────────────────
+9 & MiDaS --- Monocular Depth Estimation~\cite{ranftl2020midas} & AbsRel, RMSE, $\delta_1$ & 0.108 AbsRel & Metric depth from single image \\
+
+10 & UAV Monocular Depth~\cite{obstacle_avoidance_uav_depth2022} & AbsRel, FPS on embedded & NA\footnote{See Obstacle\_Avoidance\_of\_a\_UAV.pdf for details.} & Textureless region handling \\
+
+\midrule
+%% ── OCR & TEXT RECOGNITION ─────────────────────────────────────────────────
+11 & EasyOCR --- 80+ Languages~\cite{jaided2020easyocr} & CER, WER, language count & 80+ langs & GPU-accelerated batch pipeline \\
+
+12 & Tesseract OCR Engine~\cite{smith2007tesseract} & Character accuracy & 95\%+ (clean) & Curved and degraded text handling \\
+
+13 & Cursive CRNN Scene Text~\cite{cursive_text_recognition_crnn2020} & WER, CER & NA\footnote{See Cursive\_Text\_Recognition\_in\_Natural\_Scene\_Images.pdf for details.} & Lightweight model for mobile deployment \\
+
+14 & Integrated OCR Assistive~\cite{ocr_integrated_assistive2023} & Reading accuracy, latency & 89\% & Multi-engine fallback for robustness \\
+
+15 & Reading Assistant AI for Blind~\cite{reading_assistant_blind_ai2022} & Task completion rate & 82\% & Preprocessing (deskew, denoise) pipeline \\
+
+\midrule
+%% ── BRAILLE ────────────────────────────────────────────────────────────────
+16 & Optical Braille Seg.~Network~\cite{li2020optical_braille} & Accuracy, F1 & 98.7\% & Variable dot spacing generalization \\
+
+17 & Braille-to-Speech Conversion~\cite{braille_tts_conversion2021} & Character accuracy & 94\% & Flexible grid fitting for worn braille \\
+
+\midrule
+%% ── SPEECH / NLP ───────────────────────────────────────────────────────────
+18 & Deepgram Nova-3 ASR~\cite{deepgram2023nova} & WER, latency & 8.4\% WER & On-device streaming ASR \\
+
+19 & ElevenLabs Turbo v2.5 TTS~\cite{elevenlabs2023tts} & MOS, latency & 4.2 MOS & Expressive prosody for accessibility \\
+
+20 & SBVQA 2.0 --- Speech-Based VQA~\cite{sbvqa2023} & VQA accuracy, BLEU & 68.3\% & End-to-end real-time deployment \\
+
+\midrule
+%% ── VQA ────────────────────────────────────────────────────────────────────
+21 & VQA Benchmark~\cite{antol2015vqa} & Open-ended accuracy & 58.2\% & Spatial and counting reasoning \\
+
+22 & BLIP-2 --- Bootstrapping VLM~\cite{li2023blip2} & VQAv2 acc., zero-shot & 82.2\% & Parameter-efficient fine-tuning \\
+
+23 & CLIP --- Visual--Language Models~\cite{radford2021clip} & Zero-shot top-1 acc. & 76.2\% & Spatial reasoning capability \\
+
+\midrule
+%% ── NAVIGATION & ASSISTIVE ─────────────────────────────────────────────────
+24 & Virtual Nav for Blind~\cite{outdoor_navigation_vi2022} & Task success rate, SUS & 78\% & Unmapped environment support \\
+
+25 & StereoPilot Wearable Audio~\cite{stereopilot_wearable2023} & Localization error, SUS & 2.1\textdegree{} err & Reduce cognitive fatigue via verbal cues \\
+
+26 & Dynamic Crosswalk Understanding~\cite{dynamic_crosswalk2022} & Detection rate, latency & 91\% & Extend to general outdoor intersections \\
+
+27 & Multimodal Obstacle Nav~\cite{multimodality_obstacle_nav2023} & Detection rate, FPR & 93\% & Camera-only solution without LIDAR \\
+
+28 & Infrastructure Guided Nav~\cite{infrastructure_guided_nav2021} & Navigation accuracy & 95\% & Infrastructure-free detection \\
+
+29 & Tools \& Tech Review~\cite{tools_tech_blind_nav_review2023} & Survey coverage & NA & Identify latency and fatigue gaps \\
+
+30 & Smart Objects Perception~\cite{perception_assistance_smart_objects2020} & Object ID accuracy & 87\% & Detect untagged objects \\
+
+31 & Shopping Complex Nav~\cite{supporting_navigation_shopping2022} & Route completion rate & 84\% & Generalize to any environment \\
+
+32 & Assistive Object Recognition~\cite{assistive_object_recognition2020} & Classification accuracy & 88\% & Add depth fusion and speech output \\
+
+\midrule
+%% ── EDGE AI & DEPLOYMENT ──────────────────────────────────────────────────
+33 & ONNX Runtime~\cite{onnxruntime2019} & Inference latency, FPS & NA & Hardware-specific kernel optimization \\
+
+34 & LiveKit WebRTC~\cite{livekit2023} & E2E latency, jitter & $<$150~ms & Edge-local agent execution \\
+
+35 & Silero VAD~\cite{silero2021vad} & F1 on speech/silence & 99.2\% & Reduce false triggers in noisy settings \\
+
+36 & FAISS --- Billion-Scale Search~\cite{faiss2024} & Recall@k, QPS & 95\%+ R@10 & GPU-accelerated approximate search \\
+
+37 & FastAPI~\cite{fastapi2021} & Req/s, latency & NA & Real-time streaming support \\
+
+\midrule
+%% ── MULTIMODAL & SCENE UNDERSTANDING ──────────────────────────────────────
+38 & Emotion Recognition Wearable~\cite{emotion_recognition_wearable2022} & Accuracy, F1 & 87.5\% & Multi-modal social cue analysis \\
+
+39 & Accessibility ML Review~\cite{enhancing_accessibility_ml_review2024} & Survey breadth & NA & Unified multimodal fusion framework \\
+
+40 & Tilt Correction Detection~\cite{tilt_correction_building_detection2023} & IoU improvement & 4.2\%$\uparrow$ & Apply deskew to text/braille OCR \\
+
+41 & Edge AI Pipeline~\cite{eswa_edge_ai_pipeline2020} & Latency reduction, mAP & 40\% latency$\downarrow$ & INT8 quantization for accessibility \\
+
+42 & Assistive Robot Training~\cite{frobt_assistive_robot2019} & Feasibility, user sat. & 86\% & User-customizable object recognition \\
+
+43 & Wearable Nav Survey~\cite{sensors_wearable_navigation2018} & Survey coverage & NA & Address latency and social acceptance \\
+
+44 & Wearable Assistive Survey~\cite{technologies_assistive_review2020} & Survey breadth & NA & Fill multimodal fusion coverage gap \\
+
+45 & Assistive Tech in Education~\cite{jite_assistive_education2022} & Systematic review & NA & Broaden to general daily-living AT \\
+
+\midrule
+%% ── ADDITIONAL ─────────────────────────────────────────────────────────────
+46 & Smart Assistive Nav Devices~\cite{information_smart_assist2022} & Device comparison & NA & Integrate AI scene understanding \\
+
+47 & NAACL Multimodal Grounding~\cite{naacl2025_multimodal} & Grounding accuracy & 71.3\% & Real-time action generation \\
+
+48 & Indoor Scene Understanding~\cite{ria_scene_understanding2022} & Accuracy, latency & 83\% & Outdoor generalization \\
+
+\midrule
+%% ── HEALTH / ACCESSIBILITY ────────────────────────────────────────────────
+49 & Global Eye Health Commission~\cite{fpubh2022_visual_impairment} & Prevalence, econ. cost & 2.2B affected & Policy-driven technology adoption \\
+
+50 & Disability \& Tech Access~\cite{ijerph2021_disability_tech} & Barrier identification & NA & Reduce technology adoption barriers \\
+
+51 & Sustainability in AT~\cite{sustainability2020_inclusive} & Framework assessment & NA & Sustainable local-first design \\
+
+52 & Digital Rehab Technologies~\cite{fresc2024_rehab_tech} & Scoping review & NA & VI-specific digital rehabilitation \\
+
+53 & Wearable Health Sensors~\cite{sensors2017_health_wearable} & Sensor comparison & NA & Transfer sensor fusion to accessibility \\
+
+\bottomrule
+\end{tabular}
+\end{table*}
+
+%% ---------- AUTO-GENERATED SECTION END ----------

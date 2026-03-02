@@ -1,0 +1,8 @@
+Create a clean, technical block diagram (PNG 3000x1800, transparent background optional) showing the architecture of an assistive system named "Voice-Vision Assistant (VVA)". Layout left-to-right:
+
+1. Left block: "Sensors" containing icons for Ultrasonic sensor, RGB camera, IMU (accelerometer), Microphone. Label each sensor with its data type (distance, frames, accel, audio).
+2. Arrow to "Edge Processing": list steps inside: Sensor Fusion, Preprocessing (denoise/deskew), Lightweight Detector (e.g., MobileNet-SSD), OCR (CRNN/Tesseract), Confidence Scoring. Include a small chip icon and label with typical latency goal "<200 ms".
+3. Arrow to "Decision Module": include subitems: Rule-based fusion, Confidence thresholding, Alert prioritization.
+4. Arrow to "Interaction & Output": TTS output (bone-conduction icon), Haptic feedback (vibration icon), Voice commands handling, Logging to local storage.
+5. Dashed line downward to "Optional Cloud Server" box: Model updates, heavy inference, analytics. Show arrows to/from Edge Processing labeled "model updates / logs".
+6. Annotate arrows with data types, and include a legend and short latency/accuracy goals. Use a modern flat style, neutral palette, readable sans-serif fonts, export-ready PNG.
