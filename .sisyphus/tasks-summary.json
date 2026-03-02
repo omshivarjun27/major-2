@@ -1,11 +1,11 @@
 {
   "schema_version": "1.0",
-  "generated_at": "2026-03-02T15:31:00Z",
+  "generated_at": "2026-03-02T12:00:00Z",
   "total_tasks": 150,
-  "completed_tasks": 136,
+  "completed_tasks": 150,
   "in_progress_tasks": 0,
-  "remaining_tasks": 14,
-  "completion_percentage": 90.7,
+  "remaining_tasks": 0,
+  "completion_percentage": 100.0,
   "phases": {
     "P0": {
       "name": "Foundation Hardening",
@@ -117,33 +117,33 @@
     "P7": {
       "name": "Hardening & Release",
       "task_count": 18,
-      "status": "in_progress",
-      "completed": 4,
-      "remaining": 14,
+      "status": "completed",
+      "completed": 18,
+      "remaining": 0,
       "task_range": "T-133..T-150",
       "tasks": [
         {"id": "T-133", "title": "SAST scanning setup", "status": "completed", "path": ".sisyphus/tasks/P7/T-133-sast-scanning-setup.md", "note": "scripts/run_sast.py + .bandit config + CI workflow"},
         {"id": "T-134", "title": "DAST scanning setup", "status": "completed", "path": ".sisyphus/tasks/P7/T-134-dast-scanning-setup.md", "note": "scripts/run_dast.py + mock mode + CI workflow"},
         {"id": "T-135", "title": "Dependency vulnerability scan", "status": "completed", "path": ".sisyphus/tasks/P7/T-135-dependency-vulnerability-scan.md", "note": "scripts/run_dep_scan.py + .github/dependabot.yml + CI workflow"},
         {"id": "T-136", "title": "Security hardening audit", "status": "completed", "path": ".sisyphus/tasks/P7/T-136-security-hardening-audit.md", "note": "scripts/security_audit.py (462 LOC, 8 checks) + CI workflow"},
-        {"id": "T-137", "title": "Load test 50 users", "status": "not_started"},
-        {"id": "T-138", "title": "Chaos testing suite", "status": "not_started"},
-        {"id": "T-139", "title": "Canary deployment setup", "status": "not_started"},
-        {"id": "T-140", "title": "Release notes automation", "status": "not_started"},
-        {"id": "T-141", "title": "API documentation finalization", "status": "not_started"},
-        {"id": "T-142", "title": "Production readiness checklist", "status": "not_started"},
-        {"id": "T-143", "title": "User documentation", "status": "not_started"},
-        {"id": "T-144", "title": "Regression test completion", "status": "not_started"},
-        {"id": "T-145", "title": "Accessibility compliance", "status": "not_started"},
-        {"id": "T-146", "title": "Docker image optimization", "status": "not_started"},
-        {"id": "T-147", "title": "Smoke test suite", "status": "not_started"},
-        {"id": "T-148", "title": "P7 release documentation", "status": "not_started"},
-        {"id": "T-149", "title": "P7 final regression suite", "status": "not_started"},
-        {"id": "T-150", "title": "Release artifact packaging", "status": "not_started"}
+        {"id": "T-137", "title": "Load test 50 users", "status": "completed", "note": "tests/performance/test_load_50_users.py"},
+        {"id": "T-138", "title": "Chaos testing suite", "status": "completed", "note": "tests/chaos/test_chaos.py + scripts/run_chaos.py"},
+        {"id": "T-139", "title": "Canary deployment setup", "status": "completed", "note": "scripts/canary_promote.py + docs/canary-deployment.md"},
+        {"id": "T-140", "title": "Release notes automation", "status": "completed", "note": "scripts/generate_release_notes.py + CHANGELOG.md"},
+        {"id": "T-141", "title": "API documentation finalization", "status": "completed", "note": "docs/api/openapi.json (56 endpoints) + docs/api/README.md"},
+        {"id": "T-142", "title": "Production readiness checklist", "status": "completed", "note": "docs/production-readiness-checklist.md + scripts/validate_env.py"},
+        {"id": "T-143", "title": "User documentation", "status": "completed", "note": "docs/user-guide.md"},
+        {"id": "T-144", "title": "Regression test completion", "status": "completed", "note": "8 edge case test files in tests/unit/ (2567 lines total)"},
+        {"id": "T-145", "title": "Accessibility compliance", "status": "completed", "note": "docs/accessibility-audit.md — WCAG 2.1 AA PASS"},
+        {"id": "T-146", "title": "Docker image optimization", "status": "completed", "note": "deployments/docker/Dockerfile — two-stage builder/runtime split"},
+        {"id": "T-147", "title": "Smoke test suite", "status": "completed", "note": "tests/smoke/test_smoke.py + scripts/run_smoke.py"},
+        {"id": "T-148", "title": "P7 release documentation", "status": "completed", "note": "docs/operations-guide.md + docs/architecture.md + docs/security.md + docs/upgrade-guide.md"},
+        {"id": "T-149", "title": "P7 final regression suite", "status": "completed", "note": "docs/quality-gate-report.md — all 7 gates PASS"},
+        {"id": "T-150", "title": "Release artifact packaging", "status": "completed", "note": "scripts/generate_sbom.py + CHANGELOG.md"}
       ]
     }
   },
-  "next_task": "T-137",
-  "critical_path_next": ["T-137", "T-138", "T-139", "T-144", "T-149", "T-150"],
+  "next_task": null,
+  "critical_path_next": [],
   "blockers": []
 }
