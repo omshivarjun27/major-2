@@ -1,0 +1,150 @@
+%% architecture.mmd — System Architecture Diagram
+%% Voice & Vision Assistant for Blind
+%% Render at: https://mermaid.live
+
+flowchart TB
+    subgraph EXT["External Services"]
+        direction LR
+        LK_SFU["LiveKit SFU\n(WebRTC)"]
+        DG["Deepgram\n(STT)"]
+        EL["ElevenLabs\n(TTS)"]
+        OL["Ollama\n(LLM/VLM :11434)"]
+        DDG["DuckDuckGo\n(Search)"]
+        TAV["Tavus\n(Avatar, opt)"]
+    end
+
+    subgraph APPS["apps/ — Entrypoints"]
+        direction TB
+        API["FastAPI Server\nport 8000\napps/api/server.py"]
+        subgraph RT["realtime/ — LiveKit Agent"]
+            AG["AllyVisionAgent\nagent.py (288 LOC)"]
+            SM["SessionManager\nsession_manager.py (739 LOC)"]
+            VC["VisionController\nvision_controller.py (499 LOC)"]
+            VOC["VoiceController\nvoice_controller.py (281 LOC)"]
+            TR["ToolRouter\ntool_router.py (446 LOC)\nQueryType × 8"]
+        end
+        AG --> SM
+        AG --> TR
+        SM --> VC
+        SM --> VOC
+    end
+
+    subgraph APP["application/ — Orchestration"]
+        PIPE["PipelineComponents\nintegration.py"]
+        FP["FrameOrchestrator\nframe_processing/"]
+        subgraph PIPE8["8 Pipeline Components"]
+            direction LR
+            AUDIO["AudioOutputManager\n5 priorities"]
+            POOL["PerceptionWorkerPool\nThreadPoolExecutor"]
+            SAMP["AdaptiveFrameSampler\n100–1000ms"]
+            MON["PipelineMonitor\nSLO tracking"]
+            CANC["CancellationScope"]
+            DEB["Debouncer 5s"]
+            WD["Watchdog"]
+            TTS_C["StreamingTTSCoordinator"]
+        end
+        PIPE --> PIPE8
+    end
+
+    subgraph CORE["core/ — Domain Engines"]
+        direction LR
+        VIS["vision/spatial.py\nYOLO+MiDaS ONNX\nObjectDetector→SpatialFuser"]
+        VQA["vqa/\norchestrator+perception\n+SceneGraph+reasoner"]
+        MEM["memory/\nFAISS+SQLite RAG\n(opt-in consent)"]
+        OCR_E["ocr/\nEasyOCR→Tesseract→MSER"]
+        QR_E["qr/\nQRScanner+ARTagHandler\n+CacheManager"]
+        FACE_E["face/\nRetinaFace/MTCNN\n(consent-gated)"]
+        SPEECH_E["speech/\nVoiceAskPipeline\nVoiceRouter"]
+        AUD_E["audio/\nSoundSourceLocalizer\nAudioEventDetector"]
+        ACT_E["action/\nActionRecognizer\nClipBuffer 16f"]
+        BR_E["braille/\nBrailleOCR pipeline"]
+    end
+
+    subgraph INFRA["infrastructure/ — Adapters"]
+        direction LR
+        OLLAMA_A["llm/ollama/\nOllamaHandler\nLRU 64 entries"]
+        SEARCH_A["llm/internet_search.py\nInternetSearch"]
+        EMBED_A["llm/embeddings/\nBaseEmbedder"]
+        STT_A["speech/deepgram/\nSTT adapter"]
+        TTS_A["speech/elevenlabs/\nTTSManager 3-tier"]
+        TAV_A["tavus/adapter.py\nTavusAdapter"]
+        RES["resilience/\nCircuitBreaker\nRetryPolicy\nDegradationCoordinator"]
+    end
+
+    subgraph SHARED["shared/ — Cross-cutting"]
+        direction LR
+        SCH["schemas/__init__.py\n52 canonical types"]
+        CFG_S["config/settings.py\n85+ env vars\n7 feature flags"]
+        LOG_S["logging/\nPIIScrubFilter\nstructured JSON"]
+    end
+
+    subgraph STORE["Storage"]
+        FAISS_S[("FAISS\ndata/")]
+        SQLITE_S[("SQLite\ndata/memory.db")]
+        QR_S[("QR Cache\nqr_cache/")]
+    end
+
+    subgraph OBS["Observability"]
+        PROM["Prometheus :9090"]
+        GRAF["Grafana :3000"]
+        LOKI_S["Loki :3100"]
+    end
+
+    %% App → Infra/External
+    VC -- "Ollama SSE" --> OLLAMA_A --> OL
+    VOC -- "HTTPS" --> SEARCH_A --> DDG
+    SM -- "LiveKit SDK" --> LK_SFU
+    SM -- "gRPC" --> STT_A --> DG
+    SM -- "HTTPS chunks" --> TTS_A --> EL
+    SM -- "REST+WS" --> TAV_A --> TAV
+
+    %% App → Application
+    SM --> PIPE
+    VC --> FP
+
+    %% App → Core
+    VC --> VIS
+    VC --> VQA
+    VC --> OCR_E
+    VOC --> QR_E
+    API --> VQA
+    API --> MEM
+    API --> QR_E
+    API --> FACE_E
+
+    %% Core → Infra
+    VQA --> OLLAMA_A
+    MEM --> EMBED_A
+    MEM --> FAISS_S
+    MEM --> SQLITE_S
+    QR_E --> QR_S
+
+    %% Resilience wraps external
+    RES -. "wraps" .-> OLLAMA_A
+    RES -. "wraps" .-> STT_A
+    RES -. "wraps" .-> TTS_A
+
+    %% All → Shared
+    CORE --> SHARED
+    INFRA --> SHARED
+    APP --> SHARED
+
+    %% Observability
+    PROM -- "scrape /metrics" --> API
+    PROM -- "scrape /metrics" --> AG
+    PROM --> GRAF
+    AG -- "JSON logs" --> LOKI_S
+
+    classDef ext fill:#fff1f0,stroke:#f5222d
+    classDef svc fill:#e6f7ff,stroke:#1890ff
+    classDef comp fill:#f6ffed,stroke:#52c41a
+    classDef engine fill:#f0f5ff,stroke:#2f54eb
+    classDef store fill:#fff7e6,stroke:#fa8c16
+    classDef obs fill:#f9f0ff,stroke:#722ed1
+
+    class LK_SFU,DG,EL,OL,DDG,TAV ext
+    class API,AG,SM,VC,VOC,TR svc
+    class PIPE,FP,AUDIO,POOL,SAMP,MON,CANC,DEB,WD,TTS_C comp
+    class VIS,VQA,MEM,OCR_E,QR_E,FACE_E,SPEECH_E,AUD_E,ACT_E,BR_E engine
+    class FAISS_S,SQLITE_S,QR_S store
+    class PROM,GRAF,LOKI_S obs

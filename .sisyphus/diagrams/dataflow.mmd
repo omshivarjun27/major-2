@@ -1,0 +1,125 @@
+%% dataflow.mmd — Data Flow Diagram
+%% Voice & Vision Assistant for Blind
+%% Render at: https://mermaid.live
+
+flowchart TB
+    subgraph INPUT["Input Streams (async WebRTC)"]
+        direction LR
+        MIC["🎤 Microphone\naudio frames"]
+        CAM["📷 Camera\nvideo frames 640×480"]
+    end
+
+    subgraph STT_STAGE["STT Stage (async, ~100ms)"]
+        DG_STT["Deepgram\nSTT plugin\ngRPC stream"]
+        TEXT["Transcribed text"]
+        MIC --> DG_STT --> TEXT
+    end
+
+    subgraph ROUTING["Query Routing (sync)"]
+        TR_R["tool_router.classify_query()\nQueryType\nVISUAL│SPATIAL│SEARCH\nQR_AR│OCR│VQA\nNAVIGATION│GENERAL"]
+        TEXT --> TR_R
+    end
+
+    subgraph VISION_PIPE["Vision Pipeline (async, ThreadPool, ≤300ms)"]
+        direction LR
+        CAP["capture_fresh_frame()\nfreshness ≤500ms"]
+        DET["ObjectDetector\nYOLO ONNX ≤50ms\nDetection list"]
+        SEG["EdgeAwareSegmenter\nmask 160×120 ≤30ms\nSegmentationMask list"]
+        DEP["DepthEstimator\nMiDaS ONNX ≤80ms\nDepthMap H×W"]
+        FUS["SpatialFuser\nObstacleRecord list\ndistance_m + direction + priority"]
+        NAV["MicroNavFormatter\nNavigationOutput\nshort_cue + verbose_description"]
+        CAP --> DET --> SEG --> DEP --> FUS --> NAV
+    end
+
+    subgraph VQA_PIPE["VQA Pipeline (async, ~300ms)"]
+        direction TB
+        ORC["VQA Orchestrator\ncore/vqa/orchestrator.py"]
+        SG["SceneGraph\nobject relations\nspatial binding"]
+        VLM["Ollama VLM\nqwen3.5:397b-cloud\nSSE stream"]
+        SCN["SceneNarrator\nhuman-readable description"]
+        ORC --> SG --> VLM --> SCN
+    end
+
+    subgraph SEARCH_PIPE["Search Pipeline (async, ≤5s)"]
+        DUCK["InternetSearch\nDuckDuckGo\ninfrastructure/llm/internet_search.py"]
+        DUCK_RES["Top-N results\nformatted text"]
+        DUCK --> DUCK_RES
+    end
+
+    subgraph QR_PIPE["QR/AR Pipeline (async, ≤2s)"]
+        QR_SCAN["QRScanner\npyzbar > OpenCV\ncore/qr/"]
+        AR_HAND["ARTagHandler\nArUco markers"]
+        QR_DEC["QRDecoder\ncontent classification\nURL│location│WiFi│…"]
+        QR_CACHE["CacheManager\nJSON files\n24h TTL TTL\nqr_cache/"]
+        QR_SCAN --> QR_DEC
+        AR_HAND --> QR_DEC
+        QR_DEC --> QR_CACHE
+    end
+
+    subgraph RAG_PIPE["RAG Memory Pipeline (async, opt-in)"]
+        direction TB
+        EMB["Ollama Embeddings\nqwen3-embedding:4b\nfloat32 vector"]
+        FAISS_P["FAISS kNN search\ndata/faiss_index/\n≤20ms"]
+        SQLITE_P["SQLite metadata\ndata/memory.db"]
+        LLM_R["LLM Reasoner\n(Ollama)"]
+        EMB --> FAISS_P --> LLM_R
+        SQLITE_P --> LLM_R
+    end
+
+    subgraph AUDIO_OUT["Audio Output (async)"]
+        direction TB
+        AUD_MGR["AudioOutputManager\n5-level priority queue\n0=CRITICAL_HAZARD\n1=USER_RESPONSE\n2=PROACTIVE\n3=SYSTEM\n4=AMBIENT"]
+        DEB_O["Debouncer\n5s window\nscene_graph_hash key"]
+        TTS_CHAIN["TTS Chain\nElevenLabs→EdgeTTS→pyttsx3\nchunks ≤2s @ ~100ms"]
+        LK_OUT["LiveKit SFU\naudio → user"]
+        AUD_MGR --> DEB_O --> TTS_CHAIN --> LK_OUT
+    end
+
+    subgraph PROACTIVE["Continuous Proactive (async loop)"]
+        direction LR
+        SAMP_P["AdaptiveFrameSampler\n100–1000ms cadence"]
+        DET_P["Perception\nWorkerPool"]
+        ANN["Proactive Announcer\nPRIORITY_CRITICAL_ONLY=false"]
+        SAMP_P --> DET_P --> ANN
+    end
+
+    %% Main routing
+    TR_R -- "SPATIAL" --> VISION_PIPE
+    TR_R -- "VISUAL/VQA" --> VQA_PIPE
+    TR_R -- "SEARCH" --> SEARCH_PIPE
+    TR_R -- "QR_AR" --> QR_PIPE
+    TR_R -- "MEMORY" --> RAG_PIPE
+    CAM --> VISION_PIPE
+    CAM --> VQA_PIPE
+
+    %% Output routing
+    NAV --> AUD_MGR
+    SCN --> AUD_MGR
+    DUCK_RES --> AUD_MGR
+    QR_DEC --> AUD_MGR
+    LLM_R --> AUD_MGR
+    ANN --> AUD_MGR
+
+    subgraph STORE_ASIDE["Storage (side-effects)"]
+        direction LR
+        MEM_STORE[("SQLite\ndata/memory.db")]
+        FAISS_STORE[("FAISS\ndata/faiss_index/")]
+        QR_STORE[("QR Cache\nqr_cache/")]
+        FACE_STORE[("Face Embeddings\nAES-256 encrypted\ndata/face_embeddings/")]
+    end
+
+    RAG_PIPE --> MEM_STORE
+    RAG_PIPE --> FAISS_STORE
+    QR_PIPE --> QR_STORE
+
+    classDef async_flow fill:#e6f7ff,stroke:#1890ff
+    classDef sync_flow fill:#f6ffed,stroke:#52c41a
+    classDef store_node fill:#fff7e6,stroke:#fa8c16
+    classDef output fill:#f9f0ff,stroke:#722ed1
+    classDef input fill:#f0f5ff,stroke:#2f54eb
+
+    class MIC,CAM input
+    class DG_STT,ORC,VLM,DUCK,QR_SCAN,EMB,FAISS_P,LLM_R,TTS_CHAIN async_flow
+    class TR_R,DEB_O sync_flow
+    class MEM_STORE,FAISS_STORE,QR_STORE,FACE_STORE store_node
+    class AUD_MGR,LK_OUT output
