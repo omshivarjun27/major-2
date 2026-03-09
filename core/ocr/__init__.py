@@ -45,11 +45,19 @@ try:
 except ImportError:
     PIL_AVAILABLE = False
 
-try:
-    import easyocr
-    EASYOCR_AVAILABLE = True
-except ImportError:
-    EASYOCR_AVAILABLE = False
+# Lazy probe: check importability without triggering the Windows av/torchvision DLL hang
+import importlib.util as _iutil
+EASYOCR_AVAILABLE = _iutil.find_spec("easyocr") is not None
+_easyocr_module = None  # Imported lazily on first use
+
+
+def _get_easyocr():
+    """Lazy-import easyocr to avoid hang on Windows (torchvision → av DLL chain)."""
+    global _easyocr_module
+    if _easyocr_module is None:
+        import easyocr as _mod
+        _easyocr_module = _mod
+    return _easyocr_module
 
 try:
     import pytesseract
@@ -208,7 +216,7 @@ class _EasyOCRBackend:
 
     def _ensure_reader(self):
         if self._reader is None:
-            self._reader = easyocr.Reader(self._languages, gpu=False)
+            self._reader = _get_easyocr().Reader(self._languages, gpu=False)
 
     def read(self, gray: np.ndarray) -> List[OCRWord]:
         self._ensure_reader()

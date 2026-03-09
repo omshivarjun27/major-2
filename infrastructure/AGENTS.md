@@ -12,8 +12,10 @@ External system adapters: providing unified interfaces for LLMs, speech, and har
 | `tavus/` | Virtual avatar | Active | `TavusAdapter` (default=off) |
 | `llm/siliconflow/` | SiliconFlow LLM | Stub | - |
 | `speech/deepgram/` | STT (Deepgram) | Active | Via LiveKit plugins |
+| `resilience/` | Circuit breakers, retry, degradation | Active | `DegradationCoordinator` |
+| `backup/` | FAISS/SQLite backup (S3, Azure, local) | Active | `BackupScheduler` |
 | `storage/` | Metadata storage | Stub | - |
-| `monitoring/` | Observability adapters | Stub | - |
+| `monitoring/` | Prometheus metrics + instrumentation | Active | `PrometheusMetrics` |
 
 ## ADAPTER CONVENTIONS
 - **Lazy Initialization**: Resource-heavy clients (e.g., embeddings) are initialized on first use.
@@ -33,3 +35,19 @@ External system adapters: providing unified interfaces for LLMs, speech, and har
 ## TAVUS ADAPTER
 - **Requirement**: Requires `TAVUS_ENABLED=true` plus API Key, Replica ID, and Persona ID.
 - **Handshake**: Coordinates the REST + WebSocket handshake required for live narrations.
+
+## RESILIENCE
+- **Circuit Breakers**: Per-service breakers with configurable `CB_{SERVICE}_THRESHOLD` / `CB_{SERVICE}_RESET_S`.
+- **Retry Policies**: Exponential backoff per service (`RETRY_{SERVICE}_MAX`, `_BASE_DELAY_S`, `_MAX_DELAY_S`).
+- **Degradation Coordinator**: `DegradationCoordinator` (19 methods) manages graceful degradation across all services.
+- **Health Registry**: Tracks per-adapter health status; exposes `.health()` and `.stats()` per component.
+
+## BACKUP
+- **BackupScheduler**: Orchestrates FAISS index + SQLite metadata backups on configurable intervals.
+- **Storage Backends**: Local filesystem, S3 (`boto3`), Azure Blob (`azure.storage.blob`).
+- **Restore**: Point-in-time restore from any backend with integrity verification.
+
+## MONITORING
+- **PrometheusMetrics**: Central metrics class (41 methods) covering request timing, inference, memory, circuit breakers, WebRTC, FAISS.
+- **Instrumentation**: `PipelineStageInstrumentation` wraps each pipeline stage with latency histograms and error counters.
+- **Integration**: Scraped by Prometheus in staging/prod Docker Compose stacks.

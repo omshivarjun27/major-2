@@ -1,0 +1,47 @@
+--- a/tests/unit/test_pipeline_edge_cases.py
++++ b/tests/unit/test_pipeline_edge_cases.py
+@@ -26,37 +26,37 @@ class TestDebouncerEdgeCases:
+     def test_first_cue_always_passes(self):
+         d = Debouncer()
+-        result = d.should_speak("Obstacle ahead", scene_hash="h1", distance_m=2.0)
++        result = d.should_speak("Obstacle ahead", scene_graph_hash="h1", distance_m=2.0)
+         assert result is True, "First cue must always pass"
+ 
+     def test_identical_cue_within_window_suppressed(self):
+         d = Debouncer()
+-        d.record_spoken("Obstacle ahead", scene_hash="h1", distance_m=2.0)
++        d.record("Obstacle ahead", scene_graph_hash="h1", distance_m=2.0)
+-        result = d.should_speak("Obstacle ahead", scene_hash="h1", distance_m=2.0)
++        result = d.should_speak("Obstacle ahead", scene_graph_hash="h1", distance_m=2.0)
+         assert result is False, "Identical cue within window should be suppressed"
+ 
+     def test_different_scene_hash_passes(self):
+         d = Debouncer()
+-        d.record_spoken("Obstacle ahead", scene_hash="h1", distance_m=2.0)
++        d.record("Obstacle ahead", scene_graph_hash="h1", distance_m=2.0)
+-        result = d.should_speak("Obstacle ahead", scene_hash="h2", distance_m=2.0)
++        result = d.should_speak("Obstacle ahead", scene_graph_hash="h2", distance_m=2.0)
+         assert result is True, "Different scene hash should allow speaking"
+ 
+ # ... (apply same rename pattern for all 10 failing test methods):
+#   scene_hash=  → scene_graph_hash=
+#   d.record_spoken( → d.record(
+#
+# Also fix CancellationScope:
+@@ -215,11 +215,11 @@ class TestCancellationScopeEdgeCases:
+     def test_cancel_already_cancelled_scope(self):
+-        scope = CancellationScope()
++        scope = CancellationScope(scope_id="test-scope-1")
+         scope.cancel()
+         scope.cancel()  # Should not raise
+ 
+     def test_scope_context_manager(self):
+-        scope = CancellationScope()
++        scope = CancellationScope(scope_id="test-scope-2")
+         with scope:
+             pass  # Should not raise
+ 
+# RATIONALE:
+# 1. Debouncer.should_speak() uses `scene_graph_hash` parameter (not `scene_hash`)
+# 2. Debouncer.record() is the method (not `record_spoken()`)
+# 3. CancellationScope.__init__() requires `scope_id: str` positional argument

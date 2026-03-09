@@ -220,7 +220,7 @@ class TestServiceHealthRegistryQueries:
             await cb.trip()
 
         import asyncio
-        asyncio.get_event_loop().run_until_complete(trip_breaker())
+        asyncio.run(trip_breaker())
 
         registry = ServiceHealthRegistry()
         health = registry.get_service_health("unhealthy_service")
@@ -304,7 +304,7 @@ class TestServiceHealthRegistrySummary:
         async def setup():
             await cb_b.trip()
 
-        asyncio.get_event_loop().run_until_complete(setup())
+        asyncio.run(setup())
 
         registry = ServiceHealthRegistry(
             known_services=["healthy_service", "unhealthy_service"]
@@ -357,7 +357,7 @@ class TestServiceHealthRegistryDegradation:
         async def trip():
             await cb.trip()
 
-        asyncio.get_event_loop().run_until_complete(trip())
+        asyncio.run(trip())
 
         registry = ServiceHealthRegistry(known_services=["failing_service"])
         assert registry.is_degraded() is True
@@ -381,7 +381,7 @@ class TestServiceHealthRegistryDegradation:
         async def setup():
             await cb_b.trip()
 
-        asyncio.get_event_loop().run_until_complete(setup())
+        asyncio.run(setup())
 
         registry = ServiceHealthRegistry()
         degraded = registry.get_degraded_services()
@@ -408,7 +408,7 @@ class TestServiceHealthRegistryDegradation:
         async def setup():
             await cb_b.trip()
 
-        asyncio.get_event_loop().run_until_complete(setup())
+        asyncio.run(setup())
 
         registry = ServiceHealthRegistry()
         healthy = registry.get_healthy_services()
@@ -461,7 +461,7 @@ class TestServiceHealthRegistryHealthScore:
             await cb_a.trip()
             await cb_b.trip()
 
-        asyncio.get_event_loop().run_until_complete(setup())
+        asyncio.run(setup())
 
         registry = ServiceHealthRegistry(known_services=["a", "b"])
         score = registry.get_health_score()
@@ -487,7 +487,7 @@ class TestServiceHealthRegistryHealthScore:
         async def setup():
             await cb_b.trip()
 
-        asyncio.get_event_loop().run_until_complete(setup())
+        asyncio.run(setup())
 
         registry = ServiceHealthRegistry(known_services=["healthy", "unhealthy"])
         score = registry.get_health_score()

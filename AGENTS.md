@@ -1,5 +1,5 @@
 # AGENTS.md — Voice & Vision Assistant for Blind
-**Commit: 723bfc7 | Branch: main**
+**Commit: 82d4858 | Branch: main**
 
 ## Project Overview
 Python monorepo (>= 3.10) implementing a real-time accessibility assistant. Combines computer vision, NLP, and audio processing into a seamless experience for blind and visually impaired users. Uses a strict layered architecture: shared → core → application → infrastructure → apps.
@@ -38,7 +38,7 @@ pip install -r requirements-extras.txt  # Optional (GPU, OCR)
 | `shared` | `core`, `application`, `infrastructure`, `apps` | import-linter |
 | `core` | `application`, `infrastructure`, `apps` | import-linter |
 | `application` | `infrastructure`, `apps` | import-linter |
-| `infrastructure`| `apps` | import-linter |
+| `infrastructure`| `core`, `application`, `apps` | import-linter |
 
 ## Code Style Guidelines
 - **Imports**: Absolute imports required. Relative only within same package. Lazy-import heavy deps.
@@ -102,8 +102,15 @@ pip install -r requirements-extras.txt  # Optional (GPU, OCR)
 | `apps/realtime/` | LiveKit WebRTC agent (`agent.py`). |
 | `infrastructure/`| Adapters: Ollama, Deepgram, ElevenLabs, Tavus. |
 | `shared/` | Schemas, config, logging, encryption, utils. |
-| `tests/` | 429+ tests: unit, integration, performance. |
+| `tests/` | 429+ tests: unit, integration, performance, chaos, smoke, load. |
 | `deployments/` | Dockerfiles and Compose configurations. |
+| `application/pipelines/` | Pipeline lifecycle: cancellation, audio manager, watchdog. |
+| `application/frame_processing/` | Per-frame fusion, LiveFrame management, never-raise guarantee. |
+| `infrastructure/resilience/` | Circuit breakers, retry policies, degradation coordinator. |
+| `infrastructure/monitoring/` | Prometheus metrics and pipeline instrumentation. |
+| `infrastructure/backup/` | FAISS/SQLite backup with S3/Azure storage backends. |
+| `scripts/` | Operational scripts: security, profiling, canary deployment. |
+| `configs/` | Environment YAML: development, staging, production. |
 
 ## Test Conventions
 - **Class Grouping**: Group related tests in classes (e.g., `TestPerceptionPipeline`).
@@ -117,7 +124,9 @@ pip install -r requirements-extras.txt  # Optional (GPU, OCR)
 1. `secrets-scan`: verifies `.env` has no real API keys or sensitive tokens.
 2. `test`: runs unit, integration, and full suites across Python 3.10–3.12.
 3. `lint`: runs `ruff check` and `lint-imports` for architectural compliance.
-4. `docker`: builds the production image and runs smoke tests on the main branch.
+4. `sast`: Bandit static analysis; fails on HIGH severity findings.
+5. `dependency-scan`: `pip-audit` on both requirements files.
+6. `docker`: builds the production image and runs smoke tests on the main branch.
 
 ## Docker
 ```bash
@@ -152,7 +161,7 @@ docker compose -f docker-compose.test.yml up
 ## Summary
 | Statistic | Value |
 |-----------|-------|
-| Line Count | ~210 |
+| Line Count | ~170 |
 | Sections | 16 |
 | Target Python | 3.10+ |
 | SLA Hot Path | 500ms |

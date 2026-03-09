@@ -1,0 +1,82 @@
+{
+  "benchmark_date": "2026-02-03T19:17:19.888361",
+  "settings": {
+    "warmup_frames": 30,
+    "benchmark_frames": 50,
+    "latency_target_ms": 500.0,
+    "fps_target": 15.0,
+    "use_synthetic": true
+  },
+  "results": [
+    {
+      "config_name": "mock-simple",
+      "config": {
+        "name": "mock-simple",
+        "detector": "mock",
+        "depth": "simple",
+        "segmentation": false,
+        "depth_enabled": true,
+        "description": "Fastest config - Mock detector, Simple depth"
+      },
+      "total_frames": 80,
+      "warmup_frames": 30,
+      "measured_frames": 50,
+      "avg_latency_ms": 18.673089999992953,
+      "min_latency_ms": 12.23470000013549,
+      "max_latency_ms": 29.063700000278914,
+      "std_latency_ms": 6.717873702579121,
+      "p50_latency_ms": 14.527000000271073,
+      "p95_latency_ms": 28.82160000035583,
+      "p99_latency_ms": 29.063700000278914,
+      "avg_fps": 59.85126687255497,
+      "min_fps": 34.407181466585584,
+      "max_fps": 81.73473808012668,
+      "peak_memory_mb": 294.33984375,
+      "avg_memory_mb": 294.333359375,
+      "avg_detections": 1.54,
+      "meets_latency_target": true,
+      "meets_fps_target": true,
+      "latency_target_ms": 500.0,
+      "fps_target": 15.0,
+      "start_time": "2026-02-03T19:17:00.353188",
+      "end_time": "2026-02-03T19:17:14.527591",
+      "duration_seconds": 0.9336544999996477,
+      "frame_timings": "[50 values - omitted]"
+    },
+    {
+      "config_name": "minimal",
+      "config": {
+        "name": "minimal",
+        "detector": "mock",
+        "depth": "simple",
+        "segmentation": false,
+        "depth_enabled": false,
+        "description": "Minimal - detection only, no depth"
+      },
+      "total_frames": 80,
+      "warmup_frames": 30,
+      "measured_frames": 50,
+      "avg_latency_ms": 24.180535999967105,
+      "min_latency_ms": 12.945200000103796,
+      "max_latency_ms": 29.998500000147033,
+      "std_latency_ms": 6.7283505359853155,
+      "p50_latency_ms": 28.21989999983998,
+      "p95_latency_ms": 29.62740000020858,
+      "p99_latency_ms": 29.998500000147033,
+      "avg_fps": 45.934586501909706,
+      "min_fps": 33.335000083174116,
+      "max_fps": 77.2487099459245,
+      "peak_memory_mb": 294.265625,
+      "avg_memory_mb": 294.2628125,
+      "avg_detections": 1.42,
+      "meets_latency_target": true,
+      "meets_fps_target": true,
+      "latency_target_ms": 500.0,
+      "fps_target": 15.0,
+      "start_time": "2026-02-03T19:17:15.650245",
+      "end_time": "2026-02-03T19:17:18.731971",
+      "duration_seconds": 1.2090267999983553,
+      "frame_timings": "[50 values - omitted]"
+    }
+  ]
+}

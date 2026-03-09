@@ -189,7 +189,14 @@ class TestVoiceRouterEdgeCases:
         """IntentType enum has required values."""
         try:
             from core.speech.voice_router import IntentType
-            for name in ("VISUAL", "SEARCH", "QR", "GENERAL"):
+            expected = [
+                "VISUAL_DESCRIBE", "VISUAL_IDENTIFY", "VISUAL_READ", "VISUAL_COLOR",
+                "SPATIAL_OBSTACLE", "SPATIAL_PATH", "SPATIAL_DISTANCE",
+                "QR_SCAN", "NAVIGATION_ROUTE",
+                "GENERAL_CHAT", "GENERAL_HELP", "GENERAL_COMMAND",
+                "UNKNOWN",
+            ]
+            for name in expected:
                 assert hasattr(IntentType, name), f"IntentType.{name} missing"
         except ImportError:
             pass

@@ -3,9 +3,10 @@ Application entrypoints: the only layer allowed to import from all other project
 **Services**: FastAPI REST (port 8000) and LiveKit WebRTC Agent (port 8081).
 
 ## WHERE TO LOOK
-- `api/server.py` (678 LOC): FastAPI application hosting 50+ endpoints.
-- `realtime/agent.py` (2087 LOC): LiveKit agent implementation.
+- `api/server.py` (745 LOC): FastAPI application hosting 28+ endpoints.
+- `realtime/agent.py` (288 LOC): LiveKit agent coordinator with 8 `@function_tool` wrappers.
 - `realtime/entrypoint.py`: LiveKit worker launcher and signal handler.
+- `realtime/session_manager.py` (775 LOC): Session lifecycle orchestrator (connect, init, diagnostics, avatar).
 - `cli/`: Re-exports debug tools from `shared/debug/`.
 
 ## FASTAPI ENDPOINTS
@@ -24,7 +25,10 @@ The agent exposes the following function tools to the LLM:
 - `search_internet`: Web search (SLA: none).
 - `analyze_vision`: Visual description (SLA: <500ms).
 - `detect_obstacles`: Spatial hazard detection (SLA: <200ms).
-- `ask_visual_question`: Specific scene query (SLA: <500ms).
+- `analyze_spatial_scene`: Full spatial perception scan.
+- `get_navigation_cue`: Priority-sorted micro-navigation output.
+- `scan_qr_code`: QR/AR tag scanning.
+- `read_text`: OCR text extraction from camera frame.
 
 ## KEY CONVENTIONS
 - **Fresh-Context Rule**: `userdata.clear_perception_cache()` is called on **every new user query** to ensure vision is never stale.

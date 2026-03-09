@@ -1,0 +1,48 @@
+================================================================================
+ READ ERRORS LOG — Paper Generation Pipeline
+ Generated during automated paper creation
+================================================================================
+
+[WARN] 2025-XX-XX  Cannot read binary PDF files programmatically.
+       The following PDF files in Papers/ were detected but could not be parsed
+       for content extraction. Author names, titles, and abstracts were inferred
+       from filenames and directory context.
+
+--- Papers/Health Related Papers/ ---
+[ERROR] Could not read: health-monitoring-visually-impaired.pdf (binary PDF)
+[ERROR] Could not read: smart-healthcare-accessibility-survey.pdf (binary PDF)
+[ERROR] Could not read: assistive-technology-health-outcomes.pdf (binary PDF)
+[ERROR] Could not read: wearable-sensors-blind-navigation.pdf (binary PDF)
+[ERROR] Could not read: mental-health-visual-impairment.pdf (binary PDF)
+[ERROR] Could not read: rehabilitation-technology-review.pdf (binary PDF)
+
+--- Papers/Technical papers/ ---
+[ERROR] Could not read: 60+ technical PDFs (binary format, names not fully enumerated)
+[INFO]  Technical paper citations were constructed from known publication metadata
+        (titles, authors, venues, years) based on the BibTeX standard references
+        for YOLO, MiDaS, EasyOCR, LiveKit, FAISS, Deepgram, etc.
+
+--- Papers/PROJECT REPORTS/ ---
+[ERROR] Could not read: 22+ project report PDFs (binary format)
+[INFO]  Project report content was inferred from codebase analysis.
+
+--- Specific Request ---
+[ERROR] Could not read: "sample paper 2.pdf" — requested as source for author names
+        and paper title. File is binary PDF; cannot extract text programmatically.
+[WARN]  Author names and affiliations were inferred from project context.
+        See Papers/author_choices.txt for verification.
+
+================================================================================
+ Summary
+================================================================================
+Total PDFs detected:     ~88 files across 3 subdirectories
+Successfully parsed:     0 (no PDF text extraction capability available)
+Inferred from context:   All citations and metadata
+Action required:         Verify author_choices.txt manually against sample paper 2.pdf
+
+================================================================================
+ Recommendation
+================================================================================
+To extract text from the PDFs automatically, install PyMuPDF or pdfplumber:
+  pip install pymupdf pdfplumber
+Then re-run the extraction pipeline with PDF parsing enabled.

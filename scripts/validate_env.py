@@ -40,7 +40,7 @@ _REQUIRED_VARS: list[EnvVar] = [
 _OPTIONAL_VARS: list[EnvVar] = [
     EnvVar("OLLAMA_API_KEY", required=False, description="Ollama/vision API key"),
     EnvVar("OLLAMA_VL_MODEL_ID", required=False, description="VL model identifier",
-           example="qwen3-vl:235b-instruct-cloud"),
+           example="qwen3.5:397b-cloud"),
     EnvVar("VISION_PROVIDER", required=False, description="Vision backend",
            example="ollama"),
     EnvVar("SPATIAL_PERCEPTION_ENABLED", required=False,

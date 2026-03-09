@@ -1,0 +1,24 @@
+--- a/tests/unit/test_tts_failover.py
++++ b/tests/unit/test_tts_failover.py
+@@ -126,7 +126,8 @@ class TestFailoverStatistics:
+     def test_record_failback(self):
+         from infrastructure.speech.tts_failover import FailoverStatistics, TTSProvider
+ 
+         stats = FailoverStatistics()
+         stats.record_failover()
+-        time.sleep(0.01)  # Small delay to accumulate time (flaky on Windows — 10ms < timer resolution)
++        time.sleep(0.1)   # Increased to 100ms for reliable Windows timer resolution (~15ms minimum)
+         stats.record_failback()
+ 
+         assert stats.total_failovers == 1
+         assert stats.total_failbacks == 1
+         assert stats.current_provider == TTSProvider.ELEVENLABS
+         assert stats.total_time_in_fallback_ms > 0
++        assert stats.total_time_in_fallback_ms >= 50.0, (  # Expect ≥50ms given 100ms sleep
++            f"Expected at least 50ms elapsed, got {stats.total_time_in_fallback_ms:.2f}ms"
++        )
+
+# RATIONALE: Windows has a minimum timer resolution of ~15ms. time.sleep(0.01)
+# may return before any time.monotonic() tick occurs, causing the duration
+# calculation to produce 0.0. Increasing sleep to 100ms (10x the minimum
+# Windows timer tick) makes the test reliably non-zero on all platforms.

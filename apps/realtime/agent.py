@@ -35,7 +35,7 @@ except ImportError as _live_err:
 
 # ── Model name from config (single source of truth) ──────────────────────
 _CFG = get_config()
-LLM_MODEL = _CFG.get("OLLAMA_VL_MODEL_ID", "qwen3-vl:235b-instruct-cloud")
+LLM_MODEL = _CFG.get("OLLAMA_VL_MODEL_ID", "qwen3.5:397b-cloud")
 LLM_BASE_URL = os.environ.get("LLM_BASE_URL", _CFG.get("LLM_BASE_URL", "http://localhost:11434/v1"))
 LLM_API_KEY = os.environ.get("LLM_API_KEY", _CFG.get("LLM_API_KEY", "ollama"))
 

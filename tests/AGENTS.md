@@ -1,15 +1,18 @@
 # tests/AGENTS.md
-429+ tests across 4 layers.
+429+ tests across 8 directories.
 **Config**: `asyncio_mode=auto` via `pyproject.toml`. No `@pytest.mark.asyncio` needed.
 
 ## TEST HIERARCHY
 | Directory | Files | Purpose |
 |-----------|-------|---------|
-| `unit/` | 13 | Fast, isolated tests for engines (OCR, Memory, QR, Braille). |
-| `integration/` | 8 | Cross-module tests (VQA API, RAG flow, SiliconFlow). |
-| `performance/` | 17 | NFR/SLA tests for latency, FPS, and privacy. |
+| `unit/` | ~90 | Fast, isolated tests for engines (OCR, Memory, QR, Braille, Vision, Speech). |
+| `integration/` | ~22 | Cross-module tests (VQA API, RAG flow, failover scenarios). |
+| `performance/` | ~47 | NFR/SLA tests for latency, FPS, privacy, and chaos. |
 | `realtime/` | 5 | Live pipeline harnesses (**NOT** run via pytest). |
 | `fixtures/` | - | Synthetic data generators (Braille patterns, detection sets). |
+| `chaos/` | 1 | 15 failure-mode scenarios (service shutdowns, cascades). |
+| `smoke/` | 1 | Health and pipeline smoke tests (ASGI transport). |
+| `load/` | 3 | Locust load tests + concurrent user infrastructure. |
 
 ## MOCK PATTERNS
 Mocks are typically defined locally within test files to avoid brittle shared fixtures.

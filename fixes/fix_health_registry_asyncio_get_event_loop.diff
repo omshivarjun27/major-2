@@ -1,0 +1,26 @@
+--- a/tests/unit/test_health_registry.py
++++ b/tests/unit/test_health_registry.py
+@@ -219,7 +219,7 @@ class TestServiceHealthRegistryQueries:
+         async def trip_breaker():
+             registry.circuit_breakers["stt"].record_failure("test")
+ 
+-        asyncio.get_event_loop().run_until_complete(trip_breaker())
++        asyncio.run(trip_breaker())
+ 
+@@ -303,7 +303,7 @@ class TestServiceHealthRegistrySummary:
+         async def setup():
+             registry.circuit_breakers["stt"].record_failure("test")
+ 
+-        asyncio.get_event_loop().run_until_complete(setup())
++        asyncio.run(setup())
+ 
+# ... (apply same pattern for all 7 failing test methods that use get_event_loop)
+# Replace ALL occurrences of:
+#   asyncio.get_event_loop().run_until_complete(coro())
+# with:
+#   asyncio.run(coro())
+#
+# RATIONALE: asyncio.get_event_loop() was deprecated in Python 3.10 and raises
+# RuntimeError in Python 3.12+ when there is no running event loop in the
+# current thread. asyncio.run() is the recommended replacement and creates
+# a fresh event loop for each call.

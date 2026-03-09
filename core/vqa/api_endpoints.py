@@ -87,7 +87,7 @@ _metrics = {
 
 def init_vqa_api(
     llm_client=None,
-    model: str = "qwen3-vl:235b-instruct-cloud",
+    model: str = "qwen3.5:397b-cloud",
     use_mock_detector: bool = True,
     memory_persist_path: Optional[str] = None,
 ):

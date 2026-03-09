@@ -26,73 +26,74 @@ class TestDebouncerEdgeCases:
     def test_first_cue_always_passes(self) -> None:
         """First cue is never suppressed regardless of content."""
         d = self._make_debouncer()
-        result = d.should_speak("Obstacle ahead", scene_hash="h1", distance_m=2.0)
+        result = d.should_speak("Obstacle ahead", scene_graph_hash="h1", distance_m=2.0)
         assert result is True
 
     def test_identical_cue_within_window_suppressed(self) -> None:
         """Identical cue within the window is suppressed."""
         d = self._make_debouncer(window_s=10.0)
-        d.record_spoken("Obstacle ahead", scene_hash="h1", distance_m=2.0)
-        result = d.should_speak("Obstacle ahead", scene_hash="h1", distance_m=2.0)
+        d.record("Obstacle ahead", scene_graph_hash="h1", distance_m=2.0)
+        result = d.should_speak("Obstacle ahead", scene_graph_hash="h1", distance_m=2.0)
         assert result is False
 
     def test_different_scene_hash_passes(self) -> None:
         """Same cue text but different scene hash is NOT suppressed."""
         d = self._make_debouncer(window_s=10.0)
-        d.record_spoken("Obstacle ahead", scene_hash="h1", distance_m=2.0)
-        result = d.should_speak("Obstacle ahead", scene_hash="h2", distance_m=2.0)
+        d.record("Obstacle ahead", scene_graph_hash="h1", distance_m=2.0)
+        result = d.should_speak("Obstacle ahead", scene_graph_hash="h2", distance_m=2.0)
         assert result is True
 
     def test_window_expiry_allows_repeat(self) -> None:
         """After window expires, same cue is allowed again."""
         d = self._make_debouncer(window_s=0.05)  # 50ms window
-        d.record_spoken("Obstacle ahead", scene_hash="h1", distance_m=2.0)
+        d.record("Obstacle ahead", scene_graph_hash="h1", distance_m=2.0)
         time.sleep(0.1)  # Wait for window to expire
-        result = d.should_speak("Obstacle ahead", scene_hash="h1", distance_m=2.0)
+        result = d.should_speak("Obstacle ahead", scene_graph_hash="h1", distance_m=2.0)
         assert result is True
 
     def test_zero_window_never_suppresses(self) -> None:
         """A zero-second window never suppresses anything."""
         d = self._make_debouncer(window_s=0.0)
-        d.record_spoken("Obstacle ahead", scene_hash="h1", distance_m=2.0)
-        result = d.should_speak("Obstacle ahead", scene_hash="h1", distance_m=2.0)
+        d.record("Obstacle ahead", scene_graph_hash="h1", distance_m=2.0)
+        result = d.should_speak("Obstacle ahead", scene_graph_hash="h1", distance_m=2.0)
         assert result is True
 
     def test_significant_distance_change_passes(self) -> None:
         """Large distance delta bypasses suppression."""
         cfg = DebouncerConfig(debounce_window_seconds=10.0, distance_delta_meters=0.5)
         d = Debouncer(config=cfg)
-        d.record_spoken("Obstacle ahead", scene_hash="h1", distance_m=2.0)
+        d.record("Obstacle ahead", scene_graph_hash="h1", distance_m=2.0)
         # Distance changed by 1.0m (> 0.5 threshold)
-        result = d.should_speak("Obstacle ahead", scene_hash="h1", distance_m=1.0)
+        result = d.should_speak("Obstacle ahead", scene_graph_hash="h1", distance_m=1.0)
         assert result is True
 
     def test_empty_cue_not_suppressed(self) -> None:
-        """Empty string cue is allowed through (degenerate input)."""
+        """Empty string cue is suppressed by design (Debouncer guards against empty audio)."""
         d = self._make_debouncer()
-        result = d.should_speak("", scene_hash="", distance_m=None)
-        assert result is True
+        result = d.should_speak("", scene_graph_hash="", distance_m=None)
+        # Debouncer returns False for empty/blank cues by design (line 82-83 in debouncer.py)
+        assert result is False
 
     def test_history_max_length_enforced(self) -> None:
         """History never grows beyond max_history entries."""
         cfg = DebouncerConfig(max_history=5)
         d = Debouncer(config=cfg)
         for i in range(20):
-            d.record_spoken(f"Cue {i}", scene_hash=f"h{i}", distance_m=float(i))
+            d.record(f"Cue {i}", scene_graph_hash=f"h{i}", distance_m=float(i))
         assert len(d._history) <= 5
 
     def test_clear_history_resets_state(self) -> None:
         """clear() removes all history so next cue passes."""
         d = self._make_debouncer(window_s=60.0)
-        d.record_spoken("Cue", scene_hash="h1", distance_m=2.0)
-        d.clear()
-        result = d.should_speak("Cue", scene_hash="h1", distance_m=2.0)
+        d.record("Cue", scene_graph_hash="h1", distance_m=2.0)
+        d.reset()  # Debouncer uses reset() not clear()
+        result = d.should_speak("Cue", scene_graph_hash="h1", distance_m=2.0)
         assert result is True
 
     def test_unicode_cue_handled(self) -> None:
         """Unicode cue text is handled without error."""
         d = self._make_debouncer()
-        result = d.should_speak("障害物", scene_hash="h1", distance_m=1.5)
+        result = d.should_speak("障害物", scene_graph_hash="h1", distance_m=1.5)
         assert result is True
 
 
@@ -215,17 +216,17 @@ class TestCancellationScopeEdgeCases:
     async def test_cancel_already_cancelled_scope(self) -> None:
         """Cancelling an already-cancelled scope doesn't raise."""
         from application.pipelines.cancellation import CancellationScope
-        scope = CancellationScope()
+        scope = CancellationScope(scope_id="test-scope-1")
         try:
-            await scope.cancel()
-            await scope.cancel()  # second cancel — should be no-op
+            scope.cancel()  # sync method — no await
+            scope.cancel()  # second cancel — should be no-op
         except Exception as exc:
             pytest.fail(f"Double-cancel raised {exc!r}")
 
     async def test_scope_context_manager(self) -> None:
         """CancellationScope works as async context manager if supported."""
         from application.pipelines.cancellation import CancellationScope
-        scope = CancellationScope()
+        scope = CancellationScope(scope_id="test-scope-2")
         try:
             async with scope:
                 pass

@@ -3,7 +3,7 @@ Ultra-low-latency spatial perception optimized for real-time blind navigation.
 **Key Focus**: Performance, memory efficiency, and deterministic timing.
 
 ## WHERE TO LOOK
-- `spatial.py` (1157 LOC): Main engine for obstacle detection & depth-aware fusion.
+- `spatial.py` (1357 LOC): Main engine for obstacle detection & depth-aware fusion.
 - `visual.py`: Specialized vision processors (color, lighting, scene attributes).
 - `video_processing.py`: Frame extraction, normalization, and video stream utilities.
 

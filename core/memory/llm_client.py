@@ -222,7 +222,7 @@ class OllamaClient(BaseLLMClient):
             "OPENAI_BASE_URL", "http://localhost:11434/v1"
         )
         self._model_id = model_id or os.environ.get(
-            "OLLAMA_VL_MODEL_ID", "qwen3-vl:235b-instruct-cloud"
+            "OLLAMA_VL_MODEL_ID", "qwen3.5:397b-cloud"
         )
         self._api_key = api_key or os.environ.get("OLLAMA_VL_API_KEY", "ollama")
         self._timeout_s = timeout_s or DEFAULT_TIMEOUT_S

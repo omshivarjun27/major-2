@@ -126,13 +126,13 @@ class TestFailoverStatistics:
 
         stats = FailoverStatistics()
         stats.record_failover()
-        time.sleep(0.01)  # Small delay to accumulate time
+        time.sleep(0.1)  # Small delay to accumulate time
         stats.record_failback()
 
         assert stats.total_failovers == 1
         assert stats.total_failbacks == 1
         assert stats.current_provider == TTSProvider.ELEVENLABS
-        assert stats.total_time_in_fallback_ms > 0
+        assert stats.total_time_in_fallback_ms >= 50.0
 
     def test_to_dict(self):
         """Test converting statistics to dictionary."""

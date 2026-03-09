@@ -11,7 +11,7 @@ The architecture follows the coordinator pattern: `agent.py` is a thin shell tha
 | Module | LOC | Responsibility |
 |--------|-----|----------------|
 | `agent.py` | 288 | Coordinator. Thin `@function_tool` wrappers, session lifecycle wiring. Delegates ALL logic. |
-| `session_manager.py` | 739 | Session lifecycle: room connection with retry, component init (VQA, QR, OCR, voice router, live infra), avatar setup, continuous processing, diagnostics. |
+| `session_manager.py` | 775 | Session lifecycle: room connection with retry, component init (VQA, QR, OCR, voice router, live infra), avatar setup, continuous processing, diagnostics. |
 | `vision_controller.py` | 499 | Frame capture, Ollama streaming analysis, spatial perception (detect obstacles, analyze scene), VQA pipeline dispatch, OCR/text reading. |
 | `voice_controller.py` | 281 | Internet search dispatch, QR/AR scanning orchestration, LLM stream processing. |
 | `tool_router.py` | 446 | `QueryType` classification (8 types), `ToolRegistry`, dispatch/auto_dispatch, input validation. |

@@ -302,7 +302,7 @@ class VQAReasoner:
     def __init__(
         self,
         llm_client: Any = None,
-        model: str = "qwen3-vl:235b-instruct-cloud",
+        model: str = "qwen3.5:397b-cloud",
         api_base: str = "http://localhost:11434/v1",
         use_micronav_fallback: bool = True,
     ):

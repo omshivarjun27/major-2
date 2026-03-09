@@ -31,7 +31,7 @@ CONFIG = {
     "VISION_PROVIDER": _get_vision_provider(),
     # Ollama configuration
     "OLLAMA_VL_API_KEY": _secret_provider.get_secret("OLLAMA_VL_API_KEY") or "",
-    "OLLAMA_VL_MODEL_ID": os.environ.get("OLLAMA_VL_MODEL_ID", "qwen3-vl:235b-instruct-cloud"),
+    "OLLAMA_VL_MODEL_ID": os.environ.get("OLLAMA_VL_MODEL_ID", "qwen3.5:397b-cloud"),
     # Tavus virtual avatar configuration
     "ENABLE_AVATAR": os.environ.get("ENABLE_AVATAR", "false") == "true",
     "TAVUS_API_KEY": _secret_provider.get_secret("TAVUS_API_KEY") or "",

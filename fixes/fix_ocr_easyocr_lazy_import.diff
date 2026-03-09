@@ -1,0 +1,38 @@
+--- a/core/ocr/__init__.py
++++ b/core/ocr/__init__.py
+@@ -46,10 +46,10 @@ except ImportError:
+     PIL_AVAILABLE = False
+ 
+-try:
+-    import easyocr
+-    EASYOCR_AVAILABLE = True
+-except ImportError:
+-    EASYOCR_AVAILABLE = False
++# Lazy probe: check importability without actually importing (avoids Windows av/torchvision hang)
++import importlib.util as _iutil
++EASYOCR_AVAILABLE = _iutil.find_spec("easyocr") is not None
++easyocr = None  # Imported lazily on first use
+
++def _get_easyocr():
++    """Lazy-import easyocr to avoid hang on Windows (torchvision → av chain)."""
++    global easyocr
++    if easyocr is None:
++        import easyocr as _easyocr
++        easyocr = _easyocr
++    return easyocr
+
+# Then replace all usages of `import easyocr` with `_get_easyocr()` in the backend class.
+# Specifically in _EasyOCRBackend.__init__:
+@@ -120,7 +120,7 @@ class _EasyOCRBackend:
+     def __init__(self, languages=None):
+-        import easyocr as _easyocr
+-        self._reader = _easyocr.Reader(languages or ["en"], gpu=False)
++        easyocr_module = _get_easyocr()
++        self._reader = easyocr_module.Reader(languages or ["en"], gpu=False)
+
+# RATIONALE: easyocr imports torchvision which imports av (PyAV). On Windows,
+# loading the av.video.codeccontext C extension hangs indefinitely during
+# module-level import in pytest. Using importlib.util.find_spec() for the
+# availability probe and lazy-importing on first use fixes the hang.
+# The fix preserves the 3-tier fallback behavior — if EasyOCR is installed
+# it still gets used; the probe just avoids triggering the hang at import time.

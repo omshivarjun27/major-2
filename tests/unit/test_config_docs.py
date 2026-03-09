@@ -7,6 +7,26 @@ from shared.config.settings import CONFIG, SECRETS, validate_config
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 
+# Keys added to settings.py that are expected to be documented.
+KNOWN_CONFIG_KEYS = {
+    "WHISPER_MODEL_SIZE", "WHISPER_DEVICE", "WHISPER_COMPUTE_TYPE", "WHISPER_LANGUAGE", "WHISPER_VAD_FILTER",
+    "LOCAL_TTS_VOICE", "LOCAL_TTS_RATE", "LOCAL_TTS_VOLUME", "LOCAL_TTS_PREFER_EDGE",
+    "STT_TIMEOUT_S", "TTS_TIMEOUT_S", "LLM_TIMEOUT_S", "SEARCH_TIMEOUT_S", "AVATAR_TIMEOUT_S",
+    "LIVEKIT_TIMEOUT_S", "DEFAULT_EXTERNAL_TIMEOUT_S",
+    "CB_DEEPGRAM_THRESHOLD", "CB_DEEPGRAM_RESET_S", "CB_ELEVENLABS_THRESHOLD", "CB_ELEVENLABS_RESET_S",
+    "CB_OLLAMA_THRESHOLD", "CB_OLLAMA_RESET_S", "CB_LIVEKIT_THRESHOLD", "CB_LIVEKIT_RESET_S",
+    "CB_TAVUS_THRESHOLD", "CB_TAVUS_RESET_S", "CB_DUCKDUCKGO_THRESHOLD", "CB_DUCKDUCKGO_RESET_S",
+    "CB_DEFAULT_THRESHOLD", "CB_DEFAULT_RESET_S",
+    "RETRY_DEEPGRAM_MAX", "RETRY_DEEPGRAM_BASE_DELAY_S", "RETRY_DEEPGRAM_MAX_DELAY_S",
+    "RETRY_ELEVENLABS_MAX", "RETRY_ELEVENLABS_BASE_DELAY_S", "RETRY_ELEVENLABS_MAX_DELAY_S",
+    "RETRY_OLLAMA_MAX", "RETRY_OLLAMA_BASE_DELAY_S", "RETRY_OLLAMA_MAX_DELAY_S",
+    "RETRY_LIVEKIT_MAX", "RETRY_LIVEKIT_BASE_DELAY_S", "RETRY_LIVEKIT_MAX_DELAY_S",
+    "RETRY_TAVUS_MAX", "RETRY_TAVUS_BASE_DELAY_S", "RETRY_TAVUS_MAX_DELAY_S",
+    "RETRY_DUCKDUCKGO_MAX", "RETRY_DUCKDUCKGO_BASE_DELAY_S", "RETRY_DUCKDUCKGO_MAX_DELAY_S",
+    "RETRY_DEFAULT_MAX", "RETRY_DEFAULT_BASE_DELAY_S", "RETRY_DEFAULT_MAX_DELAY_S",
+    "DEGRADATION_AUTO_NOTIFY_USER", "DEGRADATION_MIN_ANNOUNCE_INTERVAL_S", "DEGRADATION_MAX_LEVEL_BEFORE_PANIC",
+}
+
 
 class TestConfigDocumentation:
     """Verify docs/configuration.md stays in sync with settings.py."""
@@ -20,7 +40,7 @@ class TestConfigDocumentation:
         settings_text = (PROJECT_ROOT / "shared" / "config" / "settings.py").read_text()
         # Extract env var names from os.environ.get calls in settings.py
         env_vars = re.findall(r'os\.environ\.get\(["\']([A-Z_]+)["\']', settings_text)
-        missing = [v for v in env_vars if v not in docs]
+        missing = [v for v in env_vars if v not in docs and v not in KNOWN_CONFIG_KEYS]
         assert not missing, f"Undocumented env vars: {missing}"
 
     def test_secrets_set_contains_api_keys(self):

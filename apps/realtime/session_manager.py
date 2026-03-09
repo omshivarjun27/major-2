@@ -15,9 +15,11 @@ embedding lifecycle logic inline.
 """
 
 import asyncio
+import json
 import logging
 import os
 import time
+import uuid
 from typing import Any, Dict, Optional, Tuple
 
 from livekit.agents import JobContext
@@ -40,7 +42,7 @@ logger = logging.getLogger("ally-vision-agent")
 
 # ── Constants from agent-level config ────────────────────────────────────
 _CFG = get_config()
-LLM_MODEL = _CFG.get("OLLAMA_VL_MODEL_ID", "qwen3-vl:235b-instruct-cloud")
+LLM_MODEL = _CFG.get("OLLAMA_VL_MODEL_ID", "qwen3.5:397b-cloud")
 LLM_BASE_URL = os.environ.get("LLM_BASE_URL", _CFG.get("LLM_BASE_URL", "http://localhost:11434/v1"))
 LLM_API_KEY = os.environ.get("LLM_API_KEY", _CFG.get("LLM_API_KEY", "ollama"))
 
@@ -589,7 +591,7 @@ async def start_continuous_processing(
         if userdata._watchdog:
             lfm.on_frame(lambda _f: userdata._watchdog.heartbeat("camera"))
 
-        consumer = lfm.subscribe("continuous_consumer", max_queue_size=3)
+        consumer = lfm.subscribe("continuous_consumer", max_queue_size=1)
 
         # ── Create FrameOrchestrator ──
         scene_builder = None
@@ -661,6 +663,29 @@ async def start_continuous_processing(
                         depth_estimator=depth_fn,
                     )
                     _latest_fused["result"] = result
+                    # ── ndjson frame diagnostic ──
+                    if logger.isEnabledFor(logging.DEBUG):
+                        tel = getattr(result, "telemetry", None)
+                        det_list = []
+                        if result.detections:
+                            det_list = [
+                                {"class": getattr(d, "class_name", str(d)), "confidence": round(getattr(d, "confidence", 0), 3),
+                                 "bbox": getattr(d, "bbox", None), "distance_m": getattr(d, "distance_m", None)}
+                                for d in result.detections
+                            ]
+                        diag = {
+                            "event": "frame_processed",
+                            "frame_id": frame.frame_id,
+                            "camera_ts": frame.timestamp_epoch_ms,
+                            "frame_age_ms": round(frame.age_ms, 1),
+                            "inference_ms": round(tel.total_ms, 1) if tel else None,
+                            "total_latency_ms": round(frame.age_ms + (tel.total_ms if tel else 0), 1),
+                            "detections": det_list,
+                            "dropped_frames_since_last": consumer.frames_dropped,
+                            "queue_size": consumer.queue.qsize(),
+                            "processing_fps": round(1000 / max(lfm.stats.avg_capture_interval_ms, 1), 1),
+                        }
+                        logger.debug(json.dumps(diag))
                     if userdata._watchdog:
                         userdata._watchdog.heartbeat("orchestrator")
                 except Exception as exc:
@@ -671,9 +696,12 @@ async def start_continuous_processing(
         _tts_lock = asyncio.Lock()
         _last_say_ts: float = 0.0
         _MIN_SAY_INTERVAL = 3.0
+        # message_id dedup: {cue_hash: sent_at} — blocks replays within 2s
+        _recent_said: Dict[str, float] = {}
+        _DEDUP_TTL = 2.0
 
         async def _proactive_announcer() -> None:
-            nonlocal _last_say_ts
+            nonlocal _last_say_ts, _recent_said
             cadence = continuous_cfg.get("proactive_cadence_s", 2.0)
             critical_only = continuous_cfg.get("proactive_critical_only", False)
             debouncer = userdata._debouncer
@@ -713,9 +741,17 @@ async def start_continuous_processing(
                             logger.debug("Proactive cue skipped (TTS busy): %s", cue)
                             continue
                         async with _tts_lock:
+                            msg_id = uuid.uuid4().hex[:8]
+                            cue_key = cue[:80]  # first 80 chars as key
+                            # Expire stale entries
+                            _recent_said = {k: v for k, v in _recent_said.items() if now - v < _DEDUP_TTL}
+                            if cue_key in _recent_said:
+                                logger.debug("Proactive cue deduped (msg_id=%s): %s", msg_id, cue)
+                                continue
                             await agent_session.say(cue)
+                            _recent_said[cue_key] = time.time()
                             _last_say_ts = time.time()
-                            logger.info("Proactive announce: %s", cue)
+                            logger.info("Proactive announce (msg_id=%s): %s", msg_id, cue)
                     else:
                         logger.debug("Proactive cue (no TTS): %s", cue)
                 except Exception as exc:

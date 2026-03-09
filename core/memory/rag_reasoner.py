@@ -72,7 +72,7 @@ class RAGReasoner:
         self,
         retriever: MemoryRetriever,
         llm_client: Optional[Any] = None,
-        model_name: str = "qwen3-vl:235b-instruct-cloud",
+        model_name: str = "qwen3.5:397b-cloud",
         config: Optional[MemoryConfig] = None,
     ):
         self._retriever = retriever

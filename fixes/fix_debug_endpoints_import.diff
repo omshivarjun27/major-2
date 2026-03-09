@@ -1,0 +1,21 @@
+--- a/tests/unit/test_debug_endpoints.py
++++ b/tests/unit/test_debug_endpoints.py
+@@ -19,9 +19,9 @@ def client():
+     os.environ["DEBUG_ENDPOINTS_ENABLED"] = "true"
+     os.environ["DEBUG_AUTH_TOKEN"] = "test-debug-token-12345"
+ 
+-    # Reload the module-level variables in api_server
++    # Reload the module-level variables in apps.api.server
+     import importlib
+-    import api_server
+-    importlib.reload(api_server)
+-    from api_server import app
++    import apps.api.server as api_server
++    importlib.reload(api_server)
++    from apps.api.server import app
+ 
+     return TestClient(app)
+
+# RATIONALE: The module was relocated from api_server.py to apps/api/server.py
+# during the project restructuring. The test still references the old module name.
+# Fix: Update import path from `api_server` to `apps.api.server`.

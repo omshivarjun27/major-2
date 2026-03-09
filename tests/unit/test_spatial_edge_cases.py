@@ -6,6 +6,7 @@ access patterns for the spatial perception pipeline.
 from __future__ import annotations
 
 import asyncio
+import time
 
 import numpy as np
 import pytest
@@ -19,6 +20,7 @@ from shared.schemas import (
     ObstacleRecord,
     Priority,
     SegmentationMask,
+    SizeCategory,
 )
 
 # ---------------------------------------------------------------------------
@@ -44,7 +46,7 @@ def _make_detection(
 
 def _make_depth_map(h: int = 480, w: int = 640, fill: float = 3.0) -> DepthMap:
     data = np.full((h, w), fill, dtype=np.float32)
-    return DepthMap(data=data, width=w, height=h)
+    return DepthMap(depth_array=data, min_depth=float(data.min()), max_depth=float(data.max()))
 
 
 def _make_mask(detection_id: str = "det_0", h: int = 480, w: int = 640) -> SegmentationMask:
@@ -133,8 +135,8 @@ class TestDepthMapEdgeCases:
     def test_single_pixel_depth_map(self) -> None:
         """1x1 depth map is the minimal valid case."""
         data = np.array([[5.0]], dtype=np.float32)
-        dm = DepthMap(data=data, width=1, height=1)
-        mn, med, mx = dm.get_region_depth(0, 0, 1, 1)
+        dm = DepthMap(depth_array=data)
+        mn, med, mx = dm.get_region_depth(BoundingBox(x1=0, y1=0, x2=1, y2=1))
         assert mn == pytest.approx(5.0)
         assert med == pytest.approx(5.0)
         assert mx == pytest.approx(5.0)
@@ -142,15 +144,15 @@ class TestDepthMapEdgeCases:
     def test_depth_map_all_zeros(self) -> None:
         """Depth map filled with zeros — get_region_depth returns (0,0,0)."""
         data = np.zeros((100, 100), dtype=np.float32)
-        dm = DepthMap(data=data, width=100, height=100)
-        mn, med, mx = dm.get_region_depth(0, 0, 100, 100)
+        dm = DepthMap(depth_array=data)
+        mn, med, mx = dm.get_region_depth(BoundingBox(x1=0, y1=0, x2=100, y2=100))
         assert mn == pytest.approx(0.0)
         assert mx == pytest.approx(0.0)
 
     def test_depth_map_uniform_value(self) -> None:
         """Uniform depth — all stats equal the fill value."""
         dm = _make_depth_map(fill=7.5)
-        mn, med, mx = dm.get_region_depth(0, 0, 640, 480)
+        mn, med, mx = dm.get_region_depth(BoundingBox(x1=0, y1=0, x2=640, y2=480))
         assert mn == pytest.approx(7.5, abs=0.01)
         assert med == pytest.approx(7.5, abs=0.01)
         assert mx == pytest.approx(7.5, abs=0.01)
@@ -158,20 +160,20 @@ class TestDepthMapEdgeCases:
     def test_depth_map_nan_values(self) -> None:
         """NaN depth values are representable without crash."""
         data = np.full((10, 10), float("nan"), dtype=np.float32)
-        dm = DepthMap(data=data, width=10, height=10)
-        assert dm.data.shape == (10, 10)
+        dm = DepthMap(depth_array=data)
+        assert dm.depth_array.shape == (10, 10)
 
     def test_depth_map_large_resolution(self) -> None:
         """4K resolution depth map can be constructed."""
         data = np.ones((2160, 3840), dtype=np.float32)
-        dm = DepthMap(data=data, width=3840, height=2160)
-        assert dm.width == 3840
-        assert dm.height == 2160
+        dm = DepthMap(depth_array=data)
+        assert dm.depth_array.shape[1] == 3840
+        assert dm.depth_array.shape[0] == 2160
 
     def test_get_region_depth_returns_tuple_of_three(self) -> None:
         """get_region_depth always returns (min, median, max) — 3-tuple."""
         dm = _make_depth_map()
-        result = dm.get_region_depth(100, 100, 200, 200)
+        result = dm.get_region_depth(BoundingBox(x1=100, y1=100, x2=200, y2=200))
         assert len(result) == 3
 
 
@@ -218,48 +220,65 @@ class TestObstacleRecordEdgeCases:
 
     def test_all_directions_defined(self) -> None:
         """All required Direction enum values exist."""
-        for name in ("FAR_LEFT", "LEFT", "SLIGHTLY_LEFT", "AHEAD", "SLIGHTLY_RIGHT", "RIGHT", "FAR_RIGHT"):
+        for name in ("FAR_LEFT", "LEFT", "SLIGHTLY_LEFT", "CENTER", "SLIGHTLY_RIGHT", "RIGHT", "FAR_RIGHT"):
             assert hasattr(Direction, name), f"Direction.{name} missing"
 
     def test_obstacle_record_construction(self) -> None:
         """ObstacleRecord can be constructed with minimum fields."""
         det = _make_detection()
         record = ObstacleRecord(
-            detection=det,
-            segmentation_mask=None,
-            depth_map=None,
+            id="obs_min",
+            class_name="chair",
+            direction=Direction.CENTER,
             distance_m=2.5,
-            direction=Direction.AHEAD,
+            direction_deg=0.0,
             priority=Priority.FAR_HAZARD,
+            bbox=BoundingBox(x1=10, y1=10, x2=100, y2=100),
+            centroid_px=(55, 55),
+            mask_confidence=0.9,
+            detection_confidence=0.85,
+            size_category=SizeCategory.MEDIUM,
+            action_recommendation="step right",
         )
         assert record.distance_m == 2.5
-        assert record.direction == Direction.AHEAD
+        assert record.direction == Direction.CENTER
 
     def test_obstacle_record_zero_distance(self) -> None:
         """Distance of 0.0 (contact) is representable."""
         det = _make_detection()
         record = ObstacleRecord(
-            detection=det,
-            segmentation_mask=None,
-            depth_map=None,
+            id="obs_zero",
+            class_name="chair",
+            direction=Direction.CENTER,
             distance_m=0.0,
-            direction=Direction.AHEAD,
+            direction_deg=0.0,
             priority=Priority.CRITICAL,
+            bbox=BoundingBox(x1=10, y1=10, x2=100, y2=100),
+            centroid_px=(55, 55),
+            mask_confidence=0.9,
+            detection_confidence=0.85,
+            size_category=SizeCategory.LARGE,
+            action_recommendation="stop",
         )
         assert record.distance_m == 0.0
 
     def test_obstacle_record_very_large_distance(self) -> None:
         """Very large distance (100m) is representable."""
-        det = _make_detection()
         record = ObstacleRecord(
-            detection=det,
-            segmentation_mask=None,
-            depth_map=None,
-            distance_m=100.0,
-            direction=Direction.FAR_LEFT,
+            id="obs_far",
+            class_name="wall",
+            direction=Direction.CENTER,
+            distance_m=999.0,
+            direction_deg=0.0,
             priority=Priority.SAFE,
+            bbox=BoundingBox(x1=0, y1=0, x2=10, y2=10),
+            centroid_px=(5, 5),
+            mask_confidence=0.5,
+            detection_confidence=0.7,
+            size_category=SizeCategory.SMALL,
+            action_recommendation="continue",
         )
-        assert record.distance_m == 100.0
+        assert record.distance_m == 999.0
 
 
 # ---------------------------------------------------------------------------
@@ -328,7 +347,7 @@ class TestConcurrentSpatialProcessing:
         results = await asyncio.gather(*[make_dm(float(i)) for i in range(10)])
         assert len(results) == 10
         for i, dm in enumerate(results):
-            mn, _, _ = dm.get_region_depth(0, 0, 640, 480)
+            mn, _, _ = dm.get_region_depth(BoundingBox(x1=0, y1=0, x2=640, y2=480))
             assert mn == pytest.approx(float(i), abs=0.01)
 
     async def test_concurrent_detection_list_assembly(self) -> None:
@@ -364,6 +383,7 @@ class TestPerceptionResultEdgeCases:
             image_size=(640, 480),
             latency_ms=25.0,
             frame_id="frame_0",
+            timestamp=time.time(),
         )
         assert result.detections == []
         assert result.latency_ms == 25.0
@@ -381,6 +401,7 @@ class TestPerceptionResultEdgeCases:
             image_size=(640, 480),
             latency_ms=55.3,
             frame_id="frame_42",
+            timestamp=time.time(),
         )
         assert len(result.detections) == 1
         assert result.frame_id == "frame_42"
@@ -395,6 +416,7 @@ class TestPerceptionResultEdgeCases:
             image_size=(640, 480),
             latency_ms=0.0,
             frame_id="frame_cached",
+            timestamp=time.time(),
         )
         assert result.latency_ms == 0.0
 
@@ -408,5 +430,6 @@ class TestPerceptionResultEdgeCases:
             image_size=(640, 480),
             latency_ms=5000.0,
             frame_id="frame_slow",
+            timestamp=time.time(),
         )
         assert result.latency_ms == 5000.0

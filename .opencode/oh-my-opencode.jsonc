@@ -1,8 +1,8 @@
 {
-    "google_auth": false,
+    "google_auth": true,
     "agents": {
         "prometheus": {
-            "model": "amazon-bedrock/global.anthropic.claude-opus-4-6-v1",
+            "model": "google/antigravity-claude-opus-4-6-thinking",
             "permission": {
                 "edit": "allow",
                 "bash": "allow",
@@ -12,7 +12,7 @@
             }
         },
         "metis": {
-            "model": "amazon-bedrock/global.anthropic.claude-opus-4-6-v1",
+            "model": "google/antigravity-claude-opus-4-6-thinking",
             "permission": {
                 "edit": "allow",
                 "bash": "allow",
@@ -22,7 +22,7 @@
             }
         },
         "momus": {
-            "model": "amazon-bedrock/global.anthropic.claude-opus-4-6-v1",
+            "model": "google/antigravity-claude-opus-4-6-thinking",
             "permission": {
                 "edit": "allow",
                 "bash": "allow",
@@ -32,7 +32,7 @@
             }
         },
         "atlas": {
-            "model": "amazon-bedrock/global.anthropic.claude-opus-4-6-v1",
+            "model": "google/antigravity-claude-opus-4-6-thinking",
             "permission": {
                 "edit": "allow",
                 "bash": "allow",
@@ -42,7 +42,7 @@
             }
         },
         "sisyphus": {
-            "model": "amazon-bedrock/global.anthropic.claude-opus-4-6-v1",
+            "model": "google/antigravity-claude-opus-4-6-thinking",
             "permission": {
                 "edit": "allow",
                 "bash": "allow",
@@ -52,7 +52,7 @@
             }
         },
         "sisyphus-junior": {
-            "model": "amazon-bedrock/global.anthropic.claude-opus-4-6-v1",
+            "model": "google/antigravity-claude-opus-4-6-thinking",
             "permission": {
                 "edit": "allow",
                 "bash": "allow",
@@ -62,7 +62,7 @@
             }
         },
         "hephaestus": {
-            "model": "amazon-bedrock/global.anthropic.claude-opus-4-6-v1",
+            "model": "google/antigravity-claude-opus-4-6-thinking",
             "permission": {
                 "edit": "allow",
                 "bash": "allow",
@@ -72,7 +72,7 @@
             }
         },
         "oracle": {
-            "model": "amazon-bedrock/global.anthropic.claude-opus-4-6-v1",
+            "model": "google/antigravity-claude-opus-4-6-thinking",
             "permission": {
                 "edit": "allow",
                 "bash": "allow",
@@ -82,7 +82,7 @@
             }
         },
         "explore": {
-            "model": "amazon-bedrock/global.anthropic.claude-opus-4-6-v1",
+            "model": "google/antigravity-claude-opus-4-6-thinking",
             "stream": false,
             "permission": {
                 "edit": "allow",
@@ -93,7 +93,7 @@
             }
         },
         "librarian": {
-            "model": "amazon-bedrock/global.anthropic.claude-opus-4-6-v1",
+            "model": "google/antigravity-claude-opus-4-6-thinking",
             "stream": false,
             "permission": {
                 "edit": "allow",
@@ -104,7 +104,7 @@
             }
         },
         "multimodal-looker": {
-            "model": "amazon-bedrock/global.anthropic.claude-opus-4-6-v1",
+            "model": "google/antigravity-claude-opus-4-6-thinking",
             "permission": {
                 "edit": "allow",
                 "bash": "allow",
@@ -116,31 +116,31 @@
     },
     "categories": {
         "visual-engineering": {
-            "model": "amazon-bedrock/global.anthropic.claude-opus-4-6-v1"
+            "model": "google/antigravity-claude-opus-4-6-thinking"
         },
         "artistry": {
-            "model": "amazon-bedrock/global.anthropic.claude-opus-4-6-v1"
+            "model": "google/antigravity-claude-opus-4-6-thinking"
         },
         "quick": {
-            "model": "amazon-bedrock/global.anthropic.claude-opus-4-6-v1"
+            "model": "google/antigravity-claude-opus-4-6-thinking"
         },
         "unspecified-low": {
-            "model": "amazon-bedrock/global.anthropic.claude-opus-4-6-v1"
+            "model": "google/antigravity-claude-opus-4-6-thinking"
         },
         "unspecified-high": {
-            "model": "amazon-bedrock/global.anthropic.claude-opus-4-6-v1"
+            "model": "google/antigravity-claude-opus-4-6-thinking"
         },
         "writing": {
-            "model": "amazon-bedrock/global.anthropic.claude-opus-4-6-v1"
+            "model": "google/antigravity-claude-opus-4-6-thinking"
         },
         "deep": {
-            "model": "amazon-bedrock/global.anthropic.claude-opus-4-6-v1"
+            "model": "google/antigravity-claude-opus-4-6-thinking"
         },
         "ultrabrain": {
-            "model": "amazon-bedrock/global.anthropic.claude-opus-4-6-v1"
+            "model": "google/antigravity-claude-opus-4-6-thinking"
         },
         "ultrawork": {
-            "model": "amazon-bedrock/global.anthropic.claude-opus-4-6-v1"
+            "model": "google/antigravity-claude-opus-4-6-thinking"
         }
     },
     "routing": {

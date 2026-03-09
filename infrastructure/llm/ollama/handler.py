@@ -171,17 +171,17 @@ class OllamaHandler:
         """
         # Quick validation
         if not self.is_ready:
-            return "ollama:qwen3-vl:235b-instruct-cloud", "", "Vision API not configured"
+            return "ollama:qwen3.5:397b-cloud", "", "Vision API not configured"
 
         # Verify connection on first use
         if not self._verified and not await self.verify_connection():
-            return "ollama:qwen3-vl:235b-instruct-cloud", "", "Vision API connection failed"
+            return "ollama:qwen3.5:397b-cloud", "", "Vision API connection failed"
 
         try:
             # Convert image to base64
             base64_image = await self._convert_and_optimize_image(image)
             if not base64_image:
-                return "ollama:qwen3-vl:235b-instruct-cloud", "", "Failed to process the image"
+                return "ollama:qwen3.5:397b-cloud", "", "Failed to process the image"
 
             # Make the API call to SiliconFlow (OpenAI-compatible)
             payload = {
@@ -223,17 +223,17 @@ class OllamaHandler:
             # Validate
             if model_choice not in ["OLLAMA", "QWEN"]:
                 logger.warning(
-                    "Invalid model choice: %s, defaulting to ollama:qwen3-vl:235b-instruct-cloud",
+                    "Invalid model choice: %s, defaulting to ollama:qwen3.5:397b-cloud",
                     model_choice,
                 )
-                model_choice = "ollama:qwen3-vl:235b-instruct-cloud"
+                model_choice = "ollama:qwen3.5:397b-cloud"
 
             logger.info("Model choice: %s, analysis available: %s", model_choice, bool(ollama_analysis))
             return model_choice, ollama_analysis, None
 
         except Exception as e:
             logger.error("Error in model_choice_with_analysis: %s", e)
-            return "ollama:qwen3-vl:235b-instruct-cloud", "", str(e)
+            return "ollama:qwen3.5:397b-cloud", "", str(e)
 
     def health(self) -> Dict[str, Any]:
         """Health snapshot including circuit breaker state."""

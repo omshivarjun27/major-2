@@ -17,11 +17,11 @@ def client():
     os.environ["DEBUG_ENDPOINTS_ENABLED"] = "true"
     os.environ["DEBUG_AUTH_TOKEN"] = "test-debug-token-12345"
 
-    # Reload the module-level variables in api_server
+    # Reload the module-level variables in apps.api.server
     import importlib
-    import api_server
+    import apps.api.server as api_server
     importlib.reload(api_server)
-    from api_server import app
+    from apps.api.server import app
 
     return TestClient(app)
 
