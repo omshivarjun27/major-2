@@ -1,7 +1,7 @@
 # Implementation Plan: Codebase Analysis and Technical Debt Remediation
 
 ## Phase 1: Codebase Audit and Preparation
-- [ ] Task: Execute static analysis and collect warnings
+- [~] Task: Execute static analysis and collect warnings
     - [ ] Run linters (ruff, bandit, import-linter) and document issues.
     - [ ] Run test suite and document failing or skipped tests.
 - [ ] Task: Conductor - User Manual Verification 'Phase 1: Codebase Audit and Preparation' (Protocol in workflow.md)
