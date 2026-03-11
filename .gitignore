@@ -1,0 +1,41 @@
+# Environments
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.venv/
+venv/
+ENV/
+
+# System and logs
+logs/
+*.log
+.runtime/
+.gemini/
+
+# Models and data
+models/*.onnx
+qr_cache/
+*.json
+!identities.json
+!FEATURE_MAP.json
+!my-first-extension/gemini-extension.json
+!my-first-extension/package.json
+!conductor/tracks/*/metadata.json
+!conductor/setup_state.json
+
+# Sisyphus
+.sisyphus/
+
+# Output files
+*_out.txt
+temp_*.json
+temp_*.md
+nul

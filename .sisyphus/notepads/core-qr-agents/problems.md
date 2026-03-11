@@ -1,2 +1,0 @@
-- Problems log for core/qr AGENTS.md creation:
-- None identified during this task. Placeholder for future blockers.

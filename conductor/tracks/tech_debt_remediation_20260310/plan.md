@@ -19,7 +19,7 @@
 - [x] Task: Fix skipped tests fa3dc4e
     - [x] Write Tests: Review the logic behind skipped tests.
     - [x] Implement Fix: Update the test logic or underlying code to un-skip and pass tests.
-- [ ] Task: Fix failing tests
+- [~] Task: Fix failing tests
     - [ ] Write Tests: Review failing test assertions.
     - [ ] Implement Fix: Resolve the bugs causing the tests to fail.
 - [ ] Task: Conductor - User Manual Verification 'Phase 3: Test Suite Remediation' (Protocol in workflow.md)

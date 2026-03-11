@@ -1,5 +1,0 @@
-- Stale documentation is worse than no documentation, as it misleads developers and observers.
-- Documentation drift leads to significant bugs and confusion during onboarding or debugging sessions.
-- High-frequency parallel tasks can cause conflicts in centralized documentation files like Memory.md.
-- Manually updating documentation for every code change is perceived as a burden, leading to documentation debt.
-- Quantitative metrics alone (LOC, test count) do not capture the accuracy of technical descriptions.

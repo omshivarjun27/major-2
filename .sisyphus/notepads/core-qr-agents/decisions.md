@@ -1,2 +1,0 @@
-- Decision: Created core/qr/AGENTS.md with 9-section folder structure to codify QR/AR scanning module responsibilities and guidance.
-- Rationale: Provides a stable reference for future evolutions and ensures consistent onboarding for QR/AR functionality.
