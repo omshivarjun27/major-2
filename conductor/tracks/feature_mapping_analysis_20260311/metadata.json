@@ -1,0 +1,8 @@
+{
+  "track_id": "feature_mapping_analysis_20260311",
+  "type": "chore",
+  "status": "new",
+  "created_at": "2026-03-11T00:00:00Z",
+  "updated_at": "2026-03-11T00:00:00Z",
+  "description": "Perform a full Feature Mapping analysis of the entire codebase, tracing dependencies and outputting a structured FEATURE_MAP.md and FEATURE_MAP.json."
+}

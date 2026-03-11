@@ -11,3 +11,8 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 - [x] **Track: Agent Context Discovery and Documentation**
 *Link: [./tracks/agent_context_discovery_20260311/](./tracks/agent_context_discovery_20260311/)*
+
+---
+
+- [ ] **Track: Comprehensive Feature Mapping Analysis**
+*Link: [./tracks/feature_mapping_analysis_20260311/](./tracks/feature_mapping_analysis_20260311/)*
