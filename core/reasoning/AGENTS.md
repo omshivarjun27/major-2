@@ -1,26 +1,27 @@
-## 1. Purpose
-Placeholder module reserved for future large-language-model orchestration and complex reasoning workflows.
+# Reasoning Context
 
-## 2. Current state
-EMPTY PLACEHOLDER MODULE. Not yet populated. Only has __init__.py.
+## Purpose
+Module responsible for reasoning functionality.
 
-## 3. Status
-Zero implementation, zero tests, zero functionality.
+## Key Files
+- `AGENTS.md`: Implementation/configuration file.
+- `causal.py`: Implementation/configuration file.
+- `engine.py`: Implementation/configuration file.
+- `integration.py`: Implementation/configuration file.
+- `reasoning_foundation.py`: Implementation/configuration file.
+- `spatial.py`: Implementation/configuration file.
+- `temporal.py`: Implementation/configuration file.
+- `__init__.py`: Implementation/configuration file.
 
-## 4. Dependencies
-- Depends on shared for common interfaces and gating.
+## Patterns and Conventions
+- Follow standard Python naming conventions.
+- Maintain modularity and single responsibility.
+- Refer to `conductor/` or root guidelines for specific architectural patterns.
 
-## 5. Interfaces and expectations
-- No external interfaces yet; planned integration points will go through the shared orchestration layer in future.
+## Dependencies
+- Interacts with sibling modules and shared utilities.
+- Relies on core/ and shared/ components.
 
-## 6. Testing & validation
-- None currently; to be defined when the module is populated.
-
-## 7. Risks & mitigations
-- Risk: stalling advanced features until module is implemented. Mitigation: track plan and schedule for future activation.
-
-## 8. Documentation & references
-- The module exists as a placeholder; no implementation to document yet.
-
-## 9. Notes
-- Honest status: nothing implemented at this time; no tests; no functionality.
+## Gotchas and Important Notes
+- Ensure paths are resolved relative to the project root.
+- Watch out for circular dependencies when importing from other modules.

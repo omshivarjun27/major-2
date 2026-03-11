@@ -1,41 +1,30 @@
-# tests/AGENTS.md
-429+ tests across 8 directories.
-**Config**: `asyncio_mode=auto` via `pyproject.toml`. No `@pytest.mark.asyncio` needed.
+# Tests Context
 
-## TEST HIERARCHY
-| Directory | Files | Purpose |
-|-----------|-------|---------|
-| `unit/` | ~90 | Fast, isolated tests for engines (OCR, Memory, QR, Braille, Vision, Speech). |
-| `integration/` | ~22 | Cross-module tests (VQA API, RAG flow, failover scenarios). |
-| `performance/` | ~47 | NFR/SLA tests for latency, FPS, privacy, and chaos. |
-| `realtime/` | 5 | Live pipeline harnesses (**NOT** run via pytest). |
-| `fixtures/` | - | Synthetic data generators (Braille patterns, detection sets). |
-| `chaos/` | 1 | 15 failure-mode scenarios (service shutdowns, cascades). |
-| `smoke/` | 1 | Health and pipeline smoke tests (ASGI transport). |
-| `load/` | 3 | Locust load tests + concurrent user infrastructure. |
+## Purpose
+Testing directory for tests.
 
-## MOCK PATTERNS
-Mocks are typically defined locally within test files to avoid brittle shared fixtures.
-```python
-class MockDetector:
-    def __init__(self, detections=None, delay_s=0.0, should_raise=False):
-        self.detections = detections or []
-        self.delay_s = delay_s
-        self.should_raise = should_raise
+## Key Files
+- `AGENTS.md`: Implementation/configuration file.
+- `conftest.py`: Implementation/configuration file.
+- `conftest_vision.py`: Implementation/configuration file.
+- `generated_scenarios.json`: Implementation/configuration file.
+- `test_action_engine.py`: Implementation/configuration file.
+- `test_audio_engine.py`: Implementation/configuration file.
+- `test_ci_smoke.py`: Implementation/configuration file.
+- `test_confidence_cascade.py`: Implementation/configuration file.
+- `test_continuous_processing.py`: Implementation/configuration file.
+- `test_debug_visualizer.py`: Implementation/configuration file.
+- ... and 20 more files.
 
-    async def detect(self, image):
-        if self.should_raise: raise RuntimeError("Mock error")
-        await asyncio.sleep(self.delay_s)
-        return self.detections
-```
-**Use `delay_s`** to verify concurrent execution and timeouts.
-**Use `should_raise=True`** to verify "never-raise" guarantees in the orchestrator.
+## Patterns and Conventions
+- Follow standard Python naming conventions.
+- Maintain modularity and single responsibility.
+- Refer to `conductor/` or root guidelines for specific architectural patterns.
 
-## KEY CONVENTIONS
-- **Fixture Chaining**: `mock_indexer → mock_embedder → ingester` (dependency injection).
-- **Env Overrides**: Use the `env_overrides` fixture to safely mutate settings for a single test.
-- **ASGI Transport**: Use `AsyncClient(transport=ASGITransport(app=app))` for testing FastAPI endpoints.
-- **Assertion Style**: Use descriptive messages: `assert elapsed < 500, f"Hot path took {elapsed}ms (limit: 500)"`.
+## Dependencies
+- Interacts with sibling modules and shared utilities.
+- Relies on core/ and shared/ components.
 
-## REALTIME TOOLS
-The `tests/realtime/` directory contains standalone scripts for manual benchmarking and live-frame inspection. Run directly: `python tests/realtime/realtime_test.py --debug`.
+## Gotchas and Important Notes
+- Ensure paths are resolved relative to the project root.
+- Watch out for circular dependencies when importing from other modules.

@@ -1,0 +1,23 @@
+# Consent Context
+
+## Purpose
+Module responsible for consent functionality.
+
+## Key Files
+- `device_123.json`: Implementation/configuration file.
+- `face_audit.jsonl`: Implementation/configuration file.
+- `test_device.json`: Implementation/configuration file.
+- `test_out_device.json`: Implementation/configuration file.
+
+## Patterns and Conventions
+- Follow standard Python naming conventions.
+- Maintain modularity and single responsibility.
+- Refer to `conductor/` or root guidelines for specific architectural patterns.
+
+## Dependencies
+- Interacts with sibling modules and shared utilities.
+- Relies on core/ and shared/ components.
+
+## Gotchas and Important Notes
+- Ensure paths are resolved relative to the project root.
+- Watch out for circular dependencies when importing from other modules.

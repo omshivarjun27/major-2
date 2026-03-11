@@ -1,27 +1,22 @@
-Purpose: Placeholder AGENTS.md for event bus integration plan.
-This file documents intended agents and structure for inter-component messaging.
+# Event_bus Context
 
-Components: Planned building blocks for event bus integration.
-- EventRouter
-- MessageBus
-- EventListeners
-- MessageFormat
+## Purpose
+Module responsible for event bus functionality.
 
-Dependencies: Current stub; none required yet.
+## Key Files
+- `AGENTS.md`: Implementation/configuration file.
+- `bus.py`: Implementation/configuration file.
+- `__init__.py`: Implementation/configuration file.
 
-Tasks: None implemented yet; reserved for future work.
+## Patterns and Conventions
+- Follow standard Python naming conventions.
+- Maintain modularity and single responsibility.
+- Refer to `conductor/` or root guidelines for specific architectural patterns.
 
-Design: Will follow the 5-layer modular pattern; ensure no circular imports.
-Interfaces will be publish/subscribe primitives; event types explicit.
+## Dependencies
+- Interacts with sibling modules and shared utilities.
+- Relies on core/ and shared/ components.
 
-Research: Review repository for existing inter-module communication patterns.
-Compare in-process bus vs external messaging broker tradeoffs.
-
-Risk: Stub status adds no concrete risks yet.
-Potential future risk: tight coupling if bus becomes global state.
-
-Improvements: When active, apply dependency injection and feature toggles.
-Align with shared schemas to prevent drift.
-
-Change Log: 
-2026-02-23: Created initial AGENTS.md stub for application/event_bus.
+## Gotchas and Important Notes
+- Ensure paths are resolved relative to the project root.
+- Watch out for circular dependencies when importing from other modules.

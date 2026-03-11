@@ -1,43 +1,30 @@
-## Purpose
-- Provide documentation governance for the PRD suite and related guidance.
-- Ensure consistent templates, style, and review criteria across all docs.
-- Serve as a single reference for documenting architecture, decisions, and usage.
+# Docs Context
 
-## Components
-- Documentation templates, AGENTS.md guidelines, and repository-wide conventions.
-- Sectioned docs for architecture, API specs, and user workflows.
-- Change logs and revision history in a structured format.
+## Purpose
+Documentation and reference materials.
+
+## Key Files
+- `accessibility-audit.md`: Implementation/configuration file.
+- `AGENTS.md`: Implementation/configuration file.
+- `architecture.md`: Implementation/configuration file.
+- `benchmarking-protocol.md`: Implementation/configuration file.
+- `canary-deployment.md`: Implementation/configuration file.
+- `configuration.md`: Implementation/configuration file.
+- `DataFlow.md`: Implementation/configuration file.
+- `docs-index.md`: Implementation/configuration file.
+- `HLD.md`: Implementation/configuration file.
+- `LLD.md`: Implementation/configuration file.
+- ... and 14 more files.
+
+## Patterns and Conventions
+- Follow standard Python naming conventions.
+- Maintain modularity and single responsibility.
+- Refer to `conductor/` or root guidelines for specific architectural patterns.
 
 ## Dependencies
-- Tightly linked to docs/PRD and docs/architecture sections.
-- Requires consistent contribution rules enforced by CI checks.
-- Depends on AGENTS.md in related folders for process alignment.
+- Interacts with sibling modules and shared utilities.
+- Relies on core/ and shared/ components.
 
-## Tasks
-- Create and maintain new docs sections with uniform style.
-- Update PRD and architecture documents when design changes occur.
-- Enforce linkability and cross-reference consistency across docs.
-
-## Design
-- Markdown-first approach with clear headings, tables, and code blocks when needed.
-- Consistent terminology and glossary across all documents.
-- Documentation should be executable as a read-only source of truth.
-
-## Research
-- Review documentation patterns in similar large projects.
-- Evaluate tooling for automated docs generation and validation.
-- Assess accessibility considerations in documentation delivery.
-
-## Risk
-- Inconsistent docs creation leading to stale decisions.
-- Missing links or broken references degrade trust.
-- Over-verbosity hides critical information from readers.
-
-## Improvements
-- Introduce a docs review checklist and PR templates.
-- Adopt a lightweight changelog strategy for non-code artifacts.
-- Integrate docs tests to ensure pages build without errors.
-
-## Change Log
-- 2026-02-23: Added AGENTS.md for docs directory.
-- 2026-02-23: Established structure for PRD and architecture docs.
+## Gotchas and Important Notes
+- Ensure paths are resolved relative to the project root.
+- Watch out for circular dependencies when importing from other modules.

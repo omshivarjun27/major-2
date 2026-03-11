@@ -1,28 +1,30 @@
-Purpose: Document unit testing approach for tests/unit/.
-This directory hosts 12 unit test files using pytest with async support.
+# Unit Context
 
-Components: Test modules per core unit; placeholder references.
-- test_core_vision.py
-- test_core_memory.py
-- test_core_ocr.py
-- test_core_vqa.py
-- test_core_speech.py
-- test_core_audio.py
-- test_infrastructure_llm.py
-- test_infrastructure_storage.py
+## Purpose
+Module responsible for unit functionality.
 
-Dependencies: pytest, pytest-asyncio, and per-test fixtures defined in conftest.py.
+## Key Files
+- `AGENTS.md`: Implementation/configuration file.
+- `test_action_context.py`: Implementation/configuration file.
+- `test_action_recognition_edge_cases.py`: Implementation/configuration file.
+- `test_async_audit.py`: Implementation/configuration file.
+- `test_async_blocking_regression.py`: Implementation/configuration file.
+- `test_audio_events_edge_cases.py`: Implementation/configuration file.
+- `test_backup_scheduler.py`: Implementation/configuration file.
+- `test_braille_classifier.py`: Implementation/configuration file.
+- `test_braille_segmenter.py`: Implementation/configuration file.
+- `test_cache_manager.py`: Implementation/configuration file.
+- ... and 82 more files.
 
-Tasks: None implemented yet; reserved for future unit tests.
+## Patterns and Conventions
+- Follow standard Python naming conventions.
+- Maintain modularity and single responsibility.
+- Refer to `conductor/` or root guidelines for specific architectural patterns.
 
-Design: Tests should be async-friendly; use pytest.mark.asyncio where needed.
-The tests should validate inputs, outputs, and boundary conditions.
+## Dependencies
+- Interacts with sibling modules and shared utilities.
+- Relies on core/ and shared/ components.
 
-Research: Review existing test patterns in repository; align with 5-layer architecture.
-
-Risk: Stub status present; low immediate risk; future tests may require maintenance.
-
-Improvements: Add fixtures for core components; centralize mocks.
-
-Change Log: 
-2026-02-23: Created initial AGENTS.md stub for tests/unit.
+## Gotchas and Important Notes
+- Ensure paths are resolved relative to the project root.
+- Watch out for circular dependencies when importing from other modules.

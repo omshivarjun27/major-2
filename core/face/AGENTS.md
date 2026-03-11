@@ -1,54 +1,26 @@
-# AGENTS.md — core/face
+# Face Context
 
-## 1. Folder Purpose
-- Privacy-first face subsystem handling detection, tracking, and recognition
-- Provides opt-in consent gating and minimal-data processing
-- Integrates with global privacy controls and consent registry
+## Purpose
+Module responsible for face functionality.
 
-## 2. Contained Components
-- FaceDetector: RetinaFace or MTCCN-based detector (opt-in)
-- FaceEmbeddingStore: encrypted vector embeddings storage (opt-in)
-- FaceTracker: tracking of detected identities (opt-in)
-- SocialCueAnalyzer: emotion and head-pose analysis (opt-in)
-- All components require explicit user consent before processing any face data
+## Key Files
+- `AGENTS.md`: Implementation/configuration file.
+- `consent_audit.py`: Implementation/configuration file.
+- `face_detector.py`: Implementation/configuration file.
+- `face_embeddings.py`: Implementation/configuration file.
+- `face_social_cues.py`: Implementation/configuration file.
+- `face_tracker.py`: Implementation/configuration file.
+- `__init__.py`: Implementation/configuration file.
 
-## 3. Dependency Graph
-- Depends on shared layer: config, logging, privacy utilities
-- Apps layer consumes via face_enabled() feature flag
-- No direct infra imports without consent gating
-- Imports follow 5-layer architecture constraints
+## Patterns and Conventions
+- Follow standard Python naming conventions.
+- Maintain modularity and single responsibility.
+- Refer to `conductor/` or root guidelines for specific architectural patterns.
 
-## 4. Task Tracking
-- Current status: mostly complete
-- There are 3 stubs awaiting implementation or extension
-- Privacy consent flow is implemented and tested for gating
-- No hard-coded defaults; all features gated behind explicit opt-in
+## Dependencies
+- Interacts with sibling modules and shared utilities.
+- Relies on core/ and shared/ components.
 
-## 5. Design Thinking
-- Privacy by design as a non-functional requirement
-- Encryption of embeddings at rest and in transit
-- Consent must be captured and auditable before any face data usage
-- Data minimization and on-device processing where feasible
-
-## 6. Research Notes
-- Face model VRAM footprint ~300MB on consumer GPUs
-- RetinaFace/MTCCN provide tradeoffs between accuracy and speed
-- Consent and audit need to be tracked across sessions
-- Potential future: on-device face embeddings with secure enclave
-
-## 7. Risk Assessment
-- Privacy sensitivity: MEDIUM
-- Key mitigations: encryption, consent gating, access controls
-- Potential risks: misconfiguration of opt-in, leakage of embeddings
-- Mitigation plan: strict policy checks and zero-privilege data access
-
-## 8. Improvement Suggestions
-- Complete remaining 3 stubs with integration tests
-- Implement consent audit trail logging for each face operation
-- Add automated data retention policies and deletion hooks
-- Review encryption keys rotation and access control models
-
-## 9. Folder Change Log
-- 2026-02-23: Initial creation
-
-End of AGENTS.md
+## Gotchas and Important Notes
+- Ensure paths are resolved relative to the project root.
+- Watch out for circular dependencies when importing from other modules.

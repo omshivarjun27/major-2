@@ -1,24 +1,30 @@
-Purpose: Document live pipeline tests for tests/realtime/.
-This directory contains 5 test files for live pipeline harness; hardware required.
+# Realtime Context
 
-Components: Real-time components and test harness.
-- agent_stress_test.py
-- frame_latency_test.py
-- voice_sync_test.py
-- streaming_quality_test.py
-- end_to_end_realtime_test.py
+## Purpose
+Module responsible for realtime functionality.
 
-Dependencies: pytest, async test harness; hardware prerequisites.
+## Key Files
+- `AGENTS.md`: Implementation/configuration file.
+- `benchmark.py`: Implementation/configuration file.
+- `calibrate_depth.py`: Implementation/configuration file.
+- `EVALUATION_FORMS.md`: Implementation/configuration file.
+- `metrics.py`: Implementation/configuration file.
+- `realtime_test.py`: Implementation/configuration file.
+- `replay_tool.py`: Implementation/configuration file.
+- `SAFETY_PROTOCOLS.md`: Implementation/configuration file.
+- `session_logger.py`: Implementation/configuration file.
+- `TEST_PLAN.md`: Implementation/configuration file.
+- ... and 1 more files.
 
-Tasks: None implemented yet; reserved for hardware-driven tests.
+## Patterns and Conventions
+- Follow standard Python naming conventions.
+- Maintain modularity and single responsibility.
+- Refer to `conductor/` or root guidelines for specific architectural patterns.
 
-Design: Tests assume camera/audio input; rely on LiveKit/WebRTC stack if enabled.
+## Dependencies
+- Interacts with sibling modules and shared utilities.
+- Relies on core/ and shared/ components.
 
-Research: Consider deterministic synthetic feeds if hardware unavailable.
-
-Risk: Stub status; hardware variability may cause flaky tests.
-
-Improvements: Provide mocks for non-hardware portions; document test environment.
-
-Change Log:
-2026-02-23: Created initial AGENTS.md stub for tests/realtime.
+## Gotchas and Important Notes
+- Ensure paths are resolved relative to the project root.
+- Watch out for circular dependencies when importing from other modules.

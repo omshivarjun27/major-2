@@ -1,43 +1,30 @@
-## Purpose
-- Provide standardized environment setup and bootstrap procedures.
-- Document scripts that prepare developer machines, CI runners, and runtime environments.
-- Ensure reproducible local development and quick onboarding for new contributors.
+# Scripts Context
 
-## Components
-- Setup scripts for dependencies, virtual environments, and toolchains.
-- Environment provisioning for dev/test/prod simulations.
-- Utility scripts for common maintenance tasks (linting, tests, builds).
+## Purpose
+Module responsible for scripts functionality.
+
+## Key Files
+- `AGENTS.md`: Implementation/configuration file.
+- `async_audit.py`: Implementation/configuration file.
+- `canary_analysis.py`: Implementation/configuration file.
+- `canary_deploy.py`: Implementation/configuration file.
+- `canary_promote.py`: Implementation/configuration file.
+- `capture_baseline.py`: Implementation/configuration file.
+- `check_deps.py`: Implementation/configuration file.
+- `check_deps.sh`: Implementation/configuration file.
+- `download_models.py`: Implementation/configuration file.
+- `generate_release_notes.py`: Implementation/configuration file.
+- ... and 15 more files.
+
+## Patterns and Conventions
+- Follow standard Python naming conventions.
+- Maintain modularity and single responsibility.
+- Refer to `conductor/` or root guidelines for specific architectural patterns.
 
 ## Dependencies
-- Requires clear config conventions in configs/AGENTS.md.
-- Depends on Docker/VM availability for end-to-end tests.
-- Leverages shared utilities for logging, diagnostics, and error handling.
+- Interacts with sibling modules and shared utilities.
+- Relies on core/ and shared/ components.
 
-## Tasks
-- Add a bootstrap script that validates tool versions and git config.
-- Provide a single source of truth for local dev setup instructions.
-- Ensure scripts are idempotent and safe to re-run.
-
-## Design
-- Use shell or Python-based runners with explicit exit codes.
-- Centralize version pinning to minimize drift across environments.
-- Include tests or dry-run checks where feasible.
-
-## Research
-- Review commonly used bootstrap patterns for cross-platform development.
-- Analyze impact of different package managers on reproducibility.
-- Assess need for containerized development environments.
-
-## Risk
-- Supplying incorrect tool versions can cause hard-to-diagnose failures.
-- Scripts with side effects or non-idempotent actions increase risk.
-- Poor documentation leads to misconfigurations in new environments.
-
-## Improvements
-- Add a verification step post-setup to confirm environment readiness.
-- Introduce a version manifest to lock toolchain components.
-- Document troubleshooting steps for common setup failure modes.
-
-## Change Log
-- 2026-02-23: Created AGENTS.md for scripts directory.
-- 2026-02-23: Outlined setup foundations and maintenance tasks.
+## Gotchas and Important Notes
+- Ensure paths are resolved relative to the project root.
+- Watch out for circular dependencies when importing from other modules.

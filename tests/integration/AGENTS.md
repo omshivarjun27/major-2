@@ -1,26 +1,30 @@
-Purpose: Document integration test strategy for tests/integration/.
-This directory hosts 7 test files for cross-module workflow validation.
+# Integration Context
 
-Components: Cross-module test cases and harnesses.
-- test_workflow_api_login.py
-- test_workflow_memory_sync.py
-- test_workflow_vqa_pipeline.py
-- test_workflow_session_flow.py
-- test_workflow_event_bus_http.py
-- test_workflow_error_handling.py
-- test_workflow_performance.py
+## Purpose
+Module responsible for integration functionality.
 
-Dependencies: pytest, test harness fixtures; environment controls.
+## Key Files
+- `AGENTS.md`: Implementation/configuration file.
+- `test_agent_coordinator.py`: Implementation/configuration file.
+- `test_canary.py`: Implementation/configuration file.
+- `test_deepgram.py`: Implementation/configuration file.
+- `test_failover_scenarios.py`: Implementation/configuration file.
+- `test_frame_spatial_integration.py`: Implementation/configuration file.
+- `test_memory_hybrid.py`: Implementation/configuration file.
+- `test_memory_search.py`: Implementation/configuration file.
+- `test_p0_security_smoke.py`: Implementation/configuration file.
+- `test_p1_pipeline.py`: Implementation/configuration file.
+- ... and 13 more files.
 
-Tasks: None implemented yet; placeholder for future integration tests.
+## Patterns and Conventions
+- Follow standard Python naming conventions.
+- Maintain modularity and single responsibility.
+- Refer to `conductor/` or root guidelines for specific architectural patterns.
 
-Design: End-to-end validation across layers; mock external services.
+## Dependencies
+- Interacts with sibling modules and shared utilities.
+- Relies on core/ and shared/ components.
 
-Research: Review existing integration patterns; establish stable data contracts.
-
-Risk: Stub status; potential flakiness if mocks diverge from reality.
-
-Improvements: Centralized test doubles; deterministic timing.
-
-Change Log:
-2026-02-23: Created initial AGENTS.md stub for tests/integration.
+## Gotchas and Important Notes
+- Ensure paths are resolved relative to the project root.
+- Watch out for circular dependencies when importing from other modules.

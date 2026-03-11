@@ -1,39 +1,21 @@
-# application/AGENTS.md
-Use-case orchestration layer: manages pipeline lifecycle, coordinates engines, and handles the request/response flow.
-**Constraint**: Layer may only import from `core/` and `shared/`. NEVER from `infrastructure/` or `apps/`.
+# Application Context
 
-## WHERE TO LOOK
-| Module | Purpose | Deep Dive |
-|--------|---------|-----------|
-| `pipelines/` | Production pipeline components (cancellation, managers, samplers). | [AGENTS.md](pipelines/AGENTS.md) |
-| `frame_processing/` | Per-frame fusion engine and LiveFrame management. | [AGENTS.md](frame_processing/AGENTS.md) |
-| `event_bus/` | (Stub) Central event dispatch for decoupled communication. | - |
-| `session_management/` | (Stub) Session state persistence and lifecycle. | - |
+## Purpose
+Module responsible for application functionality.
 
-## KEY ENTRY POINT
-`application.pipelines.integration.create_pipeline_components()`
-Call this at startup to initialize all 8 production pipeline components and wire them into a `PipelineComponents` container.
+## Key Files
+- `AGENTS.md`: Implementation/configuration file.
+- `__init__.py`: Implementation/configuration file.
 
-## INTEGRATION PATTERNS
-### Wiring
-```python
-from application.pipelines import create_pipeline_components, wrap_entrypoint_with_pipeline
+## Patterns and Conventions
+- Follow standard Python naming conventions.
+- Maintain modularity and single responsibility.
+- Refer to `conductor/` or root guidelines for specific architectural patterns.
 
-# Initialize components with required engine instances and callbacks
-components = create_pipeline_components(perception_pipeline, tts_func, speak_func)
+## Dependencies
+- Interacts with sibling modules and shared utilities.
+- Relies on core/ and shared/ components.
 
-# Wrap an entrypoint function (e.g., LiveKit agent callback) to enable the pipeline
-wrap_entrypoint_with_pipeline(entrypoint_fn, components)
-```
-
-### Cancellation
-On a new user query: Use `on_new_user_query(components, query)` to:
-- Cancel all active `CancellationScopes`.
-- Interrupt current TTS output.
-- Clear the perception cache.
-
-### Audio Priority
-**NEVER** call `agent_session.say()` directly. Use `speak_with_priority(components, text, priority)` to ensure the `AudioOutputManager` can properly queue and preempt audio (e.g., critical hazard warnings).
-
-## TELEMETRY
-Every component in this layer exposes `.health()` and `.stats()` methods. Use the `PipelineMonitor` to aggregate these for real-time observability and SLO tracking.
+## Gotchas and Important Notes
+- Ensure paths are resolved relative to the project root.
+- Watch out for circular dependencies when importing from other modules.

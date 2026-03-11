@@ -1,26 +1,22 @@
-Purpose: Placeholder AGENTS.md for session management.
-This directory is currently an empty stub; multi-user session persistence is not implemented yet.
+# Session_management Context
 
-Components: None at present; planned modules will manage user sessions.
-- SessionStore (planned)
-- SessionManager (planned)
-- SessionMiddleware (planned)
+## Purpose
+Module responsible for session management functionality.
 
-Dependencies: None currently; will depend on storage layer if implemented.
+## Key Files
+- `AGENTS.md`: Implementation/configuration file.
+- `manager.py`: Implementation/configuration file.
+- `__init__.py`: Implementation/configuration file.
 
-Tasks: None; reserved for future session persistence features.
+## Patterns and Conventions
+- Follow standard Python naming conventions.
+- Maintain modularity and single responsibility.
+- Refer to `conductor/` or root guidelines for specific architectural patterns.
 
-Design: If implemented, will support per-user sessions with durable storage and secure handling.
-Interfaces: create_session, get_session, refresh_session, end_session.
+## Dependencies
+- Interacts with sibling modules and shared utilities.
+- Relies on core/ and shared/ components.
 
-Research: Investigate best practices for session-scoped state management in FastAPI/Express-like stacks.
-Compare in-memory vs persistent stores; consider replication and failover.
-
-Risk: Stub status yields minimal immediate risk.
-Potential future risk: session data retention and privacy considerations.
-
-Improvements: When implemented, apply strict validation, encryption at rest, and access controls.
-Alignment: integrate with authentication layer and memory gateway per plan.
-
-Change Log: 
-2026-02-23: Created initial AGENTS.md stub for application/session_management.
+## Gotchas and Important Notes
+- Ensure paths are resolved relative to the project root.
+- Watch out for circular dependencies when importing from other modules.
