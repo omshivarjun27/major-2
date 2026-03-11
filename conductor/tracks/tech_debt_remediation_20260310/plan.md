@@ -10,9 +10,9 @@
 - [x] Task: Resolve import-linter boundaries f90ed1e
     - [x] Write Tests: Ensure architectural boundaries tests exist.
     - [x] Implement Fix: Adjust imports to respect layer boundaries.
-- [~] Task: Resolve ruff warnings
-    - [ ] Write Tests: N/A for formatting/linting, ensure tests still pass.
-    - [ ] Implement Fix: Apply ruff fixes across the codebase.
+- [x] Task: Resolve ruff warnings e2195e8
+    - [x] Write Tests: N/A for formatting/linting, ensure tests still pass.
+    - [x] Implement Fix: Apply ruff fixes across the codebase.
 - [ ] Task: Conductor - User Manual Verification 'Phase 2: Linter and Formatting Fixes' (Protocol in workflow.md)
 
 ## Phase 3: Test Suite Remediation
