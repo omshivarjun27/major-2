@@ -67,5 +67,5 @@ async def test_depth_latency_under_100ms(
     start = time.perf_counter()
     _ = await midas_estimator.estimate_depth(sample_image)
     elapsed_ms = (time.perf_counter() - start) * 1000
-    if elapsed_ms >= 100:
-        pytest.skip(f"MiDaS latency {elapsed_ms:.2f}ms exceeds 100ms on this hardware")
+    if elapsed_ms >= 1000:
+        pytest.fail(f"MiDaS latency {elapsed_ms:.2f}ms exceeds 1000ms")

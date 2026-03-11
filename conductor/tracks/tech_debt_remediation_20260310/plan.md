@@ -16,7 +16,7 @@
 - [x] Task: Conductor - User Manual Verification 'Phase 2: Linter and Formatting Fixes' (Protocol in workflow.md) 18a07de
 
 ## Phase 3: Test Suite Remediation
-- [ ] Task: Fix skipped tests
+- [~] Task: Fix skipped tests
     - [ ] Write Tests: Review the logic behind skipped tests.
     - [ ] Implement Fix: Update the test logic or underlying code to un-skip and pass tests.
 - [ ] Task: Fix failing tests
