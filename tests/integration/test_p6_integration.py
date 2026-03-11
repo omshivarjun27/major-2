@@ -12,27 +12,23 @@ Cross-module integration tests verifying that P6 features work together:
 from __future__ import annotations
 
 import numpy as np
-import pytest
 
-from core.action.clip_recognizer import CLIPActionRecognizer, CLIPConfig, IndoorAction
 from core.action.action_context import (
-    ActionContextIntegrator,
     ActionContextConfig,
+    ActionContextIntegrator,
     SceneContext,
 )
-from core.audio.audio_event_detector import AudioEventDetector, AudioEventConfig
-from core.audio.enhanced_detector import EnhancedAudioDetector, EnhancedAudioConfig
-from core.reasoning.temporal import TemporalReasoner, TemporalEvent
-from core.reasoning.spatial import SpatialReasoner, SpatialEntity
+from core.action.clip_recognizer import CLIPActionRecognizer, CLIPConfig
+from core.audio.enhanced_detector import EnhancedAudioDetector
 from core.reasoning.causal import CausalReasoner
 from core.reasoning.integration import IntegratedReasoner, create_integrated_reasoner
 from core.reasoning.reasoning_foundation import (
-    ReasoningOrchestrator,
     create_reasoning_orchestrator,
 )
+from core.reasoning.spatial import SpatialEntity, SpatialReasoner
+from core.reasoning.temporal import TemporalEvent, TemporalReasoner
 from core.vqa.multi_frame_vqa import MultiFrameAnalyzer
 from core.vqa.scene_narrator import SceneNarrator
-
 
 # ===========================================================================
 # Action Pipeline Integration

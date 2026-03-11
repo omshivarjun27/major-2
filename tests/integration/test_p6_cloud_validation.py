@@ -10,15 +10,12 @@ Validates cloud sync components work together:
 
 from __future__ import annotations
 
-import pytest
-
 from core.memory.cloud_sync import CloudSyncConfig
-from core.memory.faiss_sync import FAISSSyncConfig, FAISSSyncManager
-from core.memory.sqlite_sync import SQLiteSyncConfig, SQLiteSyncManager
 from core.memory.conflict_resolver import ConflictResolutionManager
-from core.memory.privacy_controls import PrivacyControlsManager
+from core.memory.faiss_sync import FAISSSyncConfig
 from core.memory.offline_queue import OfflineQueue, QueueOperationType
-
+from core.memory.privacy_controls import PrivacyControlsManager
+from core.memory.sqlite_sync import SQLiteSyncConfig
 
 # ===========================================================================
 # Cloud Sync Architecture Validation

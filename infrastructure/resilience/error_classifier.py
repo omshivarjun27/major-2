@@ -20,7 +20,7 @@ from __future__ import annotations
 import enum
 import logging
 from dataclasses import dataclass
-from typing import Optional, Type, Union
+from typing import Optional
 
 logger = logging.getLogger("resilience.error_classifier")
 

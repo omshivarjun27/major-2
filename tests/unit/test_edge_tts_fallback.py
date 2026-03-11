@@ -10,9 +10,7 @@ Tests cover:
 - create_local_tts_fn helper
 """
 
-import asyncio
-from unittest.mock import AsyncMock, MagicMock, patch
-import pytest
+from unittest.mock import patch
 
 
 class TestLocalTTSConfig:
@@ -142,8 +140,8 @@ class TestLocalTTSFallbackInitialization:
     def test_init_with_custom_config(self):
         """Test initialization with custom configuration."""
         from infrastructure.speech.local.edge_tts_fallback import (
-            LocalTTSFallback,
             LocalTTSConfig,
+            LocalTTSFallback,
         )
 
         config = LocalTTSConfig(voice="en-GB-SoniaNeural", prefer_edge_tts=False)
@@ -479,8 +477,8 @@ class TestCreateLocalTTSFn:
     def test_create_with_custom_config(self):
         """Test create_local_tts_fn with custom config."""
         from infrastructure.speech.local.edge_tts_fallback import (
-            create_local_tts_fn,
             LocalTTSConfig,
+            create_local_tts_fn,
         )
 
         config = LocalTTSConfig(voice="en-GB-SoniaNeural")
@@ -513,11 +511,11 @@ class TestModuleExports:
     def test_exports_from_init(self):
         """Test all expected symbols are exported from __init__."""
         from infrastructure.speech.local import (
-            LocalTTSFallback,
-            LocalTTSConfig,
-            SynthesisResult,
             EDGE_TTS_AVAILABLE,
             PYTTSX3_AVAILABLE,
+            LocalTTSConfig,
+            LocalTTSFallback,
+            SynthesisResult,
             create_local_tts_fn,
         )
 

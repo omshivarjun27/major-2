@@ -17,32 +17,27 @@ Covers:
 import asyncio
 import time
 import uuid
-import pytest
-import numpy as np
 
-from application.frame_processing.freshness import (
-    is_frame_fresh,
-    frame_age_ms,
-    safe_output,
-    FALLBACK_MESSAGE,
-)
-from application.frame_processing.live_frame_manager import (
-    LiveFrameManager,
-    TimestampedFrame,
-    FrameRingBuffer,
-    FrameSubscriber,
-    CaptureStats,
-)
+import numpy as np
+import pytest
+
 from application.frame_processing.frame_orchestrator import (
     FrameOrchestrator,
     FrameOrchestratorConfig,
     FusedFrameResult,
-    FrameTelemetry,
 )
-from application.pipelines.worker_pool import WorkerPool, WorkItem, WorkResult, PoolStats
+from application.frame_processing.freshness import (
+    FALLBACK_MESSAGE,
+    safe_output,
+)
+from application.frame_processing.live_frame_manager import (
+    FrameRingBuffer,
+    LiveFrameManager,
+    TimestampedFrame,
+)
 from application.pipelines.debouncer import Debouncer
 from application.pipelines.watchdog import Watchdog
-
+from application.pipelines.worker_pool import WorkerPool, WorkItem
 
 # ── Helpers ────────────────────────────────────────────────────────────
 

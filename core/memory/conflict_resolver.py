@@ -12,17 +12,16 @@ Implements comprehensive conflict resolution for cloud sync scenarios:
 from __future__ import annotations
 
 import asyncio
-import json
 import logging
 import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 
-from core.memory.cloud_sync import SyncResult, VectorTimestamp
+from core.memory.cloud_sync import VectorTimestamp
 
 logger = logging.getLogger("conflict-resolver")
 

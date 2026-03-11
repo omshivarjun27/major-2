@@ -1,8 +1,6 @@
 """Tests for Deepgram STT circuit breaker resilience wrapper."""
 
 import asyncio
-import time
-from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -13,7 +11,7 @@ from infrastructure.resilience.circuit_breaker import (
     clear_registry,
     get_circuit_breaker,
 )
-from infrastructure.speech.deepgram.resilience import DeepgramResilience, SERVICE_NAME
+from infrastructure.speech.deepgram.resilience import SERVICE_NAME, DeepgramResilience
 
 
 @pytest.fixture(autouse=True)
@@ -33,14 +31,14 @@ class TestDeepgramResilience:
 
     def test_registers_circuit_breaker(self) -> None:
         """DeepgramResilience registers a 'deepgram' circuit breaker in the global registry."""
-        dr = DeepgramResilience()
+        DeepgramResilience()
         cb = get_circuit_breaker("deepgram")
         assert cb is not None
         assert cb.service_name == "deepgram"
 
     def test_default_config(self) -> None:
         """Default config uses failure_threshold=3, reset_timeout_s=15."""
-        dr = DeepgramResilience()
+        DeepgramResilience()
         cb = get_circuit_breaker("deepgram")
         assert cb is not None
         assert cb.config.failure_threshold == 3
@@ -51,7 +49,7 @@ class TestDeepgramResilience:
     def test_custom_config(self) -> None:
         """Custom config overrides defaults."""
         config = CircuitBreakerConfig(failure_threshold=5, reset_timeout_s=30.0)
-        dr = DeepgramResilience(config=config)
+        DeepgramResilience(config=config)
         cb = get_circuit_breaker("deepgram")
         assert cb is not None
         assert cb.config.failure_threshold == 5

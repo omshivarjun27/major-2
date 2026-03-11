@@ -8,14 +8,14 @@ used across multiple architectural layers.
 Canonical location: ``shared/debug/``
 """
 
+from .session_logger import SessionEvent, SessionLogger
 from .visualizer import (
     DebugVisualizer,
-    VisualizerConfig,
     DebugVisualizerResult,
-    render_debug_image,
+    VisualizerConfig,
     annotate_image,
+    render_debug_image,
 )
-from .session_logger import SessionLogger, SessionEvent
 
 __all__ = [
     "DebugVisualizer",

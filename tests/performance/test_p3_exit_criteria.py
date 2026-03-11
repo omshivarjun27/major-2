@@ -15,34 +15,30 @@ from __future__ import annotations
 import asyncio
 import time
 from typing import Dict, List
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
 from infrastructure.resilience.circuit_breaker import (
     CircuitBreaker,
-    CircuitBreakerConfig,
     CircuitBreakerState,
     clear_registry,
     get_all_breakers,
-    get_circuit_breaker,
     register_circuit_breaker,
-)
-from infrastructure.resilience.health_registry import (
-    ServiceHealthRegistry,
-    ServiceHealth,
-    ServiceStatus,
 )
 from infrastructure.resilience.degradation_coordinator import (
     DegradationCoordinator,
     DegradationLevel,
     reset_degradation_coordinator,
 )
-from infrastructure.resilience.retry_policy import (
-    RetryPolicy,
-    RetryConfig,
+from infrastructure.resilience.health_registry import (
+    ServiceHealthRegistry,
+    ServiceStatus,
 )
-
+from infrastructure.resilience.retry_policy import (
+    RetryConfig,
+    RetryPolicy,
+)
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -131,7 +127,7 @@ class TestWhisperSTTFallback:
     def test_whisper_can_transcribe_mock(self):
         """Check 2b: Whisper adapter can transcribe (mocked)."""
         with patch("infrastructure.speech.stt_failover.WHISPER_AVAILABLE", True):
-            from infrastructure.speech.stt_failover import STTFailoverManager, STTFailoverConfig, STTProvider
+            from infrastructure.speech.stt_failover import STTFailoverConfig, STTFailoverManager, STTProvider
 
             async def test():
                 # Register required CB
@@ -154,7 +150,7 @@ class TestWhisperSTTFallback:
     def test_stt_failover_manager_integrated(self):
         """Check 2c: STT failover manager is integrated with circuit breakers."""
         with patch("infrastructure.speech.stt_failover.WHISPER_AVAILABLE", True):
-            from infrastructure.speech.stt_failover import STTFailoverManager, STTFailoverConfig
+            from infrastructure.speech.stt_failover import STTFailoverConfig, STTFailoverManager
 
             async def test():
                 # Register CB
@@ -203,7 +199,7 @@ class TestEdgeTTSFallback:
             patch("infrastructure.speech.tts_failover.EDGE_TTS_AVAILABLE", True),
             patch("infrastructure.speech.tts_failover.PYTTSX3_AVAILABLE", True),
         ):
-            from infrastructure.speech.tts_failover import TTSFailoverManager, TTSFailoverConfig, TTSProvider
+            from infrastructure.speech.tts_failover import TTSFailoverConfig, TTSFailoverManager, TTSProvider
 
             async def test():
                 # Register required CB
@@ -229,7 +225,7 @@ class TestEdgeTTSFallback:
             patch("infrastructure.speech.tts_failover.EDGE_TTS_AVAILABLE", True),
             patch("infrastructure.speech.tts_failover.PYTTSX3_AVAILABLE", True),
         ):
-            from infrastructure.speech.tts_failover import TTSFailoverManager, TTSFailoverConfig
+            from infrastructure.speech.tts_failover import TTSFailoverConfig, TTSFailoverManager
 
             async def test():
                 # Register CB
@@ -323,7 +319,7 @@ class TestSTTFailoverSLA:
     def test_stt_failover_within_sla(self):
         """Check 5: STT failover activates within 2 seconds."""
         with patch("infrastructure.speech.stt_failover.WHISPER_AVAILABLE", True):
-            from infrastructure.speech.stt_failover import STTFailoverManager, STTFailoverConfig, STTProvider
+            from infrastructure.speech.stt_failover import STTFailoverConfig, STTFailoverManager, STTProvider
 
             async def test():
                 register_circuit_breaker("deepgram")
@@ -358,7 +354,7 @@ class TestTTSFailoverSLA:
             patch("infrastructure.speech.tts_failover.EDGE_TTS_AVAILABLE", True),
             patch("infrastructure.speech.tts_failover.PYTTSX3_AVAILABLE", True),
         ):
-            from infrastructure.speech.tts_failover import TTSFailoverManager, TTSFailoverConfig, TTSProvider
+            from infrastructure.speech.tts_failover import TTSFailoverConfig, TTSFailoverManager, TTSProvider
 
             async def test():
                 register_circuit_breaker("elevenlabs")
@@ -447,7 +443,7 @@ class TestDegradationCoordinatorCompleteness:
             # Trip critical services to cause degradation
             await registered_breakers["deepgram"].trip()
             await coordinator.refresh()
-            
+
             # Should be degraded
             level = coordinator.get_degradation_level()
             assert level in (DegradationLevel.MINIMAL, DegradationLevel.PARTIAL, DegradationLevel.OFFLINE)
@@ -520,7 +516,7 @@ class TestP3ExitCriteriaSummary:
 
         # All must pass
         all_passed = all(results.values())
-        
+
         if not all_passed:
             failed = [k for k, v in results.items() if not v]
             pytest.fail(f"P3 exit criteria failed: {failed}")

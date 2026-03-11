@@ -21,16 +21,14 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, List, Optional, Tuple
 
 import numpy as np
 
 from shared.schemas import (
-    BoundingBox,
     DepthMap,
     Detection,
-    NavigationOutput,
     PerceptionResult,
     SegmentationMask,
 )

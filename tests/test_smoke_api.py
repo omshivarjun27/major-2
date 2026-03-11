@@ -3,9 +3,10 @@ Smoke tests for API endpoints and core pipeline components.
 Run with: pytest tests/test_smoke_api.py -v
 """
 
-import pytest
 import asyncio
+
 import numpy as np
+import pytest
 from PIL import Image
 
 
@@ -171,8 +172,8 @@ class TestHealthEndpoint:
     async def test_health_returns_ok(self):
         """Test health endpoint via TestClient."""
         try:
-            from httpx import AsyncClient, ASGITransport
             from api_server import app
+            from httpx import ASGITransport, AsyncClient
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
                 r = await client.get("/health")
@@ -188,7 +189,7 @@ class TestSceneGraph:
 
     @pytest.mark.asyncio
     async def test_build_scene_graph_from_perception(self, synthetic_frame):
-        from core.vqa import create_perception_pipeline, build_scene_graph
+        from core.vqa import build_scene_graph, create_perception_pipeline
         pipeline = create_perception_pipeline(use_mock=True)
         result = await pipeline.process(synthetic_frame)
         sg = build_scene_graph(result)

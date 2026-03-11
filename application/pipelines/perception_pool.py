@@ -13,7 +13,7 @@ Architecture::
     asyncio event loop (audio, WebRTC, TTS)
          │
          ├── submit_detection(image) ──→ ThreadPoolExecutor ──→ result
-         ├── submit_depth(image)     ──→ ThreadPoolExecutor ──→ result  
+         ├── submit_depth(image)     ──→ ThreadPoolExecutor ──→ result
          ├── submit_embedding(text)  ──→ ThreadPoolExecutor ──→ result
          └── submit_ocr(image)       ──→ ThreadPoolExecutor ──→ result
 """
@@ -24,8 +24,8 @@ import asyncio
 import concurrent.futures
 import logging
 import time
-from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, Optional
+from dataclasses import dataclass
+from typing import Any, Callable, Dict, Optional
 
 logger = logging.getLogger("perception-pool")
 

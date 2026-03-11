@@ -2,33 +2,8 @@
 
 from __future__ import annotations
 
-import time
-from unittest.mock import AsyncMock, MagicMock
-
 import pytest
 
-from core.reasoning.reasoning_foundation import (
-    BaseReasoner,
-    ReasoningCache,
-    ReasoningChain,
-    ReasoningConfig,
-    ReasoningOrchestrator,
-    ReasoningStep,
-    ReasoningType,
-    create_reasoning_orchestrator,
-)
-from core.reasoning.temporal import (
-    TemporalEvent,
-    TemporalPattern,
-    TemporalReasoner,
-    TemporalRelation,
-)
-from core.reasoning.spatial import (
-    SpatialEntity,
-    SpatialReasoner,
-    SpatialRelation,
-    SpatialRelationType,
-)
 from core.reasoning.causal import (
     CausalFactor,
     CausalGraph,
@@ -41,7 +16,26 @@ from core.reasoning.integration import (
     IntegratedResult,
     create_integrated_reasoner,
 )
-
+from core.reasoning.reasoning_foundation import (
+    ReasoningCache,
+    ReasoningChain,
+    ReasoningConfig,
+    ReasoningOrchestrator,
+    ReasoningStep,
+    ReasoningType,
+    create_reasoning_orchestrator,
+)
+from core.reasoning.spatial import (
+    SpatialEntity,
+    SpatialReasoner,
+    SpatialRelation,
+    SpatialRelationType,
+)
+from core.reasoning.temporal import (
+    TemporalEvent,
+    TemporalReasoner,
+    TemporalRelation,
+)
 
 # ===========================================================================
 # T-120: Reasoning Foundation

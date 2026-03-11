@@ -10,10 +10,8 @@ Tests cover:
 - Health reporting
 """
 
-import asyncio
 import time
-from unittest.mock import AsyncMock, MagicMock, patch
-import pytest
+from unittest.mock import MagicMock
 
 
 class TestSTTFailoverConfig:
@@ -108,8 +106,8 @@ class TestSTTFailoverManagerInitialization:
     def test_init_with_custom_config(self):
         """Test initialization with custom configuration."""
         from infrastructure.speech.stt_failover import (
-            STTFailoverManager,
             STTFailoverConfig,
+            STTFailoverManager,
         )
 
         config = STTFailoverConfig(whisper_model_size="tiny")
@@ -118,8 +116,8 @@ class TestSTTFailoverManagerInitialization:
 
     async def test_initialize_registers_callback(self):
         """Test that initialize registers circuit breaker callback."""
-        from infrastructure.speech.stt_failover import STTFailoverManager
         from infrastructure.resilience.circuit_breaker import clear_registry
+        from infrastructure.speech.stt_failover import STTFailoverManager
 
         clear_registry()
 
@@ -136,8 +134,8 @@ class TestSTTFailoverManagerInitialization:
 
     async def test_initialize_is_idempotent(self):
         """Test that initialize can be called multiple times safely."""
-        from infrastructure.speech.stt_failover import STTFailoverManager
         from infrastructure.resilience.circuit_breaker import clear_registry
+        from infrastructure.speech.stt_failover import STTFailoverManager
 
         clear_registry()
 
@@ -158,8 +156,8 @@ class TestSTTFailoverManagerActiveProvider:
 
     async def test_default_active_provider_is_deepgram(self):
         """Test that default active provider is Deepgram."""
-        from infrastructure.speech.stt_failover import STTFailoverManager
         from infrastructure.resilience.circuit_breaker import clear_registry
+        from infrastructure.speech.stt_failover import STTFailoverManager
 
         clear_registry()
 
@@ -174,8 +172,8 @@ class TestSTTFailoverManagerActiveProvider:
 
     async def test_get_active_provider_enum(self):
         """Test get_active_provider_enum returns enum."""
-        from infrastructure.speech.stt_failover import STTFailoverManager, STTProvider
         from infrastructure.resilience.circuit_breaker import clear_registry
+        from infrastructure.speech.stt_failover import STTFailoverManager, STTProvider
 
         clear_registry()
 
@@ -195,10 +193,10 @@ class TestSTTFailoverManagerFailover:
 
     async def test_manual_failover_to_whisper(self):
         """Test manual failover to Whisper."""
-        from infrastructure.speech.stt_failover import STTFailoverManager
-        from infrastructure.speech import stt_failover
         from infrastructure.resilience.circuit_breaker import clear_registry
+        from infrastructure.speech import stt_failover
         from infrastructure.speech.local import whisper_stt
+        from infrastructure.speech.stt_failover import STTFailoverManager
 
         clear_registry()
         original_available = whisper_stt.WHISPER_AVAILABLE
@@ -224,10 +222,10 @@ class TestSTTFailoverManagerFailover:
 
     async def test_manual_failback_to_deepgram(self):
         """Test manual failback to Deepgram."""
-        from infrastructure.speech.stt_failover import STTFailoverManager
-        from infrastructure.speech import stt_failover
         from infrastructure.resilience.circuit_breaker import clear_registry
+        from infrastructure.speech import stt_failover
         from infrastructure.speech.local import whisper_stt
+        from infrastructure.speech.stt_failover import STTFailoverManager
 
         clear_registry()
         original_available = whisper_stt.WHISPER_AVAILABLE
@@ -253,10 +251,10 @@ class TestSTTFailoverManagerFailover:
 
     async def test_failover_when_whisper_not_available(self):
         """Test failover behavior when Whisper is not available."""
-        from infrastructure.speech.stt_failover import STTFailoverManager, STTProvider
-        from infrastructure.speech import stt_failover
         from infrastructure.resilience.circuit_breaker import clear_registry
+        from infrastructure.speech import stt_failover
         from infrastructure.speech.local import whisper_stt
+        from infrastructure.speech.stt_failover import STTFailoverManager, STTProvider
 
         clear_registry()
         original_available = whisper_stt.WHISPER_AVAILABLE
@@ -285,14 +283,14 @@ class TestSTTFailoverManagerCircuitCallback:
 
     async def test_circuit_open_triggers_failover(self):
         """Test that circuit OPEN state triggers failover to Whisper."""
-        from infrastructure.speech.stt_failover import STTFailoverManager
-        from infrastructure.speech import stt_failover
         from infrastructure.resilience.circuit_breaker import (
             CircuitBreakerState,
             StateChangeEvent,
             clear_registry,
         )
+        from infrastructure.speech import stt_failover
         from infrastructure.speech.local import whisper_stt
+        from infrastructure.speech.stt_failover import STTFailoverManager
 
         clear_registry()
         original_available = whisper_stt.WHISPER_AVAILABLE
@@ -325,14 +323,14 @@ class TestSTTFailoverManagerCircuitCallback:
 
     async def test_circuit_closed_triggers_failback(self):
         """Test that circuit CLOSED state triggers failback to Deepgram."""
-        from infrastructure.speech.stt_failover import STTFailoverManager
-        from infrastructure.speech import stt_failover
         from infrastructure.resilience.circuit_breaker import (
             CircuitBreakerState,
             StateChangeEvent,
             clear_registry,
         )
+        from infrastructure.speech import stt_failover
         from infrastructure.speech.local import whisper_stt
+        from infrastructure.speech.stt_failover import STTFailoverManager
 
         clear_registry()
         original_available = whisper_stt.WHISPER_AVAILABLE
@@ -367,12 +365,12 @@ class TestSTTFailoverManagerCircuitCallback:
 
     async def test_ignores_events_from_other_services(self):
         """Test that events from other services are ignored."""
-        from infrastructure.speech.stt_failover import STTFailoverManager
         from infrastructure.resilience.circuit_breaker import (
             CircuitBreakerState,
             StateChangeEvent,
             clear_registry,
         )
+        from infrastructure.speech.stt_failover import STTFailoverManager
 
         clear_registry()
 
@@ -403,10 +401,10 @@ class TestSTTFailoverManagerHistory:
 
     async def test_failover_history_recorded(self):
         """Test that failover events are recorded in history."""
-        from infrastructure.speech.stt_failover import STTFailoverManager
-        from infrastructure.speech import stt_failover
         from infrastructure.resilience.circuit_breaker import clear_registry
+        from infrastructure.speech import stt_failover
         from infrastructure.speech.local import whisper_stt
+        from infrastructure.speech.stt_failover import STTFailoverManager
 
         clear_registry()
         original_available = whisper_stt.WHISPER_AVAILABLE
@@ -435,10 +433,10 @@ class TestSTTFailoverManagerHistory:
 
     async def test_history_trims_at_max(self):
         """Test that history is trimmed when exceeding max."""
-        from infrastructure.speech.stt_failover import STTFailoverManager
-        from infrastructure.speech import stt_failover
         from infrastructure.resilience.circuit_breaker import clear_registry
+        from infrastructure.speech import stt_failover
         from infrastructure.speech.local import whisper_stt
+        from infrastructure.speech.stt_failover import STTFailoverManager
 
         clear_registry()
         original_available = whisper_stt.WHISPER_AVAILABLE
@@ -471,8 +469,8 @@ class TestSTTFailoverManagerHealth:
 
     async def test_health_snapshot(self):
         """Test health snapshot contains expected fields."""
-        from infrastructure.speech.stt_failover import STTFailoverManager
         from infrastructure.resilience.circuit_breaker import clear_registry
+        from infrastructure.speech.stt_failover import STTFailoverManager
 
         clear_registry()
 
@@ -497,10 +495,10 @@ class TestSTTFailoverManagerHealth:
 
     async def test_health_after_failover(self):
         """Test health snapshot after failover."""
-        from infrastructure.speech.stt_failover import STTFailoverManager
-        from infrastructure.speech import stt_failover
         from infrastructure.resilience.circuit_breaker import clear_registry
+        from infrastructure.speech import stt_failover
         from infrastructure.speech.local import whisper_stt
+        from infrastructure.speech.stt_failover import STTFailoverManager
 
         clear_registry()
         original_available = whisper_stt.WHISPER_AVAILABLE
@@ -531,8 +529,8 @@ class TestSTTFailoverManagerShutdown:
 
     async def test_shutdown_unregisters_callback(self):
         """Test that shutdown unregisters circuit breaker callback."""
-        from infrastructure.speech.stt_failover import STTFailoverManager
         from infrastructure.resilience.circuit_breaker import clear_registry
+        from infrastructure.speech.stt_failover import STTFailoverManager
 
         clear_registry()
 
@@ -561,8 +559,8 @@ class TestCreateSTTFailoverManager:
 
     async def test_create_returns_initialized_manager(self):
         """Test that create function returns initialized manager."""
-        from infrastructure.speech.stt_failover import create_stt_failover_manager
         from infrastructure.resilience.circuit_breaker import clear_registry
+        from infrastructure.speech.stt_failover import create_stt_failover_manager
 
         clear_registry()
 
@@ -577,11 +575,11 @@ class TestCreateSTTFailoverManager:
 
     async def test_create_with_custom_config(self):
         """Test create function with custom config."""
-        from infrastructure.speech.stt_failover import (
-            create_stt_failover_manager,
-            STTFailoverConfig,
-        )
         from infrastructure.resilience.circuit_breaker import clear_registry
+        from infrastructure.speech.stt_failover import (
+            STTFailoverConfig,
+            create_stt_failover_manager,
+        )
 
         clear_registry()
 
@@ -600,8 +598,8 @@ class TestSTTFailoverManagerTranscription:
 
     async def test_transcribe_when_deepgram_active(self):
         """Test transcribe returns placeholder when Deepgram active."""
-        from infrastructure.speech.stt_failover import STTFailoverManager
         from infrastructure.resilience.circuit_breaker import clear_registry
+        from infrastructure.speech.stt_failover import STTFailoverManager
 
         clear_registry()
 
@@ -619,10 +617,10 @@ class TestSTTFailoverManagerTranscription:
 
     async def test_transcribe_delegates_to_whisper(self):
         """Test transcribe delegates to Whisper when active."""
-        from infrastructure.speech.stt_failover import STTFailoverManager
-        from infrastructure.speech import stt_failover
         from infrastructure.resilience.circuit_breaker import clear_registry
+        from infrastructure.speech import stt_failover
         from infrastructure.speech.local import whisper_stt
+        from infrastructure.speech.stt_failover import STTFailoverManager
 
         clear_registry()
         original_available = whisper_stt.WHISPER_AVAILABLE

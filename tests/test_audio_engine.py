@@ -5,11 +5,9 @@ Tests for audio_engine — SoundSourceLocalizer, AudioEventDetector, AudioVision
 from __future__ import annotations
 
 import numpy as np
-import pytest
 
 # ── SoundSourceLocalizer ──────────────────────────────────────────────
-
-from core.audio.ssl import SoundSourceLocalizer, SSLResult, SSLConfig
+from core.audio.ssl import SoundSourceLocalizer, SSLConfig, SSLResult
 
 
 class TestSSLConfig:
@@ -73,11 +71,11 @@ class TestSoundSourceLocalizer:
 # ── AudioEventDetector ────────────────────────────────────────────────
 
 from core.audio.audio_event_detector import (
-    AudioEventDetector,
+    CRITICAL_EVENTS,
     AudioEvent,
     AudioEventConfig,
+    AudioEventDetector,
     AudioEventType,
-    CRITICAL_EVENTS,
 )
 
 
@@ -153,9 +151,9 @@ class TestAudioEventDetector:
 # ── AudioVisionFuser ──────────────────────────────────────────────────
 
 from core.audio.audio_fusion import (
+    AudioFusionConfig,
     AudioVisionFuser,
     FusedAudioVisualEvent,
-    AudioFusionConfig,
     VisualObject,
 )
 
@@ -246,15 +244,9 @@ class TestAudioVisionFuser:
 class TestAudioPackageImports:
     def test_audio_engine_imports(self):
         from core.audio import (
-            SoundSourceLocalizer,
-            SSLResult,
-            SSLConfig,
             AudioEventDetector,
-            AudioEvent,
-            AudioEventConfig,
             AudioVisionFuser,
-            FusedAudioVisualEvent,
-            AudioFusionConfig,
+            SoundSourceLocalizer,
         )
         assert SoundSourceLocalizer is not None
         assert AudioEventDetector is not None

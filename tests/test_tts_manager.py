@@ -10,10 +10,7 @@ from __future__ import annotations
 import time
 from unittest import mock
 
-import pytest
-
 from infrastructure.speech.elevenlabs.tts_manager import TTSCache, TTSChunker, TTSManager, TTSResult
-
 
 # ---------------------------------------------------------------------------
 # Cache
@@ -106,14 +103,14 @@ class TestTTSManagerCache:
     def test_cache_hit_returns_cached(self):
         mgr = TTSManager(cache_enabled=True, cache_max_entries=10)
         # Prime cache
-        result1 = mgr.synthesise("hello")
+        mgr.synthesise("hello")
         result2 = mgr.synthesise("hello")
         assert result2.cache_hit is True
         assert result2.engine == "cache"
 
     def test_cache_disabled(self):
         mgr = TTSManager(cache_enabled=False)
-        result1 = mgr.synthesise("hello")
+        mgr.synthesise("hello")
         result2 = mgr.synthesise("hello")
         assert result2.cache_hit is False
 

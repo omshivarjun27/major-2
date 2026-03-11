@@ -7,6 +7,7 @@ and boundary inputs to verify access control holds.
 """
 
 import os
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -18,6 +19,7 @@ def client():
     os.environ["DEBUG_AUTH_TOKEN"] = "correct-token-xyz"
 
     import importlib
+
     import api_server
     importlib.reload(api_server)
     from api_server import app
@@ -87,6 +89,7 @@ class TestAccessControlFuzz:
         os.environ["DEBUG_AUTH_TOKEN"] = "some-token"
 
         import importlib
+
         import api_server
         importlib.reload(api_server)
         from api_server import app

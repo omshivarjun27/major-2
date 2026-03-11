@@ -12,12 +12,13 @@ from typing import Any, Dict, Optional, Tuple
 import httpx
 from PIL import Image
 
-from ..config import get_config, get_llm_timeout_config
 from infrastructure.resilience.circuit_breaker import (
     CircuitBreakerConfig,
     register_circuit_breaker,
 )
 from infrastructure.resilience.retry_policy import get_retry_policy
+
+from ..config import get_config, get_llm_timeout_config
 
 # Simple logger without custom handler, will use root logger's config
 logger = logging.getLogger("ollama-handler")

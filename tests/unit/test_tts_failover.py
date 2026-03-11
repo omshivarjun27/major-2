@@ -12,10 +12,7 @@ Tests cover:
 - create_enhanced_local_fn helper
 """
 
-import asyncio
 import time
-from unittest.mock import AsyncMock, MagicMock, patch
-import pytest
 
 
 class TestTTSFailoverConfig:
@@ -194,8 +191,8 @@ class TestTTSFailoverManagerInitialization:
     def test_init_with_custom_config(self):
         """Test initialization with custom configuration."""
         from infrastructure.speech.tts_failover import (
-            TTSFailoverManager,
             TTSFailoverConfig,
+            TTSFailoverManager,
         )
 
         config = TTSFailoverConfig(local_tts_voice="en-GB-SoniaNeural")
@@ -204,8 +201,8 @@ class TestTTSFailoverManagerInitialization:
 
     async def test_initialize_registers_callback(self):
         """Test that initialize registers circuit breaker callback."""
-        from infrastructure.speech.tts_failover import TTSFailoverManager
         from infrastructure.resilience.circuit_breaker import clear_registry
+        from infrastructure.speech.tts_failover import TTSFailoverManager
 
         clear_registry()
 
@@ -222,8 +219,8 @@ class TestTTSFailoverManagerInitialization:
 
     async def test_initialize_is_idempotent(self):
         """Test that initialize can be called multiple times safely."""
-        from infrastructure.speech.tts_failover import TTSFailoverManager
         from infrastructure.resilience.circuit_breaker import clear_registry
+        from infrastructure.speech.tts_failover import TTSFailoverManager
 
         clear_registry()
 
@@ -244,8 +241,8 @@ class TestTTSFailoverManagerActiveProvider:
 
     async def test_default_active_provider_is_elevenlabs(self):
         """Test that default active provider is ElevenLabs."""
-        from infrastructure.speech.tts_failover import TTSFailoverManager
         from infrastructure.resilience.circuit_breaker import clear_registry
+        from infrastructure.speech.tts_failover import TTSFailoverManager
 
         clear_registry()
 
@@ -260,8 +257,8 @@ class TestTTSFailoverManagerActiveProvider:
 
     async def test_get_active_provider_enum(self):
         """Test get_active_provider_enum returns enum."""
-        from infrastructure.speech.tts_failover import TTSFailoverManager, TTSProvider
         from infrastructure.resilience.circuit_breaker import clear_registry
+        from infrastructure.speech.tts_failover import TTSFailoverManager, TTSProvider
 
         clear_registry()
 
@@ -281,10 +278,10 @@ class TestTTSFailoverManagerFailover:
 
     async def test_manual_failover_to_local(self):
         """Test manual failover to local TTS."""
-        from infrastructure.speech.tts_failover import TTSFailoverManager
-        from infrastructure.speech import tts_failover
         from infrastructure.resilience.circuit_breaker import clear_registry
+        from infrastructure.speech import tts_failover
         from infrastructure.speech.local import edge_tts_fallback
+        from infrastructure.speech.tts_failover import TTSFailoverManager
 
         clear_registry()
         original_edge = edge_tts_fallback.EDGE_TTS_AVAILABLE
@@ -310,10 +307,10 @@ class TestTTSFailoverManagerFailover:
 
     async def test_manual_failback_to_elevenlabs(self):
         """Test manual failback to ElevenLabs."""
-        from infrastructure.speech.tts_failover import TTSFailoverManager
-        from infrastructure.speech import tts_failover
         from infrastructure.resilience.circuit_breaker import clear_registry
+        from infrastructure.speech import tts_failover
         from infrastructure.speech.local import edge_tts_fallback
+        from infrastructure.speech.tts_failover import TTSFailoverManager
 
         clear_registry()
         original_edge = edge_tts_fallback.EDGE_TTS_AVAILABLE
@@ -339,10 +336,10 @@ class TestTTSFailoverManagerFailover:
 
     async def test_failover_when_local_not_available(self):
         """Test failover behavior when local TTS is not available."""
-        from infrastructure.speech.tts_failover import TTSFailoverManager, TTSProvider
-        from infrastructure.speech import tts_failover
         from infrastructure.resilience.circuit_breaker import clear_registry
+        from infrastructure.speech import tts_failover
         from infrastructure.speech.local import edge_tts_fallback
+        from infrastructure.speech.tts_failover import TTSFailoverManager, TTSProvider
 
         clear_registry()
         original_edge = edge_tts_fallback.EDGE_TTS_AVAILABLE
@@ -376,14 +373,14 @@ class TestTTSFailoverManagerCircuitCallback:
 
     async def test_circuit_open_triggers_failover(self):
         """Test that circuit OPEN state triggers failover to local."""
-        from infrastructure.speech.tts_failover import TTSFailoverManager
-        from infrastructure.speech import tts_failover
         from infrastructure.resilience.circuit_breaker import (
             CircuitBreakerState,
             StateChangeEvent,
             clear_registry,
         )
+        from infrastructure.speech import tts_failover
         from infrastructure.speech.local import edge_tts_fallback
+        from infrastructure.speech.tts_failover import TTSFailoverManager
 
         clear_registry()
         original_edge = edge_tts_fallback.EDGE_TTS_AVAILABLE
@@ -416,14 +413,14 @@ class TestTTSFailoverManagerCircuitCallback:
 
     async def test_circuit_closed_triggers_failback(self):
         """Test that circuit CLOSED state triggers failback to ElevenLabs."""
-        from infrastructure.speech.tts_failover import TTSFailoverManager
-        from infrastructure.speech import tts_failover
         from infrastructure.resilience.circuit_breaker import (
             CircuitBreakerState,
             StateChangeEvent,
             clear_registry,
         )
+        from infrastructure.speech import tts_failover
         from infrastructure.speech.local import edge_tts_fallback
+        from infrastructure.speech.tts_failover import TTSFailoverManager
 
         clear_registry()
         original_edge = edge_tts_fallback.EDGE_TTS_AVAILABLE
@@ -457,12 +454,12 @@ class TestTTSFailoverManagerCircuitCallback:
 
     async def test_ignores_events_from_other_services(self):
         """Test that events from other services are ignored."""
-        from infrastructure.speech.tts_failover import TTSFailoverManager
         from infrastructure.resilience.circuit_breaker import (
             CircuitBreakerState,
             StateChangeEvent,
             clear_registry,
         )
+        from infrastructure.speech.tts_failover import TTSFailoverManager
 
         clear_registry()
 
@@ -493,10 +490,10 @@ class TestTTSFailoverManagerStatistics:
 
     async def test_statistics_track_failover(self):
         """Test that statistics track failover events."""
-        from infrastructure.speech.tts_failover import TTSFailoverManager
-        from infrastructure.speech import tts_failover
         from infrastructure.resilience.circuit_breaker import clear_registry
+        from infrastructure.speech import tts_failover
         from infrastructure.speech.local import edge_tts_fallback
+        from infrastructure.speech.tts_failover import TTSFailoverManager
 
         clear_registry()
         original_edge = edge_tts_fallback.EDGE_TTS_AVAILABLE
@@ -525,10 +522,10 @@ class TestTTSFailoverManagerStatistics:
 
     async def test_statistics_track_failback(self):
         """Test that statistics track failback events."""
-        from infrastructure.speech.tts_failover import TTSFailoverManager
-        from infrastructure.speech import tts_failover
         from infrastructure.resilience.circuit_breaker import clear_registry
+        from infrastructure.speech import tts_failover
         from infrastructure.speech.local import edge_tts_fallback
+        from infrastructure.speech.tts_failover import TTSFailoverManager
 
         clear_registry()
         original_edge = edge_tts_fallback.EDGE_TTS_AVAILABLE
@@ -560,10 +557,10 @@ class TestTTSFailoverManagerHistory:
 
     async def test_failover_history_recorded(self):
         """Test that failover events are recorded in history."""
-        from infrastructure.speech.tts_failover import TTSFailoverManager
-        from infrastructure.speech import tts_failover
         from infrastructure.resilience.circuit_breaker import clear_registry
+        from infrastructure.speech import tts_failover
         from infrastructure.speech.local import edge_tts_fallback
+        from infrastructure.speech.tts_failover import TTSFailoverManager
 
         clear_registry()
         original_edge = edge_tts_fallback.EDGE_TTS_AVAILABLE
@@ -596,8 +593,8 @@ class TestTTSFailoverManagerHealth:
 
     async def test_health_snapshot(self):
         """Test health snapshot contains expected fields."""
-        from infrastructure.speech.tts_failover import TTSFailoverManager
         from infrastructure.resilience.circuit_breaker import clear_registry
+        from infrastructure.speech.tts_failover import TTSFailoverManager
 
         clear_registry()
 
@@ -625,8 +622,8 @@ class TestTTSFailoverManagerShutdown:
 
     async def test_shutdown_unregisters_callback(self):
         """Test that shutdown unregisters circuit breaker callback."""
-        from infrastructure.speech.tts_failover import TTSFailoverManager
         from infrastructure.resilience.circuit_breaker import clear_registry
+        from infrastructure.speech.tts_failover import TTSFailoverManager
 
         clear_registry()
 
@@ -655,8 +652,8 @@ class TestCreateTTSFailoverManager:
 
     async def test_create_returns_initialized_manager(self):
         """Test that create function returns initialized manager."""
-        from infrastructure.speech.tts_failover import create_tts_failover_manager
         from infrastructure.resilience.circuit_breaker import clear_registry
+        from infrastructure.speech.tts_failover import create_tts_failover_manager
 
         clear_registry()
 
@@ -693,8 +690,8 @@ class TestTTSFailoverManagerGetLocalFn:
 
     async def test_get_local_fn_returns_callable(self):
         """Test that get_local_fn returns a callable."""
-        from infrastructure.speech.tts_failover import TTSFailoverManager
         from infrastructure.resilience.circuit_breaker import clear_registry
+        from infrastructure.speech.tts_failover import TTSFailoverManager
 
         clear_registry()
 

@@ -7,50 +7,60 @@ pass/fail exit code behavior, and individual audit checks with mocked filesystem
 from __future__ import annotations
 
 import json
-import os
 import textwrap
 from pathlib import Path
-from typing import Any, Dict, List
 from unittest.mock import MagicMock, patch
 
 import pytest
 
-# ── SAST imports ──────────────────────────────────────────────────────
-from scripts.run_sast import (
-    build_arg_parser as sast_build_parser,
-    classify_findings,
-    filter_baseline,
-    format_text_report,
-    load_baseline,
-    main as sast_main,
-    should_block as sast_should_block,
-)
-
 # ── DAST imports ──────────────────────────────────────────────────────
 from scripts.run_dast import (
     ZAP_CHECK_CATEGORIES,
-    build_arg_parser as dast_build_parser,
     build_zap_config,
     generate_mock_html,
     generate_mock_report,
-    main as dast_main,
     validate_config,
+)
+from scripts.run_dast import (
+    build_arg_parser as dast_build_parser,
+)
+from scripts.run_dast import (
+    main as dast_main,
 )
 
 # ── Dependency scan imports ───────────────────────────────────────────
 from scripts.run_dep_scan import (
-    build_arg_parser as dep_build_parser,
     classify_vulnerabilities,
     generate_sbom,
-    main as dep_main,
     parse_requirements,
+)
+from scripts.run_dep_scan import (
+    main as dep_main,
+)
+from scripts.run_dep_scan import (
     should_block as dep_should_block,
+)
+
+# ── SAST imports ──────────────────────────────────────────────────────
+from scripts.run_sast import (
+    build_arg_parser as sast_build_parser,
+)
+from scripts.run_sast import (
+    classify_findings,
+    filter_baseline,
+    format_text_report,
+    load_baseline,
+)
+from scripts.run_sast import (
+    main as sast_main,
+)
+from scripts.run_sast import (
+    should_block as sast_should_block,
 )
 
 # ── Security audit imports ────────────────────────────────────────────
 from scripts.security_audit import (
     AuditCheck,
-    build_arg_parser as audit_build_parser,
     check_cors_configured,
     check_docker_nonroot,
     check_encryption_present,
@@ -60,10 +70,13 @@ from scripts.security_audit import (
     check_pii_scrubbing,
     check_rate_limiting,
     generate_report,
-    main as audit_main,
-    run_all_checks,
 )
-
+from scripts.security_audit import (
+    build_arg_parser as audit_build_parser,
+)
+from scripts.security_audit import (
+    main as audit_main,
+)
 
 # =====================================================================
 # Fixtures
@@ -546,7 +559,7 @@ class TestAuditMain:
 
     def test_main_writes_report(self, tmp_project: Path, tmp_path: Path) -> None:
         report_path = str(tmp_path / "audit.json")
-        rc = audit_main(["--project-root", str(tmp_project), "--report-output", report_path])
+        audit_main(["--project-root", str(tmp_project), "--report-output", report_path])
         assert Path(report_path).exists()
         with open(report_path, "r", encoding="utf-8") as f:
             report = json.load(f)

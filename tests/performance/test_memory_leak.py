@@ -8,6 +8,7 @@ stays below acceptable thresholds, detecting memory leaks.
 
 import gc
 import os
+
 import numpy as np
 import pytest
 

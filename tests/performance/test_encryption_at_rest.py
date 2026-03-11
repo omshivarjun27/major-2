@@ -2,11 +2,9 @@
 
 from __future__ import annotations
 
-import json
 import os
 import sys
-import tempfile
-import pytest
+
 import numpy as np
 
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
@@ -22,7 +20,7 @@ class TestEncryptionAtRest:
         # Set up encryption key
         monkeypatch.setenv("FACE_ENCRYPTION_KEY", "test-encryption-key-nfr-2024")
 
-        from core.face.face_embeddings import FaceEmbeddingStore, EmbeddingConfig
+        from core.face.face_embeddings import EmbeddingConfig, FaceEmbeddingStore
 
         config = EmbeddingConfig(
             storage_dir=str(tmp_path / "face_store"),
@@ -36,7 +34,7 @@ class TestEncryptionAtRest:
         storage_dir = tmp_path / "face_store"
         if storage_dir.exists():
             npy_files = list(storage_dir.glob("*.npy"))
-            enc_files = list(storage_dir.glob("*.npy.enc"))
+            list(storage_dir.glob("*.npy.enc"))
 
             # If encryption is working, files should either be .enc or
             # the .npy should not be loadable as plain numpy
@@ -44,8 +42,8 @@ class TestEncryptionAtRest:
                 for f in npy_files:
                     # The .npy file should be an encrypted blob, not plain
                     try:
-                        data = np.load(str(f))
-                        # If this succeeds and encryption is active, 
+                        np.load(str(f))
+                        # If this succeeds and encryption is active,
                         # it means the encryption manager wraps it internally
                         # That's OK — the important thing is the raw bytes
                         # If we read raw bytes, they shouldn't be standard numpy
@@ -54,7 +52,7 @@ class TestEncryptionAtRest:
 
     def test_encryption_disabled_stores_plain(self, tmp_path):
         """When encryption is disabled, .npy files should be readable."""
-        from core.face.face_embeddings import FaceEmbeddingStore, EmbeddingConfig
+        from core.face.face_embeddings import EmbeddingConfig, FaceEmbeddingStore
 
         config = EmbeddingConfig(
             storage_dir=str(tmp_path / "face_plain"),
@@ -81,14 +79,13 @@ class TestEncryptionAtRest:
     def test_config_default_encryption_enabled(self):
         """Verify CONFIG defaults FACE_ENCRYPTION_ENABLED to true."""
         # We check the env fallback default — when env var is not set
-        import importlib
         # Rather than reimport config, just check the string default
         from core.face.face_embeddings import EmbeddingConfig
         assert EmbeddingConfig().encryption_enabled is True
 
     def test_delete_removes_embedding_files(self, tmp_path):
         """Delete should remove both .npy and .npy.enc files."""
-        from core.face.face_embeddings import FaceEmbeddingStore, EmbeddingConfig
+        from core.face.face_embeddings import EmbeddingConfig, FaceEmbeddingStore
 
         config = EmbeddingConfig(
             storage_dir=str(tmp_path / "face_del"),
@@ -109,7 +106,7 @@ class TestEncryptionAtRest:
 
     def test_forget_all_removes_all_files(self, tmp_path):
         """forget_all should remove all embedding files."""
-        from core.face.face_embeddings import FaceEmbeddingStore, EmbeddingConfig
+        from core.face.face_embeddings import EmbeddingConfig, FaceEmbeddingStore
 
         config = EmbeddingConfig(
             storage_dir=str(tmp_path / "face_forget"),

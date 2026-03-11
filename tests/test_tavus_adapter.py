@@ -4,7 +4,6 @@ Tests for tavus_adapter — TavusAdapter, TavusConfig, TavusMessage.
 
 from __future__ import annotations
 
-import os
 import pytest
 
 from infrastructure.tavus.adapter import TavusAdapter, TavusConfig, TavusMessage

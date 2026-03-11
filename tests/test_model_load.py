@@ -8,8 +8,8 @@ Run::
 """
 
 import os
-import pytest
 
+import pytest
 
 # ---------------------------------------------------------------------------
 # Model file checks

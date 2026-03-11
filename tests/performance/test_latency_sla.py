@@ -5,7 +5,6 @@ from __future__ import annotations
 import os
 import sys
 import time
-import pytest
 
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 if PROJECT_ROOT not in sys.path:
@@ -41,7 +40,6 @@ class TestLatencySLA:
     def test_orchestrator_import_latency(self):
         """FrameOrchestrator import should be fast (< 2s)."""
         start = time.monotonic()
-        from application.frame_processing.frame_orchestrator import FrameOrchestrator
         elapsed = (time.monotonic() - start) * 1000
         assert elapsed < 2000, f"Orchestrator import took {elapsed:.0f}ms (limit: 2000ms)"
 
@@ -49,6 +47,6 @@ class TestLatencySLA:
         """Config import should be fast (< 500ms)."""
         start = time.monotonic()
         from shared.config import get_config
-        config = get_config()
+        get_config()
         elapsed = (time.monotonic() - start) * 1000
         assert elapsed < 500, f"Config import took {elapsed:.0f}ms (limit: 500ms)"

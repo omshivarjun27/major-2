@@ -144,7 +144,7 @@ class MilvusCloudBackend(CloudVectorBackend):
             self._client = MilvusClient(uri=self.config.url, token=self.config.api_key)
             # Create collection if not exists
             if not self._client.has_collection(self.config.collection):
-                from pymilvus import DataType, FieldSchema, CollectionSchema
+                from pymilvus import CollectionSchema, DataType, FieldSchema
                 fields = [
                     FieldSchema(name="id", dtype=DataType.VARCHAR, is_primary=True, max_length=256),
                     FieldSchema(name="embedding", dtype=DataType.FLOAT_VECTOR, dim=384),
@@ -400,19 +400,19 @@ class CloudSyncAdapter:
 @dataclass
 class VectorTimestamp:
     """Vector clock for tracking causality in distributed sync.
-    
+
     Each node (device) maintains its own logical clock. When syncing,
     we compare vector timestamps to detect conflicts and establish
     happens-before relationships.
     """
     node_id: str
     clock: Dict[str, int] = field(default_factory=dict)
-    
+
     def increment(self) -> 'VectorTimestamp':
         """Increment this node's clock."""
         self.clock[self.node_id] = self.clock.get(self.node_id, 0) + 1
         return self
-    
+
     def merge(self, other: 'VectorTimestamp') -> 'VectorTimestamp':
         """Merge another vector timestamp (take max of each component)."""
         all_nodes = set(self.clock.keys()) | set(other.clock.keys())
@@ -422,10 +422,10 @@ class VectorTimestamp:
                 other.clock.get(node, 0)
             )
         return self
-    
+
     def happens_before(self, other: 'VectorTimestamp') -> bool:
         """Check if this timestamp happens-before the other.
-        
+
         Returns True if all components of self <= other and at least one <.
         """
         all_nodes = set(self.clock.keys()) | set(other.clock.keys())
@@ -438,14 +438,14 @@ class VectorTimestamp:
             for n in all_nodes
         )
         return all_leq and any_lt
-    
+
     def concurrent_with(self, other: 'VectorTimestamp') -> bool:
         """Check if timestamps are concurrent (neither happens-before the other)."""
         return not self.happens_before(other) and not other.happens_before(self)
-    
+
     def to_dict(self) -> Dict[str, Any]:
         return {"node_id": self.node_id, "clock": self.clock.copy()}
-    
+
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'VectorTimestamp':
         return cls(node_id=data["node_id"], clock=data.get("clock", {}))
@@ -461,7 +461,7 @@ class ChangeLogEntry:
     data: Optional[Dict[str, Any]] = None
     synced: bool = False
     created_at_ms: float = field(default_factory=lambda: time.time() * 1000)
-    
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             "entry_id": self.entry_id,
@@ -472,7 +472,7 @@ class ChangeLogEntry:
             "synced": self.synced,
             "created_at_ms": self.created_at_ms,
         }
-    
+
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'ChangeLogEntry':
         return cls(
@@ -488,18 +488,18 @@ class ChangeLogEntry:
 
 class ChangeLog:
     """Tracks local changes for sync.
-    
+
     Maintains a write-ahead log of all local modifications since the last sync.
     Used to determine what needs to be pushed to the cloud.
     """
-    
+
     def __init__(self, node_id: str, max_entries: int = 10000):
         self.node_id = node_id
         self.max_entries = max_entries
         self._entries: List[ChangeLogEntry] = []
         self._current_timestamp = VectorTimestamp(node_id=node_id)
         self._lock = asyncio.Lock()
-    
+
     async def append(self, operation: str, record_id: str, data: Optional[Dict[str, Any]] = None) -> ChangeLogEntry:
         """Append a change to the log."""
         async with self._lock:
@@ -515,18 +515,18 @@ class ChangeLog:
                 data=data,
             )
             self._entries.append(entry)
-            
+
             # Compact if too many entries
             if len(self._entries) > self.max_entries:
                 await self._compact()
-            
+
             return entry
-    
+
     async def get_unsynced(self) -> List[ChangeLogEntry]:
         """Get all unsynced entries."""
         async with self._lock:
             return [e for e in self._entries if not e.synced]
-    
+
     async def mark_synced(self, entry_ids: List[str]) -> int:
         """Mark entries as synced."""
         async with self._lock:
@@ -537,10 +537,10 @@ class ChangeLog:
                     entry.synced = True
                     count += 1
             return count
-    
+
     async def _compact(self) -> int:
         """Remove synced entries to save space, keeping recent unsynced ones.
-        
+
         Merges redundant operations on the same record:
         - Multiple updates -> keep latest
         - Add + update -> keep as add with latest data
@@ -552,7 +552,7 @@ class ChangeLog:
             e for e in self._entries
             if not e.synced or e.created_at_ms > cutoff_ms
         ]
-        
+
         # Merge redundant operations on same record
         record_ops: Dict[str, List[ChangeLogEntry]] = {}
         for entry in self._entries:
@@ -560,7 +560,7 @@ class ChangeLog:
                 if entry.record_id not in record_ops:
                     record_ops[entry.record_id] = []
                 record_ops[entry.record_id].append(entry)
-        
+
         # Compact redundant operations
         compacted = []
         for entries in record_ops.values():
@@ -570,7 +570,7 @@ class ChangeLog:
                 # Sort by timestamp
                 entries.sort(key=lambda e: e.created_at_ms)
                 ops = [e.operation for e in entries]
-                
+
                 if 'delete' in ops:
                     # If there's a delete, only keep the delete
                     delete_entry = next(e for e in entries if e.operation == 'delete')
@@ -583,22 +583,22 @@ class ChangeLog:
                     if entries[0].operation == 'add':
                         latest.operation = 'add'
                     compacted.append(latest)
-        
+
         # Add back synced entries and sort
         synced_entries = [e for e in self._entries if e.synced]
         self._entries = synced_entries + compacted
         self._entries.sort(key=lambda e: e.created_at_ms)
-        
+
         return len(compacted)
-    
+
     @property
     def current_timestamp(self) -> VectorTimestamp:
         return self._current_timestamp
-    
+
     @property
     def size(self) -> int:
         return len(self._entries)
-    
+
     @property
     def unsynced_count(self) -> int:
         return sum(1 for e in self._entries if not e.synced)
@@ -607,7 +607,7 @@ class ChangeLog:
 @dataclass
 class UserPartition:
     """Per-user data partition for privacy isolation.
-    
+
     Each user's data is stored in a separate partition with its own:
     - FAISS index
     - SQLite tables (prefixed)
@@ -620,22 +620,22 @@ class UserPartition:
     last_sync_ms: float = 0
     sync_enabled: bool = True
     data_residency: str = "default"  # Region constraint for GDPR
-    
+
     def __post_init__(self):
         if not self.partition_id:
             import hashlib
             self.partition_id = hashlib.sha256(self.user_id.encode()).hexdigest()[:16]
-    
+
     @property
     def collection_name(self) -> str:
         """Cloud collection name for this partition."""
         return f"user_{self.partition_id}"
-    
+
     @property
     def index_path(self) -> str:
         """Local index path for this partition."""
         return f"./data/user_indices/{self.partition_id}/"
-    
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             "user_id": self.user_id,
@@ -645,7 +645,7 @@ class UserPartition:
             "sync_enabled": self.sync_enabled,
             "data_residency": self.data_residency,
         }
-    
+
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'UserPartition':
         return cls(
@@ -668,7 +668,7 @@ class SyncResult:
     conflicts_resolved: int = 0
     duration_ms: float = 0
     error: Optional[str] = None
-    
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             "success": self.success,
@@ -683,15 +683,15 @@ class SyncResult:
 
 class BidirectionalSyncProtocol:
     """Bidirectional sync protocol with conflict detection.
-    
+
     Implements a push/pull sync model:
     1. Push local changes to cloud
     2. Pull cloud changes to local
     3. Detect and resolve conflicts using vector timestamps
-    
+
     Target: Incremental sync < 2 seconds
     """
-    
+
     def __init__(
         self,
         backend: CloudVectorBackend,
@@ -705,28 +705,28 @@ class BidirectionalSyncProtocol:
         self.batch_size = batch_size
         self._last_pull_timestamp: Optional[VectorTimestamp] = None
         self._lock = asyncio.Lock()
-    
+
     async def sync(self) -> SyncResult:
         """Perform a full bidirectional sync.
-        
+
         Returns:
             SyncResult with counts and timing information
         """
         start_ms = time.time() * 1000
-        
+
         try:
             async with self._lock:
                 # Phase 1: Push local changes
                 push_result = await self._push()
-                
+
                 # Phase 2: Pull remote changes
                 pull_result = await self._pull()
-                
+
                 # Update partition sync time
                 self.partition.last_sync_ms = time.time() * 1000
-                
+
                 duration_ms = time.time() * 1000 - start_ms
-                
+
                 return SyncResult(
                     success=True,
                     pushed_count=push_result["count"],
@@ -742,26 +742,26 @@ class BidirectionalSyncProtocol:
                 duration_ms=time.time() * 1000 - start_ms,
                 error=str(exc),
             )
-    
+
     async def _push(self) -> Dict[str, int]:
         """Push local changes to cloud."""
         unsynced = await self.change_log.get_unsynced()
-        
+
         if not unsynced:
             return {"count": 0}
-        
+
         # Group by operation type
         adds_updates = [e for e in unsynced if e.operation in ('add', 'update')]
         deletes = [e for e in unsynced if e.operation == 'delete']
-        
+
         pushed_count = 0
         synced_ids = []
-        
+
         # Process adds/updates in batches
         for i in range(0, len(adds_updates), self.batch_size):
             batch = adds_updates[i:i + self.batch_size]
             records = []
-            
+
             for entry in batch:
                 if entry.data and 'embedding' in entry.data:
                     records.append(SyncRecord(
@@ -775,61 +775,61 @@ class BidirectionalSyncProtocol:
                         timestamp_ms=entry.created_at_ms,
                     ))
                     synced_ids.append(entry.entry_id)
-            
+
             if records:
                 count = await self.backend.upsert(records)
                 pushed_count += count
-        
+
         # Process deletes
         if deletes:
             delete_ids = [e.record_id for e in deletes]
             await self.backend.delete(delete_ids)
             synced_ids.extend(e.entry_id for e in deletes)
             pushed_count += len(deletes)
-        
+
         # Mark as synced
         await self.change_log.mark_synced(synced_ids)
-        
+
         logger.debug(f"Pushed {pushed_count} changes to cloud")
         return {"count": pushed_count}
-    
+
     async def _pull(self) -> Dict[str, int]:
         """Pull remote changes from cloud.
-        
+
         This is a simplified pull that fetches recent records.
         In a full implementation, the cloud would track changes
         and provide a delta since last sync.
         """
         # For now, we simulate a pull by checking health
         # A full implementation would query cloud for changes since last_pull_timestamp
-        health = self.backend.health()
-        
+        self.backend.health()
+
         pulled_count = 0
         conflicts_detected = 0
         conflicts_resolved = 0
-        
+
         # TODO: Implement actual pull from cloud with conflict detection
         # This would involve:
         # 1. Query cloud for records modified since last_pull_timestamp
         # 2. For each record, check if local version exists
         # 3. If exists, compare vector timestamps for conflict
         # 4. Apply conflict resolution strategy
-        
+
         logger.debug(f"Pull complete: {pulled_count} records, {conflicts_detected} conflicts")
         return {
             "count": pulled_count,
             "conflicts": conflicts_detected,
             "resolved": conflicts_resolved,
         }
-    
+
     async def push_incremental(self) -> SyncResult:
         """Push only local changes (faster than full sync)."""
         start_ms = time.time() * 1000
-        
+
         try:
             result = await self._push()
             duration_ms = time.time() * 1000 - start_ms
-            
+
             return SyncResult(
                 success=True,
                 pushed_count=result["count"],
@@ -845,14 +845,14 @@ class BidirectionalSyncProtocol:
 
 class CloudSyncOrchestrator:
     """Orchestrates cloud sync across multiple user partitions.
-    
+
     Features:
     - Per-user data isolation
     - Configurable sync intervals
     - Automatic conflict resolution
     - Offline queue support (via change log)
     """
-    
+
     def __init__(
         self,
         config: Optional[CloudSyncConfig] = None,
@@ -860,56 +860,56 @@ class CloudSyncOrchestrator:
     ):
         self.config = config or CloudSyncConfig.from_env()
         self.node_id = node_id or f"node_{int(time.time() * 1000)}"
-        
+
         self._backend = _create_backend(self.config)
         self._partitions: Dict[str, UserPartition] = {}
         self._change_logs: Dict[str, ChangeLog] = {}
         self._sync_protocols: Dict[str, BidirectionalSyncProtocol] = {}
         self._sync_task: Optional[asyncio.Task] = None
         self._running = False
-    
+
     async def start(self) -> bool:
         """Start the sync orchestrator."""
         if not self.config.enabled:
             logger.debug("Cloud sync disabled")
             return False
-        
+
         connected = await self._backend.connect()
         if not connected:
             logger.error("Failed to connect to cloud backend")
             return False
-        
+
         self._running = True
         self._sync_task = asyncio.create_task(self._periodic_sync_loop())
         logger.info(f"Cloud sync orchestrator started (node={self.node_id})")
         return True
-    
+
     async def stop(self) -> None:
         """Stop the sync orchestrator."""
         self._running = False
-        
+
         if self._sync_task:
             self._sync_task.cancel()
             try:
                 await self._sync_task
             except asyncio.CancelledError:
                 pass
-        
+
         # Final sync before shutdown
         for user_id in self._partitions:
             try:
                 await self.sync_user(user_id)
             except Exception as exc:
                 logger.error(f"Final sync failed for user {user_id}: {exc}")
-        
+
         await self._backend.disconnect()
         logger.info("Cloud sync orchestrator stopped")
-    
+
     def register_user(self, user_id: str, data_residency: str = "default") -> UserPartition:
         """Register a user partition for sync."""
         if user_id in self._partitions:
             return self._partitions[user_id]
-        
+
         partition = UserPartition(user_id=user_id, data_residency=data_residency)
         self._partitions[user_id] = partition
         self._change_logs[user_id] = ChangeLog(node_id=self.node_id)
@@ -919,10 +919,10 @@ class CloudSyncOrchestrator:
             partition=partition,
             batch_size=self.config.batch_size,
         )
-        
+
         logger.info(f"Registered user partition: {partition.partition_id}")
         return partition
-    
+
     async def record_change(
         self,
         user_id: str,
@@ -934,39 +934,39 @@ class CloudSyncOrchestrator:
         if user_id not in self._change_logs:
             logger.warning(f"User {user_id} not registered for sync")
             return None
-        
+
         return await self._change_logs[user_id].append(operation, record_id, data)
-    
+
     async def sync_user(self, user_id: str) -> SyncResult:
         """Sync a specific user's data."""
         if user_id not in self._sync_protocols:
             return SyncResult(success=False, error=f"User {user_id} not registered")
-        
+
         partition = self._partitions[user_id]
         if not partition.sync_enabled:
             return SyncResult(success=False, error="Sync disabled for user")
-        
+
         return await self._sync_protocols[user_id].sync()
-    
+
     async def sync_all(self) -> Dict[str, SyncResult]:
         """Sync all registered users."""
         results = {}
         for user_id in self._partitions:
             results[user_id] = await self.sync_user(user_id)
         return results
-    
+
     async def _periodic_sync_loop(self) -> None:
         """Background loop for periodic sync."""
         while self._running:
             await asyncio.sleep(self.config.sync_interval_s)
-            
+
             try:
                 results = await self.sync_all()
                 success_count = sum(1 for r in results.values() if r.success)
                 logger.debug(f"Periodic sync: {success_count}/{len(results)} users synced")
             except Exception as exc:
                 logger.error(f"Periodic sync failed: {exc}")
-    
+
     def health(self) -> Dict[str, Any]:
         """Get health status."""
         return {

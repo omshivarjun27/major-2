@@ -8,12 +8,12 @@ and generate navigational cues for blind users.
 
 from __future__ import annotations
 
+import collections
 import logging
 import time
-import collections
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Deque, Dict, List, Optional, Tuple
+from typing import Deque, Dict, List, Optional, Tuple
 
 import numpy as np
 

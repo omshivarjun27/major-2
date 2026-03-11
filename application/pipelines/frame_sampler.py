@@ -16,13 +16,12 @@ This fixes frame queue backlog and reduces unnecessary processing.
 
 from __future__ import annotations
 
-import asyncio
 import hashlib
 import logging
 import time
 from collections import deque
-from dataclasses import dataclass, field
-from typing import Any, Callable, Deque, List, Optional, Tuple
+from dataclasses import dataclass
+from typing import Any, Deque, Optional
 
 import numpy as np
 

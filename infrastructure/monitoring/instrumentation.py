@@ -12,16 +12,14 @@ import asyncio
 import functools
 import logging
 import time
-from contextlib import contextmanager, asynccontextmanager
+from contextlib import asynccontextmanager, contextmanager
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Callable, Dict, Optional, TypeVar
 
 from infrastructure.monitoring.prometheus_metrics import (
-    get_metrics,
-    PrometheusMetrics,
     CircuitBreakerState,
-    is_prometheus_available,
+    get_metrics,
 )
 
 logger = logging.getLogger(__name__)
@@ -73,14 +71,14 @@ class PipelineStageMetrics:
     end_time: Optional[float] = None
     success: bool = True
     error_type: Optional[str] = None
-    
+
     @property
     def duration_seconds(self) -> float:
         """Get duration in seconds."""
         if self.end_time is None:
             return time.perf_counter() - self.start_time
         return self.end_time - self.start_time
-    
+
     def complete(self, success: bool = True, error_type: Optional[str] = None) -> None:
         """Mark stage as complete."""
         self.end_time = time.perf_counter()
@@ -91,24 +89,24 @@ class PipelineStageMetrics:
 @contextmanager
 def timed_stage(pipeline: str, stage: str, record_errors: bool = True):
     """Context manager for timing pipeline stages.
-    
+
     Automatically records latency and errors to Prometheus metrics.
-    
+
     Args:
         pipeline: Pipeline name (vision, rag, speech)
         stage: Stage name within the pipeline
         record_errors: Whether to record errors on exception
-        
+
     Yields:
         PipelineStageMetrics for additional metadata
-        
+
     Example:
         with timed_stage("vision", "object_detection") as metrics:
             detections = detector.detect(frame)
         # Latency automatically recorded
     """
     metrics_obj = PipelineStageMetrics(stage=stage, pipeline=pipeline)
-    
+
     try:
         yield metrics_obj
         metrics_obj.complete(success=True)
@@ -132,11 +130,11 @@ def timed_stage(pipeline: str, stage: str, record_errors: bool = True):
 @asynccontextmanager
 async def async_timed_stage(pipeline: str, stage: str, record_errors: bool = True):
     """Async context manager for timing pipeline stages.
-    
+
     Same as timed_stage but for async code.
     """
     metrics_obj = PipelineStageMetrics(stage=stage, pipeline=pipeline)
-    
+
     try:
         yield metrics_obj
         metrics_obj.complete(success=True)
@@ -162,14 +160,14 @@ async def async_timed_stage(pipeline: str, stage: str, record_errors: bool = Tru
 
 def instrument_stage(pipeline: str, stage: str) -> Callable[[Callable[..., T]], Callable[..., T]]:
     """Decorator to instrument a function as a pipeline stage.
-    
+
     Args:
         pipeline: Pipeline name
         stage: Stage name
-        
+
     Returns:
         Decorated function
-        
+
     Example:
         @instrument_stage("vision", "object_detection")
         async def detect_objects(frame):
@@ -180,22 +178,22 @@ def instrument_stage(pipeline: str, stage: str) -> Callable[[Callable[..., T]], 
         def sync_wrapper(*args: Any, **kwargs: Any) -> T:
             with timed_stage(pipeline, stage):
                 return func(*args, **kwargs)
-        
+
         @functools.wraps(func)
         async def async_wrapper(*args: Any, **kwargs: Any) -> T:
             async with async_timed_stage(pipeline, stage):
                 return await func(*args, **kwargs)
-        
+
         if asyncio.iscoroutinefunction(func):
             return async_wrapper  # type: ignore
         return sync_wrapper
-    
+
     return decorator
 
 
 def instrument_vision(stage: VisionStage) -> Callable[[Callable[..., T]], Callable[..., T]]:
     """Decorator for vision pipeline stages.
-    
+
     Example:
         @instrument_vision(VisionStage.OBJECT_DETECTION)
         async def detect(self, frame):
@@ -206,7 +204,7 @@ def instrument_vision(stage: VisionStage) -> Callable[[Callable[..., T]], Callab
 
 def instrument_rag(stage: RAGStage) -> Callable[[Callable[..., T]], Callable[..., T]]:
     """Decorator for RAG pipeline stages.
-    
+
     Example:
         @instrument_rag(RAGStage.EMBEDDING)
         async def embed(self, text):
@@ -217,7 +215,7 @@ def instrument_rag(stage: RAGStage) -> Callable[[Callable[..., T]], Callable[...
 
 def instrument_speech(stage: SpeechStage) -> Callable[[Callable[..., T]], Callable[..., T]]:
     """Decorator for speech pipeline stages.
-    
+
     Example:
         @instrument_speech(SpeechStage.STT)
         async def transcribe(self, audio):
@@ -232,26 +230,26 @@ def instrument_speech(stage: SpeechStage) -> Callable[[Callable[..., T]], Callab
 
 class FAISSMetricsTracker:
     """Tracker for FAISS index metrics.
-    
+
     Provides methods to record FAISS operations:
     - Query count and latency
     - Index vector count
     - Index operations (add, remove)
     """
-    
+
     def __init__(self, index_name: str = "default"):
         """Initialize FAISS metrics tracker.
-        
+
         Args:
             index_name: Name to identify the index in metrics
         """
         self._index_name = index_name
         self._query_count = 0
         self._vector_count = 0
-    
+
     def record_query(self, latency_seconds: float, result_count: int = 0) -> None:
         """Record a FAISS query operation.
-        
+
         Args:
             latency_seconds: Query latency in seconds
             result_count: Number of results returned
@@ -262,10 +260,10 @@ class FAISSMetricsTracker:
             prom.record_faiss_query(latency_seconds)
         except Exception:
             pass
-    
+
     def set_vector_count(self, count: int) -> None:
         """Set the current vector count in the index.
-        
+
         Args:
             count: Number of vectors in the index
         """
@@ -275,14 +273,14 @@ class FAISSMetricsTracker:
             prom.set_queue_size(f"faiss_{self._index_name}_vectors", count)
         except Exception:
             pass
-    
+
     @contextmanager
     def timed_query(self):
         """Context manager for timing FAISS queries.
-        
+
         Yields:
             dict to store query metadata
-            
+
         Example:
             with tracker.timed_query() as query:
                 results = index.search(vectors, k=10)
@@ -290,7 +288,7 @@ class FAISSMetricsTracker:
         """
         query_data: Dict[str, Any] = {"result_count": 0}
         start = time.perf_counter()
-        
+
         try:
             yield query_data
         finally:
@@ -304,13 +302,13 @@ class FAISSMetricsTracker:
 
 class CircuitBreakerMetricsTracker:
     """Tracker for circuit breaker metrics.
-    
+
     Records state transitions, trips, and recovery times.
     """
-    
+
     def __init__(self, service_name: str):
         """Initialize circuit breaker tracker.
-        
+
         Args:
             service_name: Name of the service being protected
         """
@@ -318,29 +316,29 @@ class CircuitBreakerMetricsTracker:
         self._current_state = CircuitBreakerState.CLOSED
         self._last_state_change = time.perf_counter()
         self._trip_count = 0
-    
+
     def record_state_change(self, new_state: CircuitBreakerState) -> None:
         """Record a state transition.
-        
+
         Args:
             new_state: New circuit breaker state
         """
         old_state = self._current_state
         self._current_state = new_state
-        
+
         # Record time in previous state
         state_duration = time.perf_counter() - self._last_state_change
         self._last_state_change = time.perf_counter()
-        
+
         try:
             prom = get_metrics()
             prom.set_circuit_breaker_state(self._service_name, new_state)
-            
+
             # Record trip event if transitioning to OPEN
             if new_state == CircuitBreakerState.OPEN and old_state != CircuitBreakerState.OPEN:
                 self._trip_count += 1
                 prom.record_circuit_breaker_trip(self._service_name)
-            
+
             logger.debug(
                 "Circuit breaker %s: %s -> %s (was in %s for %.2fs)",
                 self._service_name,
@@ -351,24 +349,24 @@ class CircuitBreakerMetricsTracker:
             )
         except Exception:
             pass
-    
+
     def open(self) -> None:
         """Transition to OPEN state."""
         self.record_state_change(CircuitBreakerState.OPEN)
-    
+
     def half_open(self) -> None:
         """Transition to HALF_OPEN state."""
         self.record_state_change(CircuitBreakerState.HALF_OPEN)
-    
+
     def close(self) -> None:
         """Transition to CLOSED state."""
         self.record_state_change(CircuitBreakerState.CLOSED)
-    
+
     @property
     def state(self) -> CircuitBreakerState:
         """Get current state."""
         return self._current_state
-    
+
     @property
     def trip_count(self) -> int:
         """Get total trip count."""
@@ -381,72 +379,72 @@ class CircuitBreakerMetricsTracker:
 
 class WebRTCMetricsTracker:
     """Tracker for WebRTC agent metrics.
-    
+
     Records session count, reconnections, and connection states.
     """
-    
+
     def __init__(self):
         """Initialize WebRTC metrics tracker."""
         self._active_sessions = 0
         self._total_sessions = 0
         self._reconnection_count = 0
-    
+
     def session_started(self, session_id: Optional[str] = None) -> None:
         """Record a new session starting.
-        
+
         Args:
             session_id: Optional session identifier for logging
         """
         self._active_sessions += 1
         self._total_sessions += 1
-        
+
         try:
             prom = get_metrics()
             prom.inc_connections("webrtc")
             logger.debug("WebRTC session started: %s (active: %d)", session_id, self._active_sessions)
         except Exception:
             pass
-    
+
     def session_ended(self, session_id: Optional[str] = None) -> None:
         """Record a session ending.
-        
+
         Args:
             session_id: Optional session identifier for logging
         """
         self._active_sessions = max(0, self._active_sessions - 1)
-        
+
         try:
             prom = get_metrics()
             prom.dec_connections("webrtc")
             logger.debug("WebRTC session ended: %s (active: %d)", session_id, self._active_sessions)
         except Exception:
             pass
-    
+
     def record_reconnection(self, session_id: Optional[str] = None) -> None:
         """Record a reconnection event.
-        
+
         Args:
             session_id: Optional session identifier for logging
         """
         self._reconnection_count += 1
-        
+
         try:
             prom = get_metrics()
             prom.record_error("webrtc", "reconnection")
             logger.info("WebRTC reconnection: %s (total: %d)", session_id, self._reconnection_count)
         except Exception:
             pass
-    
+
     @property
     def active_sessions(self) -> int:
         """Get current active session count."""
         return self._active_sessions
-    
+
     @property
     def total_sessions(self) -> int:
         """Get total session count since startup."""
         return self._total_sessions
-    
+
     @property
     def reconnection_count(self) -> int:
         """Get total reconnection count."""
@@ -459,7 +457,7 @@ class WebRTCMetricsTracker:
 
 def record_stt_latency(latency_seconds: float) -> None:
     """Record speech-to-text latency.
-    
+
     Args:
         latency_seconds: STT processing time in seconds
     """
@@ -471,7 +469,7 @@ def record_stt_latency(latency_seconds: float) -> None:
 
 def record_tts_latency(latency_seconds: float) -> None:
     """Record text-to-speech latency.
-    
+
     Args:
         latency_seconds: TTS processing time in seconds
     """
@@ -483,7 +481,7 @@ def record_tts_latency(latency_seconds: float) -> None:
 
 def record_llm_latency(latency_seconds: float) -> None:
     """Record LLM inference latency.
-    
+
     Args:
         latency_seconds: LLM processing time in seconds
     """
@@ -496,7 +494,7 @@ def record_llm_latency(latency_seconds: float) -> None:
 @contextmanager
 def timed_stt():
     """Context manager for timing STT operations.
-    
+
     Example:
         with timed_stt():
             transcript = await stt.transcribe(audio)
@@ -511,7 +509,7 @@ def timed_stt():
 @contextmanager
 def timed_tts():
     """Context manager for timing TTS operations.
-    
+
     Example:
         with timed_tts():
             audio = await tts.synthesize(text)
@@ -526,7 +524,7 @@ def timed_tts():
 @contextmanager
 def timed_llm():
     """Context manager for timing LLM operations.
-    
+
     Example:
         with timed_llm():
             response = await llm.generate(prompt)
@@ -574,27 +572,27 @@ async def async_timed_llm():
 
 def update_resource_metrics() -> None:
     """Update resource usage metrics (CPU, RAM, VRAM).
-    
+
     Call periodically (e.g., every 10 seconds) to update resource gauges.
     Safe to call - handles import errors gracefully.
     """
     try:
         import psutil
         prom = get_metrics()
-        
+
         # CPU usage
         cpu_percent = psutil.cpu_percent(interval=None)
         prom.set_cpu_usage(cpu_percent)
-        
+
         # RAM usage
         memory = psutil.virtual_memory()
         prom.set_ram_usage(memory.used)
-        
+
     except ImportError:
         logger.debug("psutil not available for resource metrics")
     except Exception as e:
         logger.debug("Failed to update resource metrics: %s", e)
-    
+
     # VRAM usage (NVIDIA GPUs)
     try:
         import subprocess
@@ -630,10 +628,10 @@ def get_webrtc_tracker() -> WebRTCMetricsTracker:
 
 def get_faiss_tracker(index_name: str = "default") -> FAISSMetricsTracker:
     """Get a FAISS metrics tracker for the specified index.
-    
+
     Args:
         index_name: Name of the FAISS index
-        
+
     Returns:
         FAISSMetricsTracker for the index
     """
@@ -644,10 +642,10 @@ def get_faiss_tracker(index_name: str = "default") -> FAISSMetricsTracker:
 
 def get_circuit_breaker_tracker(service_name: str) -> CircuitBreakerMetricsTracker:
     """Get a circuit breaker tracker for the specified service.
-    
+
     Args:
         service_name: Name of the service
-        
+
     Returns:
         CircuitBreakerMetricsTracker for the service
     """

@@ -4,8 +4,6 @@ from __future__ import annotations
 
 import os
 import sys
-import tempfile
-import pytest
 
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 if PROJECT_ROOT not in sys.path:
@@ -70,6 +68,6 @@ class TestModelChecksums:
 
     def test_model_checksums_dict_has_entries(self):
         """MODEL_CHECKSUMS should have entries for known models."""
-        from scripts.download_models import MODEL_CHECKSUMS, MIDAS_DEST_NAME, YOLO_DEST_NAME
+        from scripts.download_models import MIDAS_DEST_NAME, MODEL_CHECKSUMS, YOLO_DEST_NAME
         assert MIDAS_DEST_NAME in MODEL_CHECKSUMS
         assert YOLO_DEST_NAME in MODEL_CHECKSUMS

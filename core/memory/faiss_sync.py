@@ -16,7 +16,6 @@ import io
 import json
 import logging
 import os
-import tempfile
 import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
@@ -27,7 +26,6 @@ import numpy as np
 
 from core.memory.cloud_sync import (
     ChangeLog,
-    ChangeLogEntry,
     SyncResult,
     UserPartition,
     VectorTimestamp,

@@ -300,7 +300,6 @@ class WhisperSTT:
         language: str,
     ) -> TranscriptionResult:
         """Synchronous transcription (runs in thread pool)."""
-        import io
         import tempfile
 
         # Handle bytes input — write to temp file

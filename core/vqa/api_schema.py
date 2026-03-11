@@ -7,10 +7,9 @@ Pydantic models for VQA API request/response validation.
 
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
-
 
 # ============================================================================
 # Enums
@@ -53,7 +52,7 @@ class BoundingBoxSchema(BaseModel):
     y: int = Field(..., description="Top-left Y coordinate")
     width: int = Field(..., ge=1, description="Box width")
     height: int = Field(..., ge=1, description="Box height")
-    
+
     @property
     def center(self) -> tuple:
         return (self.x + self.width // 2, self.y + self.height // 2)
@@ -69,7 +68,7 @@ class DetectionSchema(BaseModel):
     class_name: str = Field(..., alias="class", description="Object class")
     confidence: float = Field(..., ge=0, le=1, description="Detection confidence")
     bbox: BoundingBoxSchema = Field(..., description="Bounding box")
-    
+
     model_config = ConfigDict(populate_by_name=True)
 
 
@@ -84,7 +83,7 @@ class ObstacleSchema(BaseModel):
     confidence: float = Field(..., ge=0, le=1, description="Combined confidence")
     action: str = Field(..., description="Recommended action")
     is_uncertain: bool = Field(False, description="Whether result is uncertain")
-    
+
     model_config = ConfigDict(populate_by_name=True)
 
 
@@ -117,7 +116,7 @@ class PerceptionFrameResponse(BaseModel):
     summary: str = Field(..., description="Scene summary for TTS")
     has_critical: bool = Field(..., description="Whether critical obstacles exist")
     processing_time_ms: float = Field(..., description="Total processing time")
-    
+
     # Optional detailed data
     depth_info: Optional[DepthInfoSchema] = None
     image_size: List[int] = Field([640, 480], description="[width, height]")
@@ -145,7 +144,7 @@ class VQAAskResponse(BaseModel):
     processing_time_ms: float = Field(..., description="Processing time")
     tokens_used: int = Field(0, description="Tokens used by LLM")
     safety_prefix: str = Field("", description="Safety prefix if uncertain")
-    
+
     # Optional context
     obstacles_used: int = Field(0, description="Number of obstacles in context")
     session_id: Optional[str] = None

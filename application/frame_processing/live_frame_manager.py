@@ -17,12 +17,9 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
-import uuid
 from collections import deque
 from dataclasses import dataclass, field
-from typing import Any, Callable, Deque, Dict, List, Optional, Set, Tuple
-
-import numpy as np
+from typing import Any, Callable, Deque, Dict, List, Optional
 
 logger = logging.getLogger("live-frame-manager")
 

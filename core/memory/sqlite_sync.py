@@ -14,21 +14,15 @@ import asyncio
 import hashlib
 import json
 import logging
-import os
 import sqlite3
-import tempfile
 import time
-from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Set
 
 from core.memory.cloud_sync import (
-    ChangeLog,
     SyncResult,
     UserPartition,
-    VectorTimestamp,
 )
 from core.memory.faiss_sync import LocalStorageBackend, StorageBackend
 
@@ -638,7 +632,7 @@ class SQLiteSyncManager:
                         duration_ms=time.time() * 1000 - start_ms,
                     )
 
-                remote_state = json.loads(state_data)
+                json.loads(state_data)
                 pulled_count = 0
                 conflicts_detected = 0
 

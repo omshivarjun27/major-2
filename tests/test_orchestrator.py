@@ -7,8 +7,8 @@ telemetry counters, never-raise guarantee.
 """
 
 import asyncio
-import sys
 import os
+import sys
 import time
 
 import numpy as np
@@ -16,13 +16,12 @@ import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from shared.schemas import BoundingBox, DepthMap, Detection, SegmentationMask
 from core.vqa.orchestrator import (
     OrchestratorConfig,
     PerceptionOrchestrator,
     _get_image_size,
 )
-
+from shared.schemas import BoundingBox, DepthMap, Detection, SegmentationMask
 
 # ============================================================================
 # Mock pipeline stages

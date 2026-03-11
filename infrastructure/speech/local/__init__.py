@@ -4,20 +4,19 @@ STT Fallback: WhisperSTT (local Whisper model via faster-whisper)
 TTS Fallback: LocalTTSFallback (edge-tts or pyttsx3)
 """
 
-from infrastructure.speech.local.whisper_stt import (
-    WhisperSTT,
-    WhisperConfig,
-    TranscriptionResult,
-    WHISPER_AVAILABLE,
-)
-
 from infrastructure.speech.local.edge_tts_fallback import (
-    LocalTTSFallback,
-    LocalTTSConfig,
-    SynthesisResult,
     EDGE_TTS_AVAILABLE,
     PYTTSX3_AVAILABLE,
+    LocalTTSConfig,
+    LocalTTSFallback,
+    SynthesisResult,
     create_local_tts_fn,
+)
+from infrastructure.speech.local.whisper_stt import (
+    WHISPER_AVAILABLE,
+    TranscriptionResult,
+    WhisperConfig,
+    WhisperSTT,
 )
 
 __all__ = [

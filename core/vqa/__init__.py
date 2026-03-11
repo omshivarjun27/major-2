@@ -18,92 +18,97 @@ Target latencies:
 Author: Voice-Vision Assistant Team
 """
 
-from .perception import (
-    MockObjectDetector,
-    YOLODetector,
-    EdgeAwareSegmenter,
-    SimpleDepthEstimator,
-    MiDaSDepthEstimator,
-    PerceptionPipeline,
-    create_pipeline as create_perception_pipeline,
-    create_detector as create_object_detector,
-    create_depth_estimator,
-)
-
 # ── Canonical types re-exported from shared ─────────────────────────────
 from shared.schemas import (
-    ObjectDetector,
-    Segmenter,
-    DepthEstimator,
-    Detection,
-    SegmentationMask,
-    DepthMap,
     BoundingBox,
-    PerceptionResult,
-    ObstacleRecord,
-    Priority,
+    DepthEstimator,
+    DepthMap,
+    Detection,
     Direction,
+    NavigationOutput,
+    ObjectDetector,
+    ObstacleRecord,
+    PerceptionResult,
+    Priority,
+    SegmentationMask,
+    Segmenter,
     SizeCategory,
     SpatialRelation,
-    NavigationOutput,
 )
 
+from .api_endpoints import (
+    cleanup_vqa_api,
+    get_router,
+    init_vqa_api,
+)
+from .api_endpoints import (
+    router as vqa_router,
+)
+from .api_schema import (
+    DetectionSchema,
+    DirectionType,
+    HealthStatus,
+    ObstacleSchema,
+    PerceptionFrameRequest,
+    PerceptionFrameResponse,
+    PerformanceMetrics,
+    PriorityLevel,
+    SessionReplayResponse,
+    VQAAskRequest,
+    VQAAskResponse,
+)
+from .memory import (
+    MemoryConfig,
+    SceneEntry,
+    Session,
+    VQAMemory,
+)
+from .perception import (
+    EdgeAwareSegmenter,
+    MiDaSDepthEstimator,
+    MockObjectDetector,
+    PerceptionPipeline,
+    SimpleDepthEstimator,
+    YOLODetector,
+    create_depth_estimator,
+)
+from .perception import (
+    create_detector as create_object_detector,
+)
+from .perception import (
+    create_pipeline as create_perception_pipeline,
+)
+from .priority_scene import (
+    DirectionZone,
+    Hazard,
+    HazardSeverity,
+    PrioritySceneAnalyzer,
+    PrioritySceneResult,
+    analyze_priority_scene,
+    get_top_hazards,
+)
 from .scene_graph import (
     SceneGraph,
-    SceneNode,
     SceneGraphBuilder,
+    SceneNode,
     build_scene_graph,
     obstacle_to_speech,
 )
 from .spatial_fuser import (
-    SpatialFuser,
-    FusionConfig,
-    TemporalFilter,
-    TrackedObject,
     FusedObstacle,
     FusedResult,
+    FusionConfig,
+    SpatialFuser,
+    TemporalFilter,
+    TrackedObject,
 )
 from .vqa_reasoner import (
-    VQAReasoner,
     MicroNavFormatter,
     PromptTemplates,
+    QuickAnswers,
+    VQAReasoner,
     VQARequest,
     VQAResponse,
-    QuickAnswers,
-)
-from .memory import (
-    VQAMemory,
-    SceneEntry,
-    MemoryConfig,
-    Session,
-)
-from .priority_scene import (
-    PrioritySceneAnalyzer,
-    Hazard,
-    PrioritySceneResult,
-    HazardSeverity,
-    DirectionZone,
-    analyze_priority_scene,
-    get_top_hazards,
-)
-from .api_schema import (
-    PerceptionFrameRequest,
-    PerceptionFrameResponse,
-    VQAAskRequest,
-    VQAAskResponse,
-    SessionReplayResponse,
-    HealthStatus,
-    PerformanceMetrics,
-    ObstacleSchema,
-    DetectionSchema,
-    PriorityLevel,
-    DirectionType,
-)
-from .api_endpoints import (
-    router as vqa_router,
-    init_vqa_api,
-    cleanup_vqa_api,
-    get_router,
 )
 
 __version__ = "1.0.0"

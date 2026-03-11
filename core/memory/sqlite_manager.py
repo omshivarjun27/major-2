@@ -1,10 +1,9 @@
+import logging
 import sqlite3
 import threading
-import logging
-import json
+from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import List, Optional, Dict, Any
-from dataclasses import dataclass, asdict
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger("sqlite-manager")
 
@@ -45,7 +44,7 @@ class SQLiteManager:
         with self._lock:
             if self._initialized:
                 return
-            
+
             self.db_path = Path(db_path)
             self.db_path.parent.mkdir(parents=True, exist_ok=True)
             self._conn = None
@@ -117,10 +116,10 @@ class SQLiteManager:
             raise
 
     def insert_conversation(
-        self, 
-        session_id: str, 
-        transcript: str, 
-        summary: Optional[str] = None, 
+        self,
+        session_id: str,
+        transcript: str,
+        summary: Optional[str] = None,
         scene_graph_ref: Optional[str] = None,
         expiry: Optional[str] = None,
         user_label: Optional[str] = None,
@@ -141,8 +140,8 @@ class SQLiteManager:
                 cursor.execute(
                     """
                     INSERT INTO conversation_logs (
-                        session_id, device_id, transcript, summary, user_label, 
-                        scene_graph_ref, scene_graph, expiry, embedding_status, 
+                        session_id, device_id, transcript, summary, user_label,
+                        scene_graph_ref, scene_graph, expiry, embedding_status,
                         privacy_flag, has_raw_image, has_raw_audio, vector_dim
                     )
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -187,7 +186,7 @@ class SQLiteManager:
         """Bulk retrieves conversation logs by their rowids."""
         if not rowids:
             return []
-        
+
         try:
             conn = self._get_conn()
             cursor = conn.cursor()
@@ -195,24 +194,24 @@ class SQLiteManager:
             query = f"SELECT rowid, * FROM conversation_logs WHERE rowid IN ({placeholders})"
             cursor.execute(query, rowids)
             rows = cursor.fetchall()
-            
+
             logs = []
             for row in rows:
                 data = dict(row)
                 data['has_raw_image'] = bool(data['has_raw_image'])
                 data['has_raw_audio'] = bool(data['has_raw_audio'])
                 logs.append(ConversationLog(**data))
-            
+
             id_to_log = {log.rowid: log for log in logs}
             return [id_to_log[rid] for rid in rowids if rid in id_to_log]
-            
+
         except sqlite3.Error as e:
             logger.error(f"Failed bulk retrieval: {e}")
             return []
 
     def get_conversations_by_session(
-        self, 
-        session_id: str, 
+        self,
+        session_id: str,
         limit: int = 50
     ) -> List[ConversationLog]:
         """Retrieves all conversation logs for a specific session."""
@@ -224,7 +223,7 @@ class SQLiteManager:
                 (session_id, limit)
             )
             rows = cursor.fetchall()
-            
+
             logs = []
             for row in rows:
                 data = dict(row)
@@ -237,14 +236,14 @@ class SQLiteManager:
             return []
 
     def get_recent_conversations(
-        self, 
-        hours: float = 24.0, 
+        self,
+        hours: float = 24.0,
         limit: int = 20
     ) -> List[ConversationLog]:
         """Retrieves conversation logs from the last N hours."""
         from datetime import datetime, timedelta
         cutoff = (datetime.utcnow() - timedelta(hours=hours)).isoformat()
-        
+
         try:
             conn = self._get_conn()
             cursor = conn.cursor()
@@ -253,7 +252,7 @@ class SQLiteManager:
                 (cutoff, limit)
             )
             rows = cursor.fetchall()
-            
+
             logs = []
             for row in rows:
                 data = dict(row)

@@ -14,8 +14,6 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
 
-import pytest
-
 # Project imports
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 if PROJECT_ROOT not in sys.path:
@@ -41,7 +39,7 @@ class PerformanceThreshold:
     warning_ms: float
     critical_ms: float
     component: str
-    
+
     def check(self, actual_ms: float) -> Tuple[RegressionStatus, str]:
         """Check if actual value meets threshold."""
         if actual_ms <= self.target_ms:
@@ -61,7 +59,7 @@ class RegressionResult:
     status: RegressionStatus
     message: str
     timestamp: float = field(default_factory=time.time)
-    
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             "name": self.threshold.name,
@@ -80,30 +78,30 @@ class RegressionReport:
     results: List[RegressionResult] = field(default_factory=list)
     start_time: float = field(default_factory=time.time)
     end_time: float = 0.0
-    
+
     @property
     def passed(self) -> int:
         return sum(1 for r in self.results if r.status == RegressionStatus.PASS)
-    
+
     @property
     def failed(self) -> int:
         return sum(1 for r in self.results if r.status == RegressionStatus.FAIL)
-    
+
     @property
     def skipped(self) -> int:
         return sum(1 for r in self.results if r.status == RegressionStatus.SKIP)
-    
+
     @property
     def all_passed(self) -> bool:
         return self.failed == 0
-    
+
     @property
     def duration_ms(self) -> float:
         return (self.end_time - self.start_time) * 1000
-    
+
     def add_result(self, result: RegressionResult):
         self.results.append(result)
-    
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             "summary": {
@@ -146,7 +144,7 @@ CPU_WARNING_PERCENT = 90.0
 
 class MockPerformanceMeasurer:
     """Mock performance measurer for testing."""
-    
+
     def __init__(self, latencies: Optional[Dict[str, float]] = None):
         self.latencies = latencies or {
             "hot_path": 450.0,
@@ -161,30 +159,30 @@ class MockPerformanceMeasurer:
         self.vram_mb = 5000.0
         self.ram_percent = 60.0
         self.cpu_percent = 50.0
-    
+
     async def measure_latency(self, component: str) -> float:
         """Measure latency for a component."""
         await asyncio.sleep(0.01)  # Simulate measurement
         return self.latencies.get(component, 100.0)
-    
+
     def get_vram_usage(self) -> float:
         return self.vram_mb
-    
+
     def get_ram_usage_percent(self) -> float:
         return self.ram_percent
-    
+
     def get_cpu_usage_percent(self) -> float:
         return self.cpu_percent
 
 
 class RegressionTestRunner:
     """Runner for performance regression tests."""
-    
+
     def __init__(self, measurer: MockPerformanceMeasurer):
         self.measurer = measurer
         self.thresholds = PERFORMANCE_THRESHOLDS
         self.report = RegressionReport()
-    
+
     async def run_latency_tests(self) -> List[RegressionResult]:
         """Run all latency regression tests."""
         results = []
@@ -200,11 +198,11 @@ class RegressionTestRunner:
             results.append(result)
             self.report.add_result(result)
         return results
-    
+
     def run_resource_tests(self) -> List[RegressionResult]:
         """Run resource budget regression tests."""
         results = []
-        
+
         # VRAM check
         vram_threshold = PerformanceThreshold(
             name="vram_budget",
@@ -220,7 +218,7 @@ class RegressionTestRunner:
         else:
             status = RegressionStatus.FAIL
             message = f"VRAM: {vram_actual:.0f}MB > {VRAM_BUDGET_MB:.0f}MB [FAIL]"
-        
+
         result = RegressionResult(
             threshold=vram_threshold,
             actual_ms=vram_actual,
@@ -229,9 +227,9 @@ class RegressionTestRunner:
         )
         results.append(result)
         self.report.add_result(result)
-        
+
         return results
-    
+
     async def run_all_tests(self) -> RegressionReport:
         """Run all regression tests."""
         self.report = RegressionReport()
@@ -247,21 +245,21 @@ class RegressionTestRunner:
 
 class TestPerformanceThreshold:
     """Tests for performance threshold definitions."""
-    
+
     def test_threshold_pass(self):
         """Test threshold passes when under target."""
         threshold = PerformanceThreshold("test", target_ms=100.0, warning_ms=120.0, critical_ms=150.0, component="test")
         status, message = threshold.check(80.0)
         assert status == RegressionStatus.PASS
         assert "PASS" in message
-    
+
     def test_threshold_warning(self):
         """Test threshold passes with warning."""
         threshold = PerformanceThreshold("test", target_ms=100.0, warning_ms=120.0, critical_ms=150.0, component="test")
         status, message = threshold.check(110.0)
         assert status == RegressionStatus.PASS
         assert "warning" in message
-    
+
     def test_threshold_fail(self):
         """Test threshold fails when over critical."""
         threshold = PerformanceThreshold("test", target_ms=100.0, warning_ms=120.0, critical_ms=150.0, component="test")
@@ -272,7 +270,7 @@ class TestPerformanceThreshold:
 
 class TestRegressionResult:
     """Tests for regression result handling."""
-    
+
     def test_result_serialization(self):
         """Test result serialization."""
         threshold = PerformanceThreshold("test", target_ms=100.0, warning_ms=120.0, critical_ms=150.0, component="test")
@@ -290,37 +288,37 @@ class TestRegressionResult:
 
 class TestRegressionReport:
     """Tests for regression report generation."""
-    
+
     def test_report_counts(self):
         """Test report counts are correct."""
         report = RegressionReport()
         threshold = PerformanceThreshold("test", target_ms=100.0, warning_ms=120.0, critical_ms=150.0, component="test")
-        
+
         report.add_result(RegressionResult(threshold, 80.0, RegressionStatus.PASS, ""))
         report.add_result(RegressionResult(threshold, 80.0, RegressionStatus.PASS, ""))
         report.add_result(RegressionResult(threshold, 160.0, RegressionStatus.FAIL, ""))
-        
+
         assert report.passed == 2
         assert report.failed == 1
         assert report.all_passed is False
-    
+
     def test_report_all_passed(self):
         """Test all_passed is true when no failures."""
         report = RegressionReport()
         threshold = PerformanceThreshold("test", target_ms=100.0, warning_ms=120.0, critical_ms=150.0, component="test")
-        
+
         report.add_result(RegressionResult(threshold, 80.0, RegressionStatus.PASS, ""))
         report.add_result(RegressionResult(threshold, 90.0, RegressionStatus.PASS, ""))
-        
+
         assert report.all_passed is True
-    
+
     def test_report_serialization(self):
         """Test report serialization."""
         report = RegressionReport()
         threshold = PerformanceThreshold("test", target_ms=100.0, warning_ms=120.0, critical_ms=150.0, component="test")
         report.add_result(RegressionResult(threshold, 80.0, RegressionStatus.PASS, ""))
         report.end_time = time.time()
-        
+
         d = report.to_dict()
         assert "summary" in d
         assert "results" in d
@@ -329,13 +327,13 @@ class TestRegressionReport:
 
 class TestMockPerformanceMeasurer:
     """Tests for mock performance measurer."""
-    
+
     async def test_measure_latency(self):
         """Test latency measurement."""
         measurer = MockPerformanceMeasurer()
         latency = await measurer.measure_latency("hot_path")
         assert latency == 450.0
-    
+
     def test_resource_measurements(self):
         """Test resource measurements."""
         measurer = MockPerformanceMeasurer()
@@ -345,114 +343,114 @@ class TestMockPerformanceMeasurer:
 
 class TestRegressionTestRunner:
     """Tests for regression test runner."""
-    
+
     async def test_run_latency_tests(self):
         """Test running latency tests."""
         measurer = MockPerformanceMeasurer()
         runner = RegressionTestRunner(measurer)
         results = await runner.run_latency_tests()
-        
+
         assert len(results) == len(PERFORMANCE_THRESHOLDS)
         # With default latencies, all should pass
         assert all(r.status == RegressionStatus.PASS for r in results)
-    
+
     def test_run_resource_tests(self):
         """Test running resource tests."""
         measurer = MockPerformanceMeasurer()
         runner = RegressionTestRunner(measurer)
         results = runner.run_resource_tests()
-        
+
         assert len(results) >= 1
         # Default VRAM is under budget
         vram_result = results[0]
         assert vram_result.status == RegressionStatus.PASS
-    
+
     async def test_run_all_tests(self):
         """Test running all tests."""
         measurer = MockPerformanceMeasurer()
         runner = RegressionTestRunner(measurer)
         report = await runner.run_all_tests()
-        
+
         assert report.passed > 0
         assert report.all_passed
 
 
 class TestRegressionFailures:
     """Tests for regression failure detection."""
-    
+
     async def test_detect_hot_path_regression(self):
         """Test detecting hot path regression."""
         measurer = MockPerformanceMeasurer(latencies={"hot_path": 600.0})
         runner = RegressionTestRunner(measurer)
         results = await runner.run_latency_tests()
-        
+
         hot_path_result = next(r for r in results if r.threshold.name == "hot_path")
         # 600ms > 500ms target, but <= 600ms warning
         assert hot_path_result.status == RegressionStatus.PASS
-    
+
     async def test_detect_critical_regression(self):
         """Test detecting critical regression."""
         measurer = MockPerformanceMeasurer(latencies={"hot_path": 800.0})
         runner = RegressionTestRunner(measurer)
         results = await runner.run_latency_tests()
-        
+
         hot_path_result = next(r for r in results if r.threshold.name == "hot_path")
         # 800ms > 750ms critical
         assert hot_path_result.status == RegressionStatus.FAIL
-    
+
     def test_detect_vram_overflow(self):
         """Test detecting VRAM overflow."""
         measurer = MockPerformanceMeasurer()
         measurer.vram_mb = 9000.0  # Over 8GB budget
         runner = RegressionTestRunner(measurer)
         results = runner.run_resource_tests()
-        
+
         vram_result = results[0]
         assert vram_result.status == RegressionStatus.FAIL
 
 
 class TestCIIntegration:
     """Tests for CI integration patterns."""
-    
+
     async def test_ci_exit_code_pass(self):
         """Test CI would exit 0 when all pass."""
         measurer = MockPerformanceMeasurer()
         runner = RegressionTestRunner(measurer)
         report = await runner.run_all_tests()
-        
+
         # CI exit code: 0 for pass, 1 for fail
         exit_code = 0 if report.all_passed else 1
         assert exit_code == 0
-    
+
     async def test_ci_exit_code_fail(self):
         """Test CI would exit 1 when failures."""
         measurer = MockPerformanceMeasurer(latencies={"hot_path": 1000.0})
         runner = RegressionTestRunner(measurer)
         report = await runner.run_all_tests()
-        
+
         exit_code = 0 if report.all_passed else 1
         assert exit_code == 1
-    
+
     async def test_test_duration_reasonable(self):
         """Test regression suite completes in reasonable time."""
         measurer = MockPerformanceMeasurer()
         runner = RegressionTestRunner(measurer)
-        
+
         start = time.perf_counter()
         await runner.run_all_tests()
         duration_s = time.perf_counter() - start
-        
+
         # Should complete in < 5 seconds (mock measurements are fast)
         assert duration_s < 5.0
 
 
 class TestHistoricalTracking:
     """Tests for historical performance tracking."""
-    
+
     def test_store_results(self):
         """Test storing results for trend analysis."""
         results_history: List[RegressionReport] = []
-        
+
         # Simulate multiple test runs
         for _ in range(5):
             report = RegressionReport()
@@ -460,20 +458,20 @@ class TestHistoricalTracking:
             report.add_result(RegressionResult(threshold, 80 + _ * 5, RegressionStatus.PASS, ""))
             report.end_time = time.time()
             results_history.append(report)
-        
+
         assert len(results_history) == 5
-        
+
         # Can detect trend (latency increasing)
         latencies = [r.results[0].actual_ms for r in results_history]
         assert latencies[-1] > latencies[0]  # Trending up
-    
+
     def test_detect_gradual_degradation(self):
         """Test detecting gradual performance degradation."""
         baseline = 80.0
         current = 95.0
         degradation_threshold = 10.0  # 10% degradation
-        
+
         degradation_percent = ((current - baseline) / baseline) * 100
         is_degraded = degradation_percent > degradation_threshold
-        
+
         assert is_degraded

@@ -9,11 +9,11 @@ import asyncio
 import os
 import sys
 import time
+import uuid
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from functools import wraps
 from typing import Any, Callable, Dict, List, Optional, TypeVar
-import uuid
 
 import pytest
 
@@ -37,7 +37,7 @@ class TimingRecord:
     success: bool
     error: Optional[str] = None
     context: Dict[str, Any] = field(default_factory=dict)
-    
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             "name": self.name,
@@ -61,16 +61,16 @@ class Span:
     end_time: float = 0.0
     tags: Dict[str, Any] = field(default_factory=dict)
     children: List["Span"] = field(default_factory=list)
-    
+
     @property
     def duration_ms(self) -> float:
         if self.end_time == 0.0:
             return 0.0
         return (self.end_time - self.start_time) * 1000
-    
+
     def finish(self):
         self.end_time = time.time()
-    
+
     def add_child(self, name: str) -> "Span":
         child = Span(
             span_id=str(uuid.uuid4())[:8],
@@ -81,7 +81,7 @@ class Span:
         )
         self.children.append(child)
         return child
-    
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             "span_id": self.span_id,
@@ -99,11 +99,11 @@ class TraceContext:
     """Context for distributed tracing."""
     trace_id: str
     current_span: Optional[Span] = None
-    
+
     @classmethod
     def create(cls) -> "TraceContext":
         return cls(trace_id=str(uuid.uuid4())[:16])
-    
+
     def start_span(self, name: str) -> Span:
         span = Span(
             span_id=str(uuid.uuid4())[:8],
@@ -124,31 +124,31 @@ class TraceContext:
 
 class InstrumentationCollector:
     """Collects instrumentation data."""
-    
+
     def __init__(self):
         self._timings: List[TimingRecord] = []
         self._traces: Dict[str, Span] = {}
-    
+
     def record_timing(self, record: TimingRecord):
         self._timings.append(record)
-    
+
     def record_span(self, span: Span):
         self._traces[span.trace_id] = span
-    
+
     def get_timings(self) -> List[TimingRecord]:
         return self._timings
-    
+
     def get_traces(self) -> Dict[str, Span]:
         return self._traces
-    
+
     def clear(self):
         self._timings = []
         self._traces = {}
-    
+
     def get_summary(self) -> Dict[str, Any]:
         if not self._timings:
             return {"count": 0}
-        
+
         durations = [t.duration_ms for t in self._timings]
         return {
             "count": len(self._timings),
@@ -267,7 +267,7 @@ def timed_block(name: str, collector: Optional[InstrumentationCollector] = None)
 
 class TestTimingRecord:
     """Tests for timing records."""
-    
+
     def test_record_creation(self):
         """Test timing record creation."""
         record = TimingRecord(
@@ -280,7 +280,7 @@ class TestTimingRecord:
         assert record.name == "test_operation"
         assert record.duration_ms == 50.0
         assert record.success is True
-    
+
     def test_record_serialization(self):
         """Test timing record serialization."""
         record = TimingRecord(
@@ -299,7 +299,7 @@ class TestTimingRecord:
 
 class TestSpan:
     """Tests for tracing spans."""
-    
+
     def test_span_creation(self):
         """Test span creation."""
         span = Span(
@@ -311,7 +311,7 @@ class TestSpan:
         )
         assert span.span_id == "span1"
         assert span.parent_id is None
-    
+
     def test_span_duration(self):
         """Test span duration calculation."""
         span = Span(
@@ -324,7 +324,7 @@ class TestSpan:
         time.sleep(0.05)
         span.finish()
         assert span.duration_ms >= 40.0  # Allow some variance
-    
+
     def test_child_span(self):
         """Test adding child spans."""
         parent = Span(
@@ -335,11 +335,11 @@ class TestSpan:
             start_time=time.time(),
         )
         child = parent.add_child("child_operation")
-        
+
         assert child.parent_id == "parent"
         assert child.trace_id == "trace1"
         assert len(parent.children) == 1
-    
+
     def test_span_serialization(self):
         """Test span serialization."""
         span = Span(
@@ -359,34 +359,34 @@ class TestSpan:
 
 class TestTraceContext:
     """Tests for trace context."""
-    
+
     def test_context_creation(self):
         """Test trace context creation."""
         ctx = TraceContext.create()
         assert ctx.trace_id is not None
         assert len(ctx.trace_id) == 16
-    
+
     def test_start_span(self):
         """Test starting spans in context."""
         ctx = TraceContext.create()
         span = ctx.start_span("operation1")
-        
+
         assert span.trace_id == ctx.trace_id
         assert ctx.current_span == span
-    
+
     def test_nested_spans(self):
         """Test nested span hierarchy."""
         ctx = TraceContext.create()
         parent = ctx.start_span("parent")
         child = ctx.start_span("child")
-        
+
         assert child.parent_id == parent.span_id
         assert len(parent.children) == 1
 
 
 class TestInstrumentationCollector:
     """Tests for instrumentation collector."""
-    
+
     def test_record_timing(self):
         """Test recording timings."""
         collector = InstrumentationCollector()
@@ -398,9 +398,9 @@ class TestInstrumentationCollector:
             success=True,
         )
         collector.record_timing(record)
-        
+
         assert len(collector.get_timings()) == 1
-    
+
     def test_summary_calculation(self):
         """Test summary calculation."""
         collector = InstrumentationCollector()
@@ -412,71 +412,71 @@ class TestInstrumentationCollector:
                 duration_ms=10.0 * (i + 1),
                 success=True,
             ))
-        
+
         summary = collector.get_summary()
         assert summary["count"] == 5
         assert summary["avg_ms"] == 30.0  # (10+20+30+40+50)/5
         assert summary["min_ms"] == 10.0
         assert summary["max_ms"] == 50.0
-    
+
     def test_clear(self):
         """Test clearing collector."""
         collector = InstrumentationCollector()
         collector.record_timing(TimingRecord("test", 0, 0, 10.0, True))
         collector.clear()
-        
+
         assert len(collector.get_timings()) == 0
 
 
 class TestTimedDecorator:
     """Tests for timing decorators."""
-    
+
     def test_sync_timing(self):
         """Test synchronous function timing."""
         collector = InstrumentationCollector()
-        
+
         @timed("sync_op", collector)
         def slow_function():
             time.sleep(0.05)
             return 42
-        
+
         result = slow_function()
-        
+
         assert result == 42
         timings = collector.get_timings()
         assert len(timings) == 1
         assert timings[0].name == "sync_op"
         assert timings[0].duration_ms >= 40.0
         assert timings[0].success is True
-    
+
     async def test_async_timing(self):
         """Test asynchronous function timing."""
         collector = InstrumentationCollector()
-        
+
         @async_timed("async_op", collector)
         async def async_function():
             await asyncio.sleep(0.05)
             return 42
-        
+
         result = await async_function()
-        
+
         assert result == 42
         timings = collector.get_timings()
         assert len(timings) == 1
         assert timings[0].name == "async_op"
         assert timings[0].duration_ms >= 40.0
-    
+
     def test_timing_on_error(self):
         """Test timing records errors."""
         collector = InstrumentationCollector()
-        
+
         @timed("error_op", collector)
         def failing_function():
             raise ValueError("Test error")
-        
+
         with pytest.raises(ValueError):
             failing_function()
-        
+
         timings = collector.get_timings()
         assert len(timings) == 1
         assert timings[0].success is False
@@ -485,83 +485,83 @@ class TestTimedDecorator:
 
 class TestTimedBlock:
     """Tests for timed code blocks."""
-    
+
     def test_timed_block_success(self):
         """Test timing a code block."""
         collector = InstrumentationCollector()
-        
+
         with timed_block("block_op", collector):
             time.sleep(0.05)
-        
+
         timings = collector.get_timings()
         assert len(timings) == 1
         assert timings[0].name == "block_op"
         assert timings[0].duration_ms >= 40.0
-    
+
     def test_timed_block_error(self):
         """Test timed block with error."""
         collector = InstrumentationCollector()
-        
+
         with pytest.raises(ValueError):
             with timed_block("error_block", collector):
                 raise ValueError("Block error")
-        
+
         timings = collector.get_timings()
         assert timings[0].success is False
 
 
 class TestInstrumentationOverhead:
     """Tests for instrumentation overhead."""
-    
+
     def test_decorator_overhead(self):
         """Test decorator adds minimal overhead."""
         collector = InstrumentationCollector()
-        
+
         @timed("fast_op", collector)
         def fast_function():
             return 1 + 1
-        
+
         # Warm up
         fast_function()
         collector.clear()
-        
+
         # Measure
         iterations = 100
         start = time.perf_counter()
         for _ in range(iterations):
             fast_function()
         elapsed_ms = (time.perf_counter() - start) * 1000
-        
+
         overhead_per_call = elapsed_ms / iterations
         # Should be < 1ms overhead per call
         assert overhead_per_call < 1.0
-    
+
     async def test_async_decorator_overhead(self):
         """Test async decorator adds minimal overhead."""
         collector = InstrumentationCollector()
-        
+
         @async_timed("fast_async", collector)
         async def fast_async():
             return 1 + 1
-        
+
         # Warm up
         await fast_async()
         collector.clear()
-        
+
         # Measure
         iterations = 100
         start = time.perf_counter()
         for _ in range(iterations):
             await fast_async()
         elapsed_ms = (time.perf_counter() - start) * 1000
-        
+
         overhead_per_call = elapsed_ms / iterations
         assert overhead_per_call < 1.0
 
 
 class TestStructuredLogging:
     """Tests for structured logging patterns."""
-    
+
     def test_timing_record_as_json(self):
         """Test timing record produces valid JSON structure."""
         record = TimingRecord(
@@ -573,13 +573,13 @@ class TestStructuredLogging:
             context={"frame_id": "abc", "session_id": "xyz"},
         )
         d = record.to_dict()
-        
+
         # Should be JSON-serializable
         import json
         json_str = json.dumps(d)
         assert '"name": "test_op"' in json_str
         assert '"frame_id": "abc"' in json_str
-    
+
     def test_span_as_json(self):
         """Test span produces valid JSON structure."""
         span = Span(
@@ -591,7 +591,7 @@ class TestStructuredLogging:
             tags={"component": "vision", "frame_id": "f1"},
         )
         span.finish()
-        
+
         import json
         json_str = json.dumps(span.to_dict())
         assert '"span_id": "s1"' in json_str
@@ -599,33 +599,33 @@ class TestStructuredLogging:
 
 class TestRequestTracing:
     """Tests for request tracing."""
-    
+
     def test_unique_trace_ids(self):
         """Test trace IDs are unique."""
         traces = [TraceContext.create().trace_id for _ in range(100)]
         assert len(set(traces)) == 100
-    
+
     def test_span_hierarchy(self):
         """Test span parent-child hierarchy."""
         ctx = TraceContext.create()
-        
+
         root = ctx.start_span("request")
         stt = root.add_child("stt")
         stt.finish()
-        
+
         llm = root.add_child("llm")
         llm.finish()
-        
+
         tts = root.add_child("tts")
         tts.finish()
-        
+
         root.finish()
-        
+
         # Check hierarchy
         assert len(root.children) == 3
         assert all(c.parent_id == root.span_id for c in root.children)
         assert all(c.trace_id == ctx.trace_id for c in root.children)
-    
+
     def test_trace_serialization(self):
         """Test full trace serialization."""
         ctx = TraceContext.create()
@@ -633,7 +633,7 @@ class TestRequestTracing:
         child = root.add_child("process")
         child.finish()
         root.finish()
-        
+
         d = root.to_dict()
         assert len(d["children"]) == 1
         assert d["children"][0]["parent_id"] == root.span_id

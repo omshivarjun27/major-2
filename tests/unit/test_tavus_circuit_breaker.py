@@ -19,9 +19,7 @@ from infrastructure.resilience.circuit_breaker import (
 from infrastructure.tavus.adapter import (
     TavusAdapter,
     TavusConfig,
-    _TAVUS_CB_CONFIG,
 )
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

@@ -6,7 +6,7 @@ inference speed while maintaining acceptable accuracy.
 
 Usage:
     from core.vision.model_loader import load_quantized_model, is_quantization_enabled
-    
+
     if is_quantization_enabled():
         model = load_quantized_model("yolo", "models/yolov8n_int8.onnx")
     else:
@@ -20,7 +20,7 @@ import os
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple
 
 logger = logging.getLogger("model-loader")
 
@@ -46,7 +46,7 @@ class ModelConfig:
     quantization_mode: QuantizationMode = QuantizationMode.NONE
     accuracy_threshold: float = 0.95  # Max 5% accuracy loss
     latency_budget_ms: float = 300.0  # Vision pipeline budget
-    
+
     @property
     def use_quantized(self) -> bool:
         """Whether to use quantized model."""
@@ -55,7 +55,7 @@ class ModelConfig:
             and self.quantized_path is not None
             and Path(self.quantized_path).exists()
         )
-    
+
     @property
     def active_path(self) -> str:
         """Get the active model path (quantized or original)."""
@@ -97,7 +97,7 @@ def _init_default_models():
         accuracy_threshold=0.95,
         latency_budget_ms=100.0,
     ))
-    
+
     register_model(ModelConfig(
         name="midas",
         original_path="models/midas_small.onnx",
@@ -135,7 +135,7 @@ def get_quantization_mode() -> QuantizationMode:
 
 class ModelLoader:
     """Loads models with quantization support."""
-    
+
     def __init__(self, enable_quantization: Optional[bool] = None):
         self.enable_quantization = (
             enable_quantization if enable_quantization is not None
@@ -143,7 +143,7 @@ class ModelLoader:
         )
         self._loaded_models: Dict[str, Any] = {}
         self._load_stats: Dict[str, Dict[str, Any]] = {}
-    
+
     def load_onnx_model(
         self,
         name: str,
@@ -151,14 +151,14 @@ class ModelLoader:
         force_quantized: bool = False,
     ) -> Tuple[Any, Dict[str, Any]]:
         """Load an ONNX model with optional quantization.
-        
+
         Returns:
             Tuple of (model/session, stats dict)
         """
         config = get_model_config(name)
         if config is None and custom_path is None:
             raise ValueError(f"Unknown model: {name}")
-        
+
         # Determine path
         if custom_path:
             model_path = custom_path
@@ -169,32 +169,32 @@ class ModelLoader:
         else:
             model_path = config.original_path
             use_quantized = False
-        
+
         # Load model
         import time
         start = time.perf_counter()
-        
+
         try:
             import onnxruntime as ort
-            
+
             # Configure session options
             sess_options = ort.SessionOptions()
             sess_options.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
-            
+
             # Select execution provider
             providers = []
             if self._cuda_available():
                 providers.append("CUDAExecutionProvider")
             providers.append("CPUExecutionProvider")
-            
+
             session = ort.InferenceSession(
                 model_path,
                 sess_options=sess_options,
                 providers=providers,
             )
-            
+
             load_time = (time.perf_counter() - start) * 1000
-            
+
             stats = {
                 "name": name,
                 "path": model_path,
@@ -202,17 +202,17 @@ class ModelLoader:
                 "load_time_ms": load_time,
                 "providers": session.get_providers(),
             }
-            
+
             self._loaded_models[name] = session
             self._load_stats[name] = stats
-            
+
             logger.info(
                 f"Loaded {name} from {model_path} "
                 f"(quantized={use_quantized}, time={load_time:.0f}ms)"
             )
-            
+
             return session, stats
-            
+
         except ImportError:
             # ONNX Runtime not available, return mock
             load_time = (time.perf_counter() - start) * 1000
@@ -236,7 +236,7 @@ class ModelLoader:
             }
             self._load_stats[name] = stats
             return None, stats
-    
+
     def _cuda_available(self) -> bool:
         """Check if CUDA is available for ONNX Runtime."""
         try:
@@ -244,11 +244,11 @@ class ModelLoader:
             return "CUDAExecutionProvider" in ort.get_available_providers()
         except ImportError:
             return False
-    
+
     def get_load_stats(self, name: str) -> Optional[Dict[str, Any]]:
         """Get loading statistics for a model."""
         return self._load_stats.get(name)
-    
+
     def is_loaded(self, name: str) -> bool:
         """Check if a model is loaded."""
         return name in self._loaded_models
@@ -296,14 +296,14 @@ def quantize_onnx_model(
     mode: QuantizationMode = QuantizationMode.INT8,
 ) -> QuantizationResult:
     """Quantize an ONNX model to INT8 or FP16.
-    
+
     Note: Requires onnxruntime-tools for full quantization.
     This function provides the interface; actual quantization
     requires the quantize_models.py script.
     """
     input_file = Path(input_path)
     output_file = Path(output_path)
-    
+
     if not input_file.exists():
         return QuantizationResult(
             original_path=input_path,
@@ -314,14 +314,14 @@ def quantize_onnx_model(
             success=False,
             error=f"Input file not found: {input_path}",
         )
-    
+
     original_size = input_file.stat().st_size / (1024 * 1024)
-    
+
     try:
         if mode == QuantizationMode.INT8:
             # Use onnxruntime.quantization
-            from onnxruntime.quantization import quantize_dynamic, QuantType
-            
+            from onnxruntime.quantization import QuantType, quantize_dynamic
+
             quantize_dynamic(
                 model_input=input_path,
                 model_output=output_path,
@@ -331,7 +331,7 @@ def quantize_onnx_model(
             # Use onnx for FP16 conversion
             import onnx
             from onnx import numpy_helper
-            
+
             model = onnx.load(input_path)
             # Convert to FP16 (simplified - full implementation in script)
             onnx.save(model, output_path)
@@ -345,10 +345,10 @@ def quantize_onnx_model(
                 success=False,
                 error=f"Unsupported quantization mode: {mode}",
             )
-        
+
         quantized_size = output_file.stat().st_size / (1024 * 1024)
         compression = original_size / quantized_size if quantized_size > 0 else 1.0
-        
+
         return QuantizationResult(
             original_path=input_path,
             quantized_path=output_path,
@@ -357,7 +357,7 @@ def quantize_onnx_model(
             compression_ratio=compression,
             success=True,
         )
-        
+
     except ImportError as e:
         return QuantizationResult(
             original_path=input_path,
@@ -384,7 +384,7 @@ def quantize_onnx_model(
 # Benchmark Utilities
 # ---------------------------------------------------------------------------
 
-@dataclass 
+@dataclass
 class BenchmarkResult:
     """Result of model benchmark comparison."""
     model_name: str
@@ -396,7 +396,7 @@ class BenchmarkResult:
     vram_quantized_mb: float
     vram_reduction_pct: float
     within_budget: bool
-    
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             "model_name": self.model_name,
@@ -419,7 +419,7 @@ def benchmark_quantization(
     latency_budget_ms: float = 300.0,
 ) -> BenchmarkResult:
     """Benchmark original vs quantized model performance.
-    
+
     This is a placeholder for the actual benchmarking logic.
     Full implementation requires running actual inference.
     """

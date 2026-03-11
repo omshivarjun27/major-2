@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import sys
+
 import pytest
 
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
@@ -23,7 +24,7 @@ class TestOfflineBehavior:
 
     def test_ocr_engine_import_without_backends(self):
         """OCR engine module should import without crashing even if no OCR backend is installed."""
-        from core.ocr.engine import ocr_read, get_ocr_status
+        from core.ocr.engine import get_ocr_status, ocr_read
         assert callable(ocr_read)
         status = get_ocr_status()
         assert isinstance(status, dict)
@@ -37,7 +38,7 @@ class TestOfflineBehavior:
 
     def test_spatial_tools_import_without_models(self):
         """Spatial tools should import without crashing when model files are missing."""
-        from core.vision.spatial import MockObjectDetector, BaseDetector
+        from core.vision.spatial import MockObjectDetector
         detector = MockObjectDetector()
         assert detector.is_ready()
 

@@ -11,7 +11,7 @@ import logging
 import time
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
 
 import numpy as np
 
@@ -164,7 +164,7 @@ class AudioEventDetector:
 
         zcr = features.get("zcr_mean", 0)
         centroid = features.get("spectral_centroid", 0)
-        rolloff = features.get("spectral_rolloff", 0)
+        features.get("spectral_rolloff", 0)
         bandwidth = features.get("spectral_bandwidth", 0)
 
         # High-energy + high-frequency = horn/siren/alarm

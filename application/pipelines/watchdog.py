@@ -10,8 +10,8 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
-from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, Optional
+from dataclasses import dataclass
+from typing import Callable, Dict, List, Optional
 
 logger = logging.getLogger("watchdog")
 
@@ -187,7 +187,7 @@ class Watchdog:
                 await asyncio.sleep(interval_s)
 
     async def _run_checks(self) -> None:
-        now_ms = time.time() * 1000
+        time.time() * 1000
 
         # Determine if there is an active user session (recent orchestrator
         # activity).  Camera alerts are only meaningful while the user is

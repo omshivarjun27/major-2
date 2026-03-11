@@ -7,8 +7,8 @@ PerceptionResult, ObstacleRecord, NavigationOutput, enums, ABCs.
 """
 
 import math
-import sys
 import os
+import sys
 
 import numpy as np
 import pytest
@@ -17,21 +17,20 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from shared.schemas import (
     BoundingBox,
-    Detection,
+    DepthEstimator,
     DepthMap,
+    Detection,
     Direction,
     NavigationOutput,
+    ObjectDetector,
     ObstacleRecord,
     PerceptionResult,
     Priority,
     SegmentationMask,
+    Segmenter,
     SizeCategory,
     SpatialRelation,
-    ObjectDetector,
-    Segmenter,
-    DepthEstimator,
 )
-
 
 # ============================================================================
 # BoundingBox

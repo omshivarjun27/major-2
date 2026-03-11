@@ -7,18 +7,16 @@ Covers: scan → decode → cache → API endpoints.
 import base64
 import io
 import json
-import time
 from typing import Optional
 
 import pytest
 from PIL import Image
 
+from core.qr.cache_manager import CacheManager
+from core.qr.qr_decoder import QRContentType, QRDecoder
+
 # ── Component imports ────────────────────────────────────────────────
 from core.qr.qr_scanner import QRScanner
-from core.qr.qr_decoder import QRDecoder, QRContentType
-from core.qr.ar_tag_handler import ARTagHandler
-from core.qr.cache_manager import CacheManager
-
 
 # ── Helpers ──────────────────────────────────────────────────────────
 

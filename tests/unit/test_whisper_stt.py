@@ -10,10 +10,7 @@ Tests cover:
 """
 
 import asyncio
-from dataclasses import dataclass
-from typing import Any, Iterator, List
-from unittest.mock import AsyncMock, MagicMock, patch, PropertyMock
-import pytest
+from unittest.mock import MagicMock, patch
 
 
 class TestWhisperConfig:
@@ -151,7 +148,7 @@ class TestWhisperSTTInitialization:
 
     def test_init_with_custom_config(self):
         """Test initialization with custom configuration."""
-        from infrastructure.speech.local.whisper_stt import WhisperSTT, WhisperConfig
+        from infrastructure.speech.local.whisper_stt import WhisperConfig, WhisperSTT
 
         config = WhisperConfig(model_size="tiny", device="cpu")
         stt = WhisperSTT(config=config)
@@ -160,7 +157,7 @@ class TestWhisperSTTInitialization:
 
     def test_init_with_invalid_model_size_falls_back_to_base(self):
         """Test that invalid model size defaults to 'base'."""
-        from infrastructure.speech.local.whisper_stt import WhisperSTT, WhisperConfig
+        from infrastructure.speech.local.whisper_stt import WhisperConfig, WhisperSTT
 
         config = WhisperConfig(model_size="invalid_size")
         stt = WhisperSTT(config=config)
@@ -526,7 +523,7 @@ class TestWhisperSTTHealth:
 
     def test_health_with_different_model_sizes(self):
         """Test health reports correct VRAM for different model sizes."""
-        from infrastructure.speech.local.whisper_stt import WhisperSTT, WhisperConfig
+        from infrastructure.speech.local.whisper_stt import WhisperConfig, WhisperSTT
 
         test_cases = [
             ("tiny", 100),
@@ -570,10 +567,10 @@ class TestWhisperModuleExports:
     def test_exports_from_init(self):
         """Test all expected symbols are exported from __init__."""
         from infrastructure.speech.local import (
-            WhisperSTT,
-            WhisperConfig,
-            TranscriptionResult,
             WHISPER_AVAILABLE,
+            TranscriptionResult,
+            WhisperConfig,
+            WhisperSTT,
         )
 
         assert WhisperSTT is not None

@@ -2,8 +2,6 @@
 Unit tests for Cloud Sync Conflict Resolution (T-114).
 """
 
-import asyncio
-from typing import Dict
 
 import numpy as np
 import pytest
@@ -15,7 +13,6 @@ from core.memory.conflict_resolver import (
     ConflictType,
     LastWriterWinsResolver,
     MergeResolver,
-    ResolutionResult,
     ResolutionStrategy,
 )
 

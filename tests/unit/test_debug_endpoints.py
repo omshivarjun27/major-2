@@ -7,6 +7,7 @@ Debug-gated endpoints require DEBUG_ENDPOINTS_ENABLED=true and a valid token.
 """
 
 import os
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -19,6 +20,7 @@ def client():
 
     # Reload the module-level variables in apps.api.server
     import importlib
+
     import apps.api.server as api_server
     importlib.reload(api_server)
     from apps.api.server import app

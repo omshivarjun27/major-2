@@ -8,12 +8,11 @@ import numpy as np
 import pytest
 
 # ── CloudSyncAdapter ──────────────────────────────────────────────────
-
 from core.memory.cloud_sync import (
     CloudSyncAdapter,
     CloudSyncConfig,
-    SyncRecord,
     StubCloudBackend,
+    SyncRecord,
 )
 
 
@@ -111,10 +110,10 @@ class TestCloudSyncAdapter:
 # ── EventDetector ─────────────────────────────────────────────────────
 
 from core.memory.event_detection import (
-    EventDetector,
-    EventDetectorConfig,
     DetectedEvent,
     EventCategory,
+    EventDetector,
+    EventDetectorConfig,
 )
 
 
@@ -212,7 +211,7 @@ class TestEventDetector:
         scene = {
             "objects": [{"label": "car", "distance_m": 2.0, "confidence": 0.8}],
         }
-        events1 = det.process_scene(scene)
+        det.process_scene(scene)
         events2 = det.process_scene(scene)
         # Second call should be suppressed (same obstacle within window)
         assert len(events2) == 0

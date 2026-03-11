@@ -13,7 +13,6 @@ Usage::
 
 from __future__ import annotations
 
-import asyncio
 import json
 import logging
 import os
@@ -168,7 +167,7 @@ class ReproHarness:
                 enable_ocr=False,
                 enable_qr=False,
             )
-            orchestrator = FrameOrchestrator(config)
+            FrameOrchestrator(config)
 
             # Process each frame in the scenario
             actual_detections: List[Dict[str, Any]] = []

@@ -28,23 +28,22 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Callable, Dict, Generator, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 from infrastructure.resilience.circuit_breaker import (
+    CircuitBreakerConfig,
     CircuitBreakerState,
     StateChangeEvent,
     get_circuit_breaker,
     register_circuit_breaker,
-    CircuitBreakerConfig,
 )
 from infrastructure.speech.local.edge_tts_fallback import (
-    LocalTTSFallback,
-    LocalTTSConfig,
-    SynthesisResult as LocalSynthesisResult,
     EDGE_TTS_AVAILABLE,
     PYTTSX3_AVAILABLE,
+    LocalTTSConfig,
+    LocalTTSFallback,
 )
 
 logger = logging.getLogger("speech.tts_failover")

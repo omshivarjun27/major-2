@@ -12,36 +12,37 @@ import logging
 import time
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Query, BackgroundTasks
+import numpy as np
+from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import JSONResponse
 from PIL import Image
-import numpy as np
 
 from .api_schema import (
+    BoundingBoxSchema,
+    DetectionSchema,
+    DirectionType,
+    ErrorResponse,
+    HealthStatus,
+    ObstacleSchema,
     PerceptionFrameRequest,
     PerceptionFrameResponse,
-    VQAAskRequest,
-    VQAAskResponse,
-    SessionReplayResponse,
+    PerformanceMetrics,
+    PriorityLevel,
+    ResponseSource,
     SessionInfo,
     SessionReplayEntry,
-    HealthStatus,
-    PerformanceMetrics,
-    ErrorResponse,
-    ErrorDetail,
-    DetectionSchema,
-    ObstacleSchema,
-    BoundingBoxSchema,
-    PriorityLevel,
-    DirectionType,
-    ResponseSource,
+    SessionReplayResponse,
+    VQAAskRequest,
+    VQAAskResponse,
 )
-from .perception import PerceptionPipeline, create_pipeline as create_perception_pipeline
-from .scene_graph import SceneGraphBuilder, SceneGraph
-from .spatial_fuser import SpatialFuser, FusionConfig
-from .vqa_reasoner import VQAReasoner, VQARequest as InternalVQARequest
-from .memory import VQAMemory, MemoryConfig
-from .priority_scene import PrioritySceneAnalyzer, HazardSeverity
+from .memory import MemoryConfig, VQAMemory
+from .perception import PerceptionPipeline
+from .perception import create_pipeline as create_perception_pipeline
+from .priority_scene import PrioritySceneAnalyzer
+from .scene_graph import SceneGraphBuilder
+from .spatial_fuser import FusionConfig, SpatialFuser
+from .vqa_reasoner import VQAReasoner
+from .vqa_reasoner import VQARequest as InternalVQARequest
 
 # Import debug visualizer
 try:
@@ -52,7 +53,7 @@ except ImportError:
 
 # Import speech-VQA bridge
 try:
-    from core.speech import VoiceAskPipeline, VoiceAskConfig
+    from core.speech import VoiceAskConfig, VoiceAskPipeline
     VOICE_BRIDGE_AVAILABLE = True
 except ImportError:
     VOICE_BRIDGE_AVAILABLE = False
@@ -93,12 +94,12 @@ def init_vqa_api(
 ):
     """
     Initialize VQA API components.
-    
+
     Call this at application startup.
     """
     global _perception, _fuser, _reasoner, _memory, _scene_builder, _start_time
     global _priority_analyzer, _debug_visualizer, _voice_pipeline
-    
+
     _perception = create_perception_pipeline(use_mock=use_mock_detector)
     _fuser = SpatialFuser(FusionConfig())
     _reasoner = VQAReasoner(llm_client=llm_client, model=model)
@@ -106,19 +107,19 @@ def init_vqa_api(
     _scene_builder = SceneGraphBuilder()
     _priority_analyzer = PrioritySceneAnalyzer()
     _start_time = time.time()
-    
+
     # Initialize debug visualizer if available
     if DEBUG_TOOLS_AVAILABLE:
         from shared.debug import DebugVisualizer
         _debug_visualizer = DebugVisualizer()
         logger.info("Debug visualizer initialized")
-    
+
     # Initialize voice pipeline if available
     if VOICE_BRIDGE_AVAILABLE:
         from core.speech import VoiceAskPipeline
         _voice_pipeline = VoiceAskPipeline()
         logger.info("Voice pipeline initialized")
-    
+
     logger.info("VQA API initialized")
 
 
@@ -139,37 +140,37 @@ def get_router() -> APIRouter:
 async def process_perception_frame(request: PerceptionFrameRequest):
     """
     Process a single frame through the full perception pipeline.
-    
+
     Returns detections, segmentation masks, depth estimation,
     and fused obstacle records.
     """
     global _metrics
-    
+
     if not _perception:
         raise HTTPException(500, "Perception pipeline not initialized")
-    
+
     start_time = time.time()
     _metrics["total_requests"] += 1
-    
+
     try:
         # Decode image
         image = _decode_image(request.image_base64)
-        
+
         # Run perception pipeline
         perception_result = await _perception.process(image)
-        
+
         # Build scene graph
         scene_graph = _scene_builder.build(perception_result)
-        
+
         # Apply spatial fusion
         fused_result = _fuser.fuse(perception_result)
-        
+
         # Get or create session
         session_id = request.session_id or f"session_{int(time.time()*1000)}"
-        
+
         # Store in memory
         _memory.store(scene_graph, session_id)
-        
+
         # Build response
         detections = [
             DetectionSchema(
@@ -185,7 +186,7 @@ async def process_perception_frame(request: PerceptionFrameRequest):
             )
             for d in perception_result.detections
         ]
-        
+
         obstacles = [
             ObstacleSchema(
                 id=o.id,
@@ -200,11 +201,11 @@ async def process_perception_frame(request: PerceptionFrameRequest):
             )
             for i, o in enumerate(scene_graph.obstacles)
         ]
-        
+
         elapsed_ms = (time.time() - start_time) * 1000
         _metrics["perception_times"].append(elapsed_ms)
         _metrics["perception_times"] = _metrics["perception_times"][-100:]  # Keep last 100
-        
+
         return PerceptionFrameResponse(
             session_id=session_id,
             timestamp=perception_result.timestamp,
@@ -215,7 +216,7 @@ async def process_perception_frame(request: PerceptionFrameRequest):
             processing_time_ms=elapsed_ms,
             image_size=list(perception_result.image_size),
         )
-        
+
     except ValueError as e:
         raise HTTPException(400, f"Invalid request: {e}")
     except Exception as e:
@@ -235,46 +236,46 @@ async def process_perception_frame(request: PerceptionFrameRequest):
 async def ask_vqa_question(request: VQAAskRequest):
     """
     Answer a visual question using the VQA reasoner.
-    
+
     Combines perception results with LLM reasoning for
     accurate, navigation-focused answers.
     """
     global _metrics
-    
+
     if not _reasoner:
         raise HTTPException(500, "VQA reasoner not initialized")
-    
+
     start_time = time.time()
     _metrics["total_requests"] += 1
-    
+
     try:
         # Decode image if provided
         image = None
         if request.image_base64:
             image = _decode_image(request.image_base64)
-        
+
         # Get session context if requested
         session_id = request.session_id or f"session_{int(time.time()*1000)}"
         scene_graph = None
         fused_result = None
-        
+
         if request.use_context and _memory:
             # Get recent scene from memory
             recent = _memory.get_session_history(session_id, limit=1)
             if recent:
                 import json
-                scene_dict = json.loads(recent[0].scene_graph_json)
+                json.loads(recent[0].scene_graph_json)
                 # Note: Would need to reconstruct SceneGraph from dict
-        
+
         # If image provided, run perception
         if image and _perception:
             perception_result = await _perception.process(image)
             scene_graph = _scene_builder.build(perception_result)
             fused_result = _fuser.fuse(perception_result)
-            
+
             # Store in memory
             _memory.store(scene_graph, session_id, question=request.question)
-        
+
         # Build VQA request
         vqa_request = InternalVQARequest(
             question=request.question,
@@ -284,20 +285,20 @@ async def ask_vqa_question(request: VQAAskRequest):
             use_image=request.use_image and image is not None,
             max_tokens=request.max_tokens,
         )
-        
+
         # Get answer
         response = await _reasoner.answer(vqa_request)
-        
+
         # Update memory with answer
         if _memory and fused_result:
             recent = _memory.get_session_history(session_id, limit=1)
             if recent:
                 _memory.store_vqa_response(recent[0].id, response)
-        
+
         elapsed_ms = (time.time() - start_time) * 1000
         _metrics["vqa_times"].append(elapsed_ms)
         _metrics["vqa_times"] = _metrics["vqa_times"][-100:]
-        
+
         return VQAAskResponse(
             answer=response.get_full_answer(),
             confidence=response.confidence,
@@ -308,7 +309,7 @@ async def ask_vqa_question(request: VQAAskRequest):
             obstacles_used=len(fused_result.obstacles) if fused_result else 0,
             session_id=session_id,
         )
-        
+
     except ValueError as e:
         raise HTTPException(400, f"Invalid request: {e}")
     except Exception as e:
@@ -333,13 +334,13 @@ async def get_session_replay(
     """
     if not _memory:
         raise HTTPException(500, "Memory not initialized")
-    
+
     session = _memory.get_session(session_id)
     if not session:
         raise HTTPException(404, f"Session not found: {session_id}")
-    
+
     replay_data = _memory.get_replay_data(session_id)
-    
+
     entries = []
     for entry in replay_data[:limit]:
         obstacles = []
@@ -355,7 +356,7 @@ async def get_session_replay(
                 confidence=obs_data.get("confidence", 0),
                 action=obs_data.get("action", ""),
             ))
-        
+
         from datetime import datetime
         entries.append(SessionReplayEntry(
             timestamp=datetime.fromisoformat(entry["timestamp_human"]),
@@ -363,7 +364,7 @@ async def get_session_replay(
             question=entry.get("question"),
             answer=entry.get("answer"),
         ))
-    
+
     from datetime import datetime
     session_info = SessionInfo(
         id=session.id,
@@ -373,7 +374,7 @@ async def get_session_replay(
         critical_count=session.critical_count,
         duration_sec=session.last_active - session.created_at,
     )
-    
+
     return SessionReplayResponse(
         session=session_info,
         entries=entries,
@@ -386,10 +387,10 @@ async def delete_session(session_id: str):
     """Delete a session and its data."""
     if not _memory:
         raise HTTPException(500, "Memory not initialized")
-    
+
     if not _memory.get_session(session_id):
         raise HTTPException(404, f"Session not found: {session_id}")
-    
+
     _memory.clear_session(session_id)
     return {"status": "deleted", "session_id": session_id}
 
@@ -404,7 +405,7 @@ async def health_check():
     avg_latency = 0.0
     if _metrics["perception_times"]:
         avg_latency = sum(_metrics["perception_times"]) / len(_metrics["perception_times"])
-    
+
     return HealthStatus(
         status="healthy" if _perception else "degraded",
         perception_ready=_perception is not None,
@@ -420,17 +421,17 @@ async def get_metrics():
     """Get performance metrics."""
     avg_perception = 0.0
     avg_vqa = 0.0
-    
+
     if _metrics["perception_times"]:
         avg_perception = sum(_metrics["perception_times"]) / len(_metrics["perception_times"])
     if _metrics["vqa_times"]:
         avg_vqa = sum(_metrics["vqa_times"]) / len(_metrics["vqa_times"])
-    
+
     cache_hit_rate = 0.0
     if _reasoner:
         stats = _reasoner.get_stats()
         cache_hit_rate = stats.get("cache_hit_rate", 0.0)
-    
+
     return PerformanceMetrics(
         avg_perception_ms=avg_perception,
         avg_vqa_ms=avg_vqa,
@@ -450,14 +451,14 @@ def _decode_image(image_base64: str) -> Image.Image:
         # Remove data URL prefix if present
         if "," in image_base64:
             image_base64 = image_base64.split(",", 1)[1]
-        
+
         image_data = base64.b64decode(image_base64)
         image = Image.open(io.BytesIO(image_data))
-        
+
         # Convert to RGB if needed
         if image.mode != "RGB":
             image = image.convert("RGB")
-        
+
         return image
     except Exception as e:
         raise ValueError(f"Invalid image data: {e}")
@@ -475,21 +476,21 @@ async def voice_ask(
 ):
     """
     Process voice query end-to-end: STT → VQA → TTS.
-    
+
     Target latencies:
     - STT: ≤100ms
     - VQA: ≤300ms
     - TTS: ≤100ms
     - Total: ≤500ms
-    
+
     Returns spoken response audio and detailed telemetry.
     """
     if not VOICE_BRIDGE_AVAILABLE:
         raise HTTPException(501, "Voice bridge not available - install speech_vqa_bridge module")
-    
+
     if not _voice_pipeline:
         raise HTTPException(500, "Voice pipeline not initialized")
-    
+
     try:
         # Process through voice pipeline
         result = await _voice_pipeline.process_base64_audio(
@@ -497,13 +498,13 @@ async def voice_ask(
             image_base64=image_base64,
             sample_rate=sample_rate,
         )
-        
+
         return JSONResponse(content={
             "spoken_response": result.get("spoken_response", ""),
             "audio_base64": result.get("audio_base64", ""),
             "telemetry": result.get("telemetry", {}),
         })
-        
+
     except asyncio.TimeoutError:
         raise HTTPException(504, "Voice request timed out")
     except Exception as e:
@@ -522,42 +523,42 @@ async def ask_priority_scene(
 ):
     """
     Analyze scene for top-N highest-risk hazards.
-    
+
     Priority ranking based on:
     - Distance (closer = higher priority)
     - Direction (center/path = higher priority)
     - Confidence (detection quality)
     - Collision risk (estimated time to contact)
-    
+
     Returns hazards in short_cue format for TTS output.
     """
     if not _perception or not _priority_analyzer:
         raise HTTPException(500, "Priority analyzer not initialized")
-    
+
     start_time = time.time()
-    
+
     try:
         # Decode and process image
         image = _decode_image(image_base64)
-        
+
         # Run perception
         perception_result = await _perception.process(
             image,
             run_depth=True,
             run_segmentation=False,
         )
-        
+
         # Convert detections to analyzer format
         detections = []
         for det in perception_result.detections:
             detections.append({
                 "class": det.class_name,
                 "confidence": det.confidence,
-                "bbox": [det.bbox.x_min, det.bbox.y_min, 
+                "bbox": [det.bbox.x_min, det.bbox.y_min,
                         det.bbox.x_max, det.bbox.y_max],
                 "depth": det.depth_m,
             })
-        
+
         # Analyze with priority scene
         priority_result = _priority_analyzer.analyze(
             detections,
@@ -566,9 +567,9 @@ async def ask_priority_scene(
             image_height=perception_result.image_size[1],
             top_n=top_n,
         )
-        
+
         elapsed_ms = (time.time() - start_time) * 1000
-        
+
         return JSONResponse(content={
             "top_hazards": [h.to_dict() for h in priority_result.top_hazards],
             "total_detected": priority_result.total_detected,
@@ -577,7 +578,7 @@ async def ask_priority_scene(
             "navigation_cue": priority_result.navigation_cue,
             "processing_time_ms": round(elapsed_ms, 1),
         })
-        
+
     except ValueError as e:
         raise HTTPException(400, f"Invalid request: {e}")
     except Exception as e:
@@ -599,35 +600,35 @@ async def debug_perception(
 ):
     """
     Generate annotated debug image with perception outputs.
-    
+
     Overlays include:
     - Bounding boxes with class labels and confidence
     - Depth values in meters
     - Segmentation masks (optional)
     - Hazard priority indicators
-    
+
     Returns base64-encoded annotated image.
     """
     if not DEBUG_TOOLS_AVAILABLE:
         raise HTTPException(501, "Debug tools not available - install debug_tools module")
-    
+
     if not _perception or not _debug_visualizer:
         raise HTTPException(500, "Debug visualizer not initialized")
-    
+
     start_time = time.time()
-    
+
     try:
         # Decode image
         image = _decode_image(image_base64)
         image_array = np.array(image)
-        
+
         # Run perception
         perception_result = await _perception.process(
             image,
             run_depth=show_depth,
             run_segmentation=show_segmentation,
         )
-        
+
         # Build layers list
         layers = []
         if show_depth and perception_result.depth_map is not None:
@@ -638,7 +639,7 @@ async def debug_perception(
             layers.append("detections")
         if show_hazards:
             layers.append("hazards")
-        
+
         # Format detections for visualizer
         detections = []
         for det in perception_result.detections:
@@ -649,7 +650,7 @@ async def debug_perception(
                         det.bbox.x_max, det.bbox.y_max],
                 "depth": det.depth_m,
             })
-        
+
         # Get hazards if requested
         hazards = None
         if show_hazards and _priority_analyzer:
@@ -660,7 +661,7 @@ async def debug_perception(
                 image_height=perception_result.image_size[1],
             )
             hazards = [h.to_dict() for h in priority_result.top_hazards]
-        
+
         # Render debug image
         debug_result = _debug_visualizer.render(
             image_array,
@@ -670,9 +671,9 @@ async def debug_perception(
             hazards=hazards,
             layers=layers,
         )
-        
+
         elapsed_ms = (time.time() - start_time) * 1000
-        
+
         return JSONResponse(content={
             "image_base64": debug_result.image_base64,
             "image_format": debug_result.image_format,
@@ -686,7 +687,7 @@ async def debug_perception(
             "detections_count": len(detections),
             "hazards_count": len(hazards) if hazards else 0,
         })
-        
+
     except ValueError as e:
         raise HTTPException(400, f"Invalid request: {e}")
     except Exception as e:
@@ -702,10 +703,10 @@ async def cleanup_vqa_api():
     """Cleanup VQA API resources."""
     global _perception, _fuser, _reasoner, _memory
     global _priority_analyzer, _debug_visualizer, _voice_pipeline
-    
+
     if _memory and _memory.config.persist_path:
         _memory._save_to_disk()
-    
+
     _perception = None
     _fuser = None
     _reasoner = None
@@ -713,5 +714,5 @@ async def cleanup_vqa_api():
     _priority_analyzer = None
     _debug_visualizer = None
     _voice_pipeline = None
-    
+
     logger.info("VQA API cleanup complete")

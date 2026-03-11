@@ -20,7 +20,7 @@ class VisionProvider(Enum):
 
 # Helper function to determine vision provider from env
 def _get_vision_provider():
-    provider_str = os.environ.get("VISION_PROVIDER", "ollama").lower()
+    os.environ.get("VISION_PROVIDER", "ollama").lower()
     return VisionProvider.OLLAMA
 
 

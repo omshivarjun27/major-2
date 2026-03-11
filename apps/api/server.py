@@ -15,26 +15,26 @@ import time
 from datetime import datetime
 from typing import Any, Dict, Optional
 
-from fastapi import FastAPI, Query, Depends, Header, HTTPException
+# Load environment variables from .env
+from dotenv import load_dotenv
+from fastapi import Depends, FastAPI, Header, HTTPException, Query
 from fastapi.responses import JSONResponse
 
-# Load environment variables from .env
-import os
-from dotenv import load_dotenv
 load_dotenv()
 os.environ.setdefault("OPENAI_API_KEY", "ollama")
 os.environ.setdefault("OPENAI_BASE_URL", "http://localhost:11434/v1")
 
 # ── Structured logging (JSON in production, coloured text in dev) ─────
 from shared.logging.logging_config import configure_logging
+
 configure_logging(level="INFO")
 
-from shared.config import get_config, qr_enabled, face_enabled, audio_enabled, action_enabled
 from apps.cli.session_logger import SessionLogger
+from shared.config import action_enabled, audio_enabled, face_enabled, get_config, qr_enabled
 
 # ── Startup guards (venv, device, banned modules) ─────────────────────
 try:
-    from shared.utils.startup_guards import run_startup_checks, get_startup_info
+    from shared.utils.startup_guards import get_startup_info, run_startup_checks
     _STARTUP_INFO = run_startup_checks(skip_venv_check=True)  # API may be imported outside venv for tests
 except ImportError:
     _STARTUP_INFO = {"device": "cpu", "venv": True, "banned_modules_found": [], "config": {}}
@@ -106,6 +106,7 @@ except ImportError as exc:
 # ── Face Engine endpoints ──────────────────────────────────────────────
 # Shared consent state: file-backed so agent + API agree on consent.
 import json as _json
+
 _FACE_CONSENT_FILE = os.path.join("data", "face_consent.json")
 
 def _load_face_consent() -> dict:
@@ -228,7 +229,7 @@ if audio_enabled():
     @app.get("/audio/health")
     async def audio_health():
         try:
-            from core.audio import SoundSourceLocalizer, AudioEventDetector, AudioVisionFuser
+            from core.audio import AudioEventDetector, AudioVisionFuser, SoundSourceLocalizer
             return {
                 "status": "ok",
                 "ssl": SoundSourceLocalizer().health(),
@@ -296,7 +297,7 @@ async def health():
 @app.get("/metrics")
 async def prometheus_metrics():
     """Prometheus metrics endpoint for scraping.
-    
+
     Returns metrics in Prometheus text format.
     """
     from fastapi.responses import Response
@@ -513,8 +514,8 @@ async def debug_live_frames():
 async def debug_frame_rate():
     """Return current frame processing rate and latency stats."""
     try:
-        from application.frame_processing.live_frame_manager import LiveFrameManager
         from application.frame_processing.frame_orchestrator import FrameOrchestrator
+        from application.frame_processing.live_frame_manager import LiveFrameManager
         return {
             "status": "endpoint_ready",
             "message": "Frame rate stats available when agent is running.",
@@ -562,7 +563,7 @@ async def braille_read():
 async def debug_braille_frame():
     """Debug endpoint for braille segmentation pipeline status."""
     try:
-        from core.braille import BrailleSegmenter, BrailleClassifier
+        from core.braille import BrailleClassifier, BrailleSegmenter
         return {
             "status": "ok",
             "segmenter": "BrailleSegmenter loaded",
@@ -631,7 +632,6 @@ async def export_user_data():
     - ``sessions``: debug session logs
     - ``export_meta``: timestamp & schema version
     """
-    import time as _time
     export: Dict[str, Any] = {
         "export_meta": {
             "schema_version": "1.0.0",
@@ -643,8 +643,8 @@ async def export_user_data():
 
     # ── Memory records ────────────────────────────────────────────
     try:
-        from core.memory.indexer import FAISSIndexer
         from core.memory.config import get_memory_config
+        from core.memory.indexer import FAISSIndexer
 
         mcfg = get_memory_config()
         indexer = FAISSIndexer(index_path=mcfg.index_path, max_vectors=mcfg.max_vectors)
@@ -712,8 +712,8 @@ async def erase_all_user_data():
 
     # ── Memory ────────────────────────────────────────────────────
     try:
-        from core.memory.indexer import FAISSIndexer
         from core.memory.config import get_memory_config
+        from core.memory.indexer import FAISSIndexer
         mcfg = get_memory_config()
         indexer = FAISSIndexer(index_path=mcfg.index_path, max_vectors=mcfg.max_vectors)
         indexer.clear()

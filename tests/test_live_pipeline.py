@@ -14,21 +14,21 @@ Covers:
 
 import asyncio
 import time
-import uuid
-import pytest
+
 import numpy as np
+import pytest
 
 # ---------------------------------------------------------------------------
 # Freshness helpers
 # ---------------------------------------------------------------------------
 from application.frame_processing.freshness import (
-    is_frame_fresh,
-    frame_age_ms,
+    FALLBACK_MESSAGE,
+    LIVE_FRAME_MAX_AGE_MS,
     assert_fresh,
+    frame_age_ms,
+    is_frame_fresh,
     safe_output,
     set_max_age,
-    LIVE_FRAME_MAX_AGE_MS,
-    FALLBACK_MESSAGE,
 )
 
 
@@ -132,9 +132,9 @@ class TestDebouncer:
 # LiveFrameManager
 # ---------------------------------------------------------------------------
 from application.frame_processing.live_frame_manager import (
+    FrameRingBuffer,
     LiveFrameManager,
     TimestampedFrame,
-    FrameRingBuffer,
 )
 
 
@@ -338,7 +338,7 @@ class TestPerceptionCacheRemoval:
 
 class TestSharedTypesFrameFields:
     def test_perception_result_has_frame_fields(self):
-        from shared.schemas import PerceptionResult, DepthMap
+        from shared.schemas import DepthMap, PerceptionResult
         pr = PerceptionResult(
             detections=[], masks=[],
             depth_map=DepthMap(

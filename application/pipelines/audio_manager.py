@@ -29,9 +29,8 @@ import asyncio
 import enum
 import logging
 import time
-from collections import deque
 from dataclasses import dataclass, field
-from typing import Any, Callable, Deque, Dict, List, Optional
+from typing import Callable, Optional
 
 logger = logging.getLogger("audio-manager")
 

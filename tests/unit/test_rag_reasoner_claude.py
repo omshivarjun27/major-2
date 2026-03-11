@@ -5,18 +5,16 @@ Unit tests — RAG Reasoner with Claude (mocked)
 Tests the RAG pipeline with a mocked Claude client.
 """
 
-import asyncio
-import numpy as np
 import pytest
 
+from core.memory.api_schema import MemoryQueryRequest, MemoryStoreRequest, QueryMode
 from core.memory.config import MemoryConfig
 from core.memory.embeddings import MockTextEmbedder, MultimodalFuser
 from core.memory.indexer import FAISSIndexer
 from core.memory.ingest import MemoryIngester
-from core.memory.retriever import MemoryRetriever
-from core.memory.rag_reasoner import RAGReasoner
 from core.memory.llm_client import StubLLMClient
-from core.memory.api_schema import MemoryStoreRequest, MemoryQueryRequest, QueryMode
+from core.memory.rag_reasoner import RAGReasoner
+from core.memory.retriever import MemoryRetriever
 
 
 @pytest.fixture

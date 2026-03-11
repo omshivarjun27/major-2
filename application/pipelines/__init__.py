@@ -10,20 +10,20 @@ Replaces the blocking, race-condition-prone pipeline with:
   5. PipelineMonitor — real-time perf counters and alerting
 """
 
-from .streaming_tts import StreamingTTSCoordinator, SentenceBuffer
-from .perception_pool import PerceptionWorkerPool
 from .audio_manager import AudioOutputManager
-from .frame_sampler import AdaptiveFrameSampler
-from .pipeline_monitor import PipelineMonitor
 from .cancellation import CancellationScope, ScopedTask
+from .frame_sampler import AdaptiveFrameSampler
 from .integration import (
     PipelineComponents,
     create_pipeline_components,
-    wrap_entrypoint_with_pipeline,
     on_new_user_query,
-    speak_with_priority,
     run_perception_off_event_loop,
+    speak_with_priority,
+    wrap_entrypoint_with_pipeline,
 )
+from .perception_pool import PerceptionWorkerPool
+from .pipeline_monitor import PipelineMonitor
+from .streaming_tts import SentenceBuffer, StreamingTTSCoordinator
 
 __all__ = [
     "StreamingTTSCoordinator",

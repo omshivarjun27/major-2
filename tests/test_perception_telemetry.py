@@ -20,9 +20,7 @@ from application.pipelines.perception_telemetry import (
     QREntry,
     TTSEntry,
     emit_frame_log,
-    get_metrics,
 )
-
 
 # ---------------------------------------------------------------------------
 # FrameLog Schema

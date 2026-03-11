@@ -15,9 +15,9 @@ All heavy processing runs via asyncio executors.
 """
 
 from .braille_capture import BrailleCapture, CaptureHints
-from .braille_segmenter import BrailleSegmenter, SegmentationResult
-from .braille_classifier import BrailleClassifier, BrailleChar
+from .braille_classifier import BrailleChar, BrailleClassifier
 from .braille_ocr import BrailleOCR, BrailleOCRResult
+from .braille_segmenter import BrailleSegmenter, SegmentationResult
 from .embossing_guidance import EmbossingGuide, LayoutVerification
 
 __all__ = [

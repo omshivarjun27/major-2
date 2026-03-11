@@ -172,7 +172,6 @@ class TestElevenLabsCircuitBreaker:
         # When called outside an async context (simulated by wrapping in executor),
         # it should gracefully no-op. Here we just verify no exception is raised.
         # Since we ARE in an async context, create a separate thread to test.
-        import concurrent.futures
 
         def call_from_thread():
             mgr._schedule_cb_async(dummy_coro)

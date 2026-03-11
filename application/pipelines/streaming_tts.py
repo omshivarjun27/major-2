@@ -37,9 +37,8 @@ import asyncio
 import logging
 import re
 import time
-from collections import deque
-from dataclasses import dataclass, field
-from typing import Any, AsyncIterator, Callable, Deque, List, Optional, Tuple
+from dataclasses import dataclass
+from typing import Any, Callable, List, Optional
 
 logger = logging.getLogger("streaming-tts")
 

@@ -2,19 +2,13 @@
 
 from __future__ import annotations
 
-import time
-from collections import deque
-from unittest.mock import MagicMock, patch
-
 import numpy as np
 import pytest
 
 from core.audio.audio_event_detector import (
     AudioEvent,
     AudioEventConfig,
-    AudioEventDetector,
     AudioEventType,
-    CRITICAL_EVENTS,
 )
 from core.audio.enhanced_detector import (
     AudioEventCorrelation,
@@ -23,7 +17,6 @@ from core.audio.enhanced_detector import (
     EnhancedAudioResult,
     create_enhanced_detector,
 )
-
 
 # =============================================================================
 # Fixtures

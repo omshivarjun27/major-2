@@ -6,25 +6,20 @@ and interact properly with circuit breakers.
 
 from __future__ import annotations
 
-import asyncio
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
 from infrastructure.resilience.circuit_breaker import (
-    CircuitBreakerConfig,
-    CircuitBreakerState,
     clear_registry,
-    get_circuit_breaker,
     register_circuit_breaker,
 )
 from infrastructure.resilience.retry_policy import (
-    RetryPolicy,
-    RetryConfig,
-    get_retry_policy,
     SERVICE_RETRY_CONFIGS,
+    RetryConfig,
+    RetryPolicy,
+    get_retry_policy,
 )
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

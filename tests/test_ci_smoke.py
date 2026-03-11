@@ -13,7 +13,6 @@ They use only the mock/fallback backends.
 """
 
 import asyncio
-import importlib
 import os
 import sys
 import time
@@ -36,7 +35,7 @@ class TestPerceptionPipelineAPI:
 
     @pytest.fixture(autouse=True)
     def _setup(self):
-        from core.vqa.perception import PerceptionPipeline, MockObjectDetector
+        from core.vqa.perception import MockObjectDetector, PerceptionPipeline
         self.pipeline = PerceptionPipeline(detector=MockObjectDetector())
 
     def test_has_detect_method(self):
@@ -74,6 +73,7 @@ class TestPerceptionPipelineAPI:
     def test_process_returns_perception_result(self):
         """Full pipeline .process() returns PerceptionResult with detections."""
         import numpy as np
+
         from shared.schemas import PerceptionResult
         img = np.zeros((480, 640, 3), dtype=np.uint8)
         result = asyncio.get_event_loop().run_until_complete(self.pipeline.process(img))
@@ -106,6 +106,7 @@ class TestCreatePipeline:
     def test_pipeline_detect_callable(self):
         """The .detect() method must be async-callable and return a list."""
         import numpy as np
+
         from core.vqa import create_perception_pipeline
         pipe = create_perception_pipeline(use_mock=True)
         img = np.zeros((480, 640, 3), dtype=np.uint8)
@@ -133,7 +134,6 @@ class TestOrchestratorWiring:
 
         # Replicate the exact wiring logic from main.py
         detector_fn = None
-        depth_fn = None
 
         if hasattr(pipeline, "detect"):
             detector_fn = pipeline.detect
@@ -145,13 +145,12 @@ class TestOrchestratorWiring:
                 detector_fn = _detect
 
         if hasattr(pipeline, "estimate_depth"):
-            depth_fn = pipeline.estimate_depth
+            pass
         elif hasattr(pipeline, "depth_estimator") and pipeline.depth_estimator is not None:
             _de = pipeline.depth_estimator
             if hasattr(_de, "estimate"):
                 async def _depth(img, _e=_de):
                     return await _e.estimate(img)
-                depth_fn = _depth
 
         assert detector_fn is not None, (
             "CRITICAL: detector_fn is None — the zero-detection bug has regressed! "
@@ -191,6 +190,7 @@ class TestOrchestratorDetections:
     def test_process_frame_produces_detections(self):
         """With a mock detector wired, process_frame must yield detections."""
         import numpy as np
+
         from application.frame_processing.frame_orchestrator import FrameOrchestrator, FrameOrchestratorConfig
         from application.frame_processing.live_frame_manager import TimestampedFrame
         from core.vqa import create_perception_pipeline
@@ -253,7 +253,7 @@ class TestSharedTypes:
     """Core shared types must be importable and consistent."""
 
     def test_detection_type(self):
-        from shared.schemas import Detection, BoundingBox
+        from shared.schemas import BoundingBox, Detection
         d = Detection(
             id="det_001",
             class_name="person",
@@ -263,8 +263,9 @@ class TestSharedTypes:
         assert d.class_name == "person"
 
     def test_perception_result_type(self):
-        from shared.schemas import PerceptionResult, DepthMap
         import numpy as np
+
+        from shared.schemas import DepthMap, PerceptionResult
         pr = PerceptionResult(
             detections=[],
             masks=[],

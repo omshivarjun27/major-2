@@ -10,7 +10,6 @@ from __future__ import annotations
 import json
 import logging
 import os
-import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
@@ -82,8 +81,8 @@ def collect_metrics(service_name: str, prometheus_url: Optional[str] = None) -> 
 
 def _query_prometheus(base_url: str, service: str) -> Dict[str, Any]:
     """Query Prometheus for service metrics. Returns metric dict."""
-    import urllib.request
     import urllib.parse
+    import urllib.request
 
     def _instant(query: str) -> float:
         params = urllib.parse.urlencode({"query": query})

@@ -22,15 +22,15 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
-from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, Optional
+from dataclasses import dataclass
+from typing import Any, Optional
 
-from .cancellation import CancellationScope, ScopeManager
-from .streaming_tts import StreamingTTSCoordinator
-from .perception_pool import PerceptionWorkerPool, create_perception_pool
 from .audio_manager import AudioOutputManager, AudioPriority
+from .cancellation import CancellationScope, ScopeManager
 from .frame_sampler import AdaptiveFrameSampler, SamplerConfig
+from .perception_pool import PerceptionWorkerPool, create_perception_pool
 from .pipeline_monitor import PipelineMonitor
+from .streaming_tts import StreamingTTSCoordinator
 
 logger = logging.getLogger("pipeline-integration")
 
@@ -216,7 +216,7 @@ async def wrap_entrypoint_with_pipeline(
 
     # ── Patch 1: Install cancellation on new queries ─────────────
     # Monkey-patch the agent's on_message to cancel previous scope
-    original_on_message = type(agent_session).on_message if hasattr(type(agent_session), 'on_message') else None
+    type(agent_session).on_message if hasattr(type(agent_session), 'on_message') else None
 
     # Store components on userdata for access from tools
     userdata._pipeline_components = components

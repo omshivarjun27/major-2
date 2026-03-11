@@ -3,21 +3,19 @@ Integration Tests for Memory Engine - Claude Opus 4.6 RAG Reasoner
 (Uses mock/stub Claude responses)
 """
 
+
 import pytest
-from unittest.mock import AsyncMock, patch, MagicMock
 
 from core.memory.llm_client import (
-    ClaudeClient,
-    OllamaClient,
-    StubLLMClient,
-    LLMResponse,
-    LLMRole,
-    BaseLLMClient,
-    register_backend,
-    get_backend,
-    reset_backends,
     CLAUDE_RAG_SYSTEM_PROMPT_SHORT,
     CLAUDE_RAG_SYSTEM_PROMPT_VERBOSE,
+    ClaudeClient,
+    LLMRole,
+    OllamaClient,
+    StubLLMClient,
+    get_backend,
+    register_backend,
+    reset_backends,
 )
 
 
@@ -102,11 +100,11 @@ class TestRAGReasonerWithClaudeStub:
     @pytest.fixture
     def setup_rag_with_claude_stub(self):
         """Set up RAG system with a stub LLM client."""
-        from core.memory.indexer import MockFAISSIndexer
         from core.memory.embeddings import MockTextEmbedder, MultimodalFuser
+        from core.memory.indexer import MockFAISSIndexer
         from core.memory.ingest import MemoryIngester
-        from core.memory.retriever import MemoryRetriever
         from core.memory.rag_reasoner import RAGReasoner
+        from core.memory.retriever import MemoryRetriever
 
         indexer = MockFAISSIndexer(dimension=384)
         embedder = MockTextEmbedder(dimension=384)
@@ -140,7 +138,7 @@ class TestRAGReasonerWithClaudeStub:
     async def test_query_with_claude_stub(self, setup_rag_with_claude_stub):
         """Query should use the Claude stub for reasoning."""
         ingester, retriever, reasoner = setup_rag_with_claude_stub
-        from core.memory.api_schema import MemoryStoreRequest, MemoryQueryRequest
+        from core.memory.api_schema import MemoryQueryRequest, MemoryStoreRequest
 
         await ingester.ingest(MemoryStoreRequest(
             transcript="I put my keys on the kitchen table",
@@ -156,8 +154,8 @@ class TestRAGReasonerWithClaudeStub:
         """Verbose mode should attempt LLM-based answer."""
         ingester, retriever, reasoner = setup_rag_with_claude_stub
         from core.memory.api_schema import (
-            MemoryStoreRequest,
             MemoryQueryRequest,
+            MemoryStoreRequest,
             QueryMode,
         )
 

@@ -26,12 +26,12 @@ logger = logging.getLogger("memory-maintenance")
 
 class MemoryMaintenance:
     """Scheduled maintenance for memory system.
-    
+
     Run periodically (e.g., daily) to:
     - Delete expired memories
     - Compact FAISS index
     - Back up index and metadata
-    
+
     Usage:
         maintenance = MemoryMaintenance(indexer=indexer)
         report = await maintenance.run()
@@ -51,7 +51,7 @@ class MemoryMaintenance:
 
     async def run(self) -> Dict[str, Any]:
         """Run all maintenance tasks.
-        
+
         Returns:
             Report with task results
         """
@@ -133,7 +133,7 @@ class MemoryMaintenance:
 
     async def enforce_retention(self) -> int:
         """Delete memories that have passed their expiry date.
-        
+
         Returns:
             Number of deleted memories
         """
@@ -176,10 +176,10 @@ class MemoryMaintenance:
 
     async def backup(self, backup_path: Path) -> bool:
         """Create backup of index and metadata.
-        
+
         Args:
             backup_path: Destination path for backup
-            
+
         Returns:
             True if successful
         """
@@ -214,10 +214,10 @@ class MemoryMaintenance:
 
     async def restore(self, backup_path: Path) -> bool:
         """Restore index from backup.
-        
+
         Args:
             backup_path: Source path of backup
-            
+
         Returns:
             True if successful
         """
@@ -250,7 +250,7 @@ class MemoryMaintenance:
         new_key: bytes,
     ) -> bool:
         """Rotate encryption key (placeholder).
-        
+
         In production, this would re-encrypt all stored data.
         """
         if not self._config.encryption_enabled:

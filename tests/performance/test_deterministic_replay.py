@@ -7,8 +7,8 @@ when using seeded/deterministic mode.
 """
 
 import hashlib
+
 import numpy as np
-import pytest
 
 
 class TestDeterministicReplay:

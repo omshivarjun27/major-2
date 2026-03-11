@@ -7,9 +7,7 @@ policies, and fail gracefully when the network is unavailable.
 """
 
 import os
-import time
-import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 
 class TestModelDownloadRetry:
@@ -56,5 +54,5 @@ class TestModelDownloadRetry:
         assert not os.path.exists(fake_path), "Test precondition: file should not exist"
         # Merely referencing the path shouldn't crash anything
         from shared.config import get_config
-        cfg = get_config()
+        get_config()
         # The system should handle missing models via auto-detect

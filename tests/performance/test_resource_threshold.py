@@ -6,11 +6,6 @@ Verifies that the system correctly triggers fallback behavior
 when resource thresholds (CPU, memory, stall) are exceeded.
 """
 
-import os
-import time
-import numpy as np
-import pytest
-from unittest.mock import patch
 
 
 class TestResourceThresholds:
@@ -82,7 +77,7 @@ class TestResourceThresholds:
         from shared.config import get_config
         cfg = get_config()
         stt = cfg.get("TARGET_STT_LATENCY_MS", 100)
-        vqa = cfg.get("TARGET_VQA_LATENCY_MS", 300)
+        cfg.get("TARGET_VQA_LATENCY_MS", 300)
         tts = cfg.get("TARGET_TTS_LATENCY_MS", 100)
         total = cfg.get("TARGET_TOTAL_LATENCY_MS", 500)
         assert total >= stt + tts, (

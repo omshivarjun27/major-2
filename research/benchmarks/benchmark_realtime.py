@@ -17,21 +17,17 @@ import time
 from pathlib import Path
 from typing import List, Tuple
 
-import numpy as np
 from PIL import Image
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from core.vqa import (
-    create_perception_pipeline,
-    build_scene_graph,
-    SpatialFuser,
-    VQAReasoner,
     MicroNavFormatter,
     QuickAnswers,
-    VQARequest,
-    VQAMemory,
+    SpatialFuser,
+    build_scene_graph,
+    create_perception_pipeline,
 )
 
 logging.basicConfig(level=logging.INFO)
@@ -45,10 +41,10 @@ logger = logging.getLogger("vqa-benchmark")
 def create_test_images() -> List[Image.Image]:
     """Create test images of varying complexity."""
     images = []
-    
+
     # Simple gray image
     images.append(Image.new("RGB", (640, 480), color=(128, 128, 128)))
-    
+
     # Image with colored regions (simulating objects)
     img = Image.new("RGB", (640, 480), color=(200, 200, 200))
     pixels = img.load()
@@ -61,7 +57,7 @@ def create_test_images() -> List[Image.Image]:
         for y in range(100, 250):
             pixels[x, y] = (50, 50, 255)
     images.append(img)
-    
+
     # More complex image
     img = Image.new("RGB", (640, 480), color=(100, 100, 100))
     pixels = img.load()
@@ -73,7 +69,7 @@ def create_test_images() -> List[Image.Image]:
                 if 0 <= x < 640 and 0 <= y < 480:
                     pixels[x, y] = (50 * i, 100, 200 - 30 * i)
     images.append(img)
-    
+
     return images
 
 
@@ -88,14 +84,14 @@ async def benchmark_perception(
 ) -> Tuple[float, float, float]:
     """Benchmark perception pipeline latency."""
     times = []
-    
+
     for _ in range(iterations):
         for img in images:
             start = time.perf_counter()
             await pipeline.process(img)
             elapsed = (time.perf_counter() - start) * 1000
             times.append(elapsed)
-    
+
     return statistics.mean(times), statistics.median(times), max(times)
 
 
@@ -106,16 +102,16 @@ async def benchmark_scene_graph(
 ) -> Tuple[float, float, float]:
     """Benchmark scene graph building latency."""
     times = []
-    
+
     for _ in range(iterations):
         for img in images:
             perception = await pipeline.process(img)
-            
+
             start = time.perf_counter()
             build_scene_graph(perception)
             elapsed = (time.perf_counter() - start) * 1000
             times.append(elapsed)
-    
+
     return statistics.mean(times), statistics.median(times), max(times)
 
 
@@ -127,16 +123,16 @@ async def benchmark_fusion(
 ) -> Tuple[float, float, float]:
     """Benchmark spatial fusion latency."""
     times = []
-    
+
     for _ in range(iterations):
         for img in images:
             perception = await pipeline.process(img)
-            
+
             start = time.perf_counter()
             fuser.fuse(perception)
             elapsed = (time.perf_counter() - start) * 1000
             times.append(elapsed)
-    
+
     return statistics.mean(times), statistics.median(times), max(times)
 
 
@@ -149,18 +145,18 @@ async def benchmark_micronav(
     """Benchmark MicroNav formatting latency."""
     formatter = MicroNavFormatter()
     times = []
-    
+
     for _ in range(iterations):
         for img in images:
             perception = await pipeline.process(img)
             scene_graph = build_scene_graph(perception)
             fused = fuser.fuse(perception)
-            
+
             start = time.perf_counter()
             formatter.format(fused, scene_graph)
             elapsed = (time.perf_counter() - start) * 1000
             times.append(elapsed)
-    
+
     return statistics.mean(times), statistics.median(times), max(times)
 
 
@@ -173,20 +169,20 @@ async def benchmark_e2e(
     """Benchmark end-to-end latency (perception → scene graph → fusion → micronav)."""
     formatter = MicroNavFormatter()
     times = []
-    
+
     for _ in range(iterations):
         for img in images:
             start = time.perf_counter()
-            
+
             # Full pipeline
             perception = await pipeline.process(img)
             scene_graph = build_scene_graph(perception)
             fused = fuser.fuse(perception)
             formatter.format(fused, scene_graph)
-            
+
             elapsed = (time.perf_counter() - start) * 1000
             times.append(elapsed)
-    
+
     return statistics.mean(times), statistics.median(times), max(times)
 
 
@@ -203,18 +199,18 @@ async def benchmark_quick_answer(
         "Any obstacles?",
     ]
     times = []
-    
+
     for _ in range(iterations):
         for img in images:
             perception = await pipeline.process(img)
             fused = fuser.fuse(perception)
-            
+
             for q in questions:
                 start = time.perf_counter()
                 QuickAnswers.try_quick_answer(q, fused)
                 elapsed = (time.perf_counter() - start) * 1000
                 times.append(elapsed)
-    
+
     return statistics.mean(times), statistics.median(times), max(times)
 
 
@@ -228,7 +224,7 @@ async def run_benchmarks():
     print("VQA ENGINE BENCHMARK")
     print("=" * 60)
     print()
-    
+
     # Initialize components
     print("Initializing components...")
     pipeline = create_perception_pipeline(use_mock=True)  # Use mock for consistent benchmarks
@@ -236,79 +232,79 @@ async def run_benchmarks():
     images = create_test_images()
     print(f"Created {len(images)} test images")
     print()
-    
+
     # Warm up
     print("Warming up...")
     for img in images:
         await pipeline.process(img)
     print()
-    
+
     # Run benchmarks
     results = {}
     iterations = 20
-    
+
     print(f"Running benchmarks ({iterations} iterations each)...")
     print("-" * 60)
-    
+
     # Perception benchmark
     print("1. Perception Pipeline...")
     mean, median, p99 = await benchmark_perception(pipeline, images, iterations)
     results["perception"] = (mean, median, p99)
     status = "✓" if median <= 300 else "✗"
     print(f"   {status} Mean: {mean:.1f}ms, Median: {median:.1f}ms, P99: {p99:.1f}ms")
-    print(f"   Target: ≤300ms")
+    print("   Target: ≤300ms")
     print()
-    
+
     # Scene graph benchmark
     print("2. Scene Graph Building...")
     mean, median, p99 = await benchmark_scene_graph(pipeline, images, iterations)
     results["scene_graph"] = (mean, median, p99)
     status = "✓" if median <= 50 else "✗"
     print(f"   {status} Mean: {mean:.1f}ms, Median: {median:.1f}ms, P99: {p99:.1f}ms")
-    print(f"   Target: ≤50ms")
+    print("   Target: ≤50ms")
     print()
-    
+
     # Fusion benchmark
     print("3. Spatial Fusion...")
     mean, median, p99 = await benchmark_fusion(pipeline, fuser, images, iterations)
     results["fusion"] = (mean, median, p99)
     status = "✓" if median <= 20 else "✗"
     print(f"   {status} Mean: {mean:.1f}ms, Median: {median:.1f}ms, P99: {p99:.1f}ms")
-    print(f"   Target: ≤20ms")
+    print("   Target: ≤20ms")
     print()
-    
+
     # MicroNav benchmark
     print("4. MicroNav Formatting...")
     mean, median, p99 = await benchmark_micronav(pipeline, fuser, images, iterations)
     results["micronav"] = (mean, median, p99)
     status = "✓" if median <= 5 else "✗"
     print(f"   {status} Mean: {mean:.1f}ms, Median: {median:.1f}ms, P99: {p99:.1f}ms")
-    print(f"   Target: ≤5ms")
+    print("   Target: ≤5ms")
     print()
-    
+
     # Quick answer benchmark
     print("5. Quick Answer (No LLM)...")
     mean, median, p99 = await benchmark_quick_answer(pipeline, fuser, images, iterations)
     results["quick_answer"] = (mean, median, p99)
     status = "✓" if median <= 1 else "✗"
     print(f"   {status} Mean: {mean:.3f}ms, Median: {median:.3f}ms, P99: {p99:.3f}ms")
-    print(f"   Target: ≤1ms")
+    print("   Target: ≤1ms")
     print()
-    
+
     # End-to-end benchmark
     print("6. End-to-End (Full Pipeline)...")
     mean, median, p99 = await benchmark_e2e(pipeline, fuser, images, iterations)
     results["e2e"] = (mean, median, p99)
     status = "✓" if median <= 300 else "✗"
     print(f"   {status} Mean: {mean:.1f}ms, Median: {median:.1f}ms, P99: {p99:.1f}ms")
-    print(f"   Target: ≤300ms (vision only)")
+    print("   Target: ≤300ms (vision only)")
     print()
-    
+
     # Summary
     print("=" * 60)
     print("SUMMARY")
     print("=" * 60)
-    
+
     total_median = results["e2e"][1]
     targets_met = sum([
         results["perception"][1] <= 300,
@@ -318,21 +314,21 @@ async def run_benchmarks():
         results["quick_answer"][1] <= 1,
         results["e2e"][1] <= 300,
     ])
-    
+
     print(f"Total Vision Latency (Median): {total_median:.1f}ms")
     print(f"Targets Met: {targets_met}/6")
     print()
-    
+
     if total_median <= 300:
         print("✓ Vision pipeline meets <300ms target!")
         print("  Combined with STT/TTS, total E2E should be <500ms")
     else:
         print("✗ Vision pipeline exceeds 300ms target")
         print("  Consider using mock detector or reducing image size")
-    
+
     print()
     print("=" * 60)
-    
+
     return results
 
 

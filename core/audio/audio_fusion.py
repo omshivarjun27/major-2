@@ -9,13 +9,11 @@ from __future__ import annotations
 
 import logging
 import time
-from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from dataclasses import dataclass
+from typing import List, Optional
 
-import numpy as np
-
+from .audio_event_detector import AudioEvent, AudioEventType
 from .ssl import SSLResult
-from .audio_event_detector import AudioEvent, AudioEventType, CRITICAL_EVENTS
 
 logger = logging.getLogger("audio-fusion")
 

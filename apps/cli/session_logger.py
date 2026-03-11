@@ -16,7 +16,7 @@ import logging
 import time
 import uuid
 from collections import deque
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Deque, Dict, List, Optional
 

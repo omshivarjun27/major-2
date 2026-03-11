@@ -15,13 +15,13 @@ import time
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, Field
 from PIL import Image
+from pydantic import BaseModel, Field
 
-from .qr_scanner import QRScanner, QRDetection
-from .qr_decoder import QRDecoder, DecodedQR
 from .ar_tag_handler import ARTagHandler
 from .cache_manager import CacheManager
+from .qr_decoder import DecodedQR, QRDecoder
+from .qr_scanner import QRDetection, QRScanner
 
 logger = logging.getLogger("qr-api")
 

@@ -13,7 +13,6 @@ from unittest import mock
 
 import pytest
 
-
 # ---------------------------------------------------------------------------
 # YAML Config Loading
 # ---------------------------------------------------------------------------
@@ -178,7 +177,7 @@ class TestRunStartupChecks:
         assert isinstance(info["config"], dict)
 
     def test_get_startup_info_returns_cached(self):
-        from shared.utils.startup_guards import run_startup_checks, get_startup_info
+        from shared.utils.startup_guards import get_startup_info, run_startup_checks
         info1 = run_startup_checks(skip_venv_check=True)
         info2 = get_startup_info()
         assert info1 is info2

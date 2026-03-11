@@ -6,32 +6,31 @@ Tests for Runtime Diagnostics Module
 import asyncio
 import json
 import math
+import os
 import struct
+import sys
 import time
-import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
-import sys, os
+import pytest
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from shared.utils.runtime_diagnostics import (
-    TTSDiagnostics,
-    VQADiagnostics,
+    VALID_SAMPLE_RATES,
     RuntimeDiagnostics,
-    TTSPreflightResult,
-    VQAPreflightResult,
     SystemStatus,
-    SystemHealth,
-    VQASkipCode,
+    TTSDiagnostics,
     TTSEventLog,
+    TTSPreflightResult,
+    VQADiagnostics,
+    VQAPreflightResult,
+    VQASkipCode,
     analyze_audio_chunk,
     apply_soft_fade,
-    normalize_audio,
     get_diagnostics,
-    VALID_SAMPLE_RATES,
-    TTS_JITTER_MAX_MS,
+    normalize_audio,
 )
-
 
 # ============================================================================
 # Audio Utilities

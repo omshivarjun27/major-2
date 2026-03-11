@@ -11,8 +11,8 @@ Features:
 """
 
 import logging
-import sys
 import multiprocessing
+import sys
 
 # Fix Windows multiprocessing freeze issue
 if sys.platform == "win32":
@@ -20,13 +20,16 @@ if sys.platform == "win32":
 
 # Load environment variables from .env
 import os
+
 from dotenv import load_dotenv
+
 load_dotenv()
 os.environ.setdefault("OPENAI_API_KEY", "ollama")
 os.environ.setdefault("OPENAI_BASE_URL", "http://localhost:11434/v1")
 
 # ── Structured logging (JSON in production, coloured text in dev) ─────
 from shared.logging.logging_config import configure_logging
+
 configure_logging(level="INFO")
 
 # Fine-tune noisy loggers
@@ -60,20 +63,21 @@ for _logger_name in ("livekit.agents", "livekit"):
 
 # Import after environment variables are loaded
 from livekit.agents import WorkerOptions, cli
+
 from apps.realtime.agent import entrypoint
-from shared.config import get_config, spatial_enabled
+from shared.config import spatial_enabled
 
 # Main application logger
 logger = logging.getLogger("ally-vision-app")
 
 if __name__ == "__main__":
     logger.info("Starting Ally Vision Assistant")
-    
+
     # Log spatial perception status
     if spatial_enabled():
         logger.info("Spatial Perception: ENABLED (object detection, depth estimation, micro-navigation)")
     else:
         logger.info("Spatial Perception: DISABLED")
-    
+
     # Run the application using the entrypoint from main.py
-    cli.run_app(WorkerOptions(entrypoint_fnc=entrypoint)) 
+    cli.run_app(WorkerOptions(entrypoint_fnc=entrypoint))

@@ -7,7 +7,7 @@ over a 60-second simulated window with <5% frame drops.
 """
 
 import time
-import asyncio
+
 import numpy as np
 import pytest
 
@@ -27,7 +27,7 @@ class TestSustainedFPS:
     def test_frame_processing_sustained(self, mock_frame):
         """Process frames at target FPS for DURATION_SECONDS; measure drops."""
         from shared.config import get_config
-        config = get_config()
+        get_config()
 
         interval = 1.0 / self.TARGET_FPS
         total_expected = int(self.TARGET_FPS * self.DURATION_SECONDS)

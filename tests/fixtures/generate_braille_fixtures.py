@@ -6,6 +6,7 @@ Uses OpenCV to draw dots at braille-standard spacing.
 """
 
 import os
+
 import numpy as np
 
 try:

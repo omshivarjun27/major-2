@@ -20,10 +20,10 @@ Usage:
 ------
     # Run real-time test with debug overlay
     python -m tests.realtime.realtime_test --debug
-    
+
     # Run benchmarks
     python -m tests.realtime.benchmark --config yolo-simple
-    
+
     # Replay a session
     python -m tests.realtime.replay_tool logs/sessions/SESSION_NAME
 
@@ -32,12 +32,12 @@ Quick Start:
     from tests.realtime.metrics import MetricsCollector, MetricsReporter
     from tests.realtime.session_logger import SessionRecorder, SessionLoader
     from tests.realtime.benchmark import BenchmarkRunner, PRESET_CONFIGS
-    
+
     # Collect metrics
     collector = MetricsCollector()
-    collector.record_frame(latency_ms=45, fps=22, detection_count=3, 
+    collector.record_frame(latency_ms=45, fps=22, detection_count=3,
                           critical_detected=False, navigation_cue="Clear path")
-    
+
     # Generate report
     reporter = MetricsReporter(collector)
     reporter.print_summary()
@@ -67,6 +67,6 @@ def get_benchmark_runner(**kwargs):
 
 __all__ = [
     "get_metrics_collector",
-    "get_session_recorder", 
+    "get_session_recorder",
     "get_benchmark_runner",
 ]

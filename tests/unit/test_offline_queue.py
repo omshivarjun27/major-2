@@ -2,14 +2,10 @@
 Unit tests for Cloud Sync Offline Queue (T-116).
 """
 
-import asyncio
-import json
-from pathlib import Path
 
 import pytest
 
 from core.memory.offline_queue import (
-    CompactionResult,
     OfflineQueue,
     QueuedOperation,
     QueueOperationType,
@@ -126,7 +122,7 @@ class TestOfflineQueue:
     async def test_remove(self, queue):
         """Test removing specific operations."""
         op1 = await queue.enqueue(QueueOperationType.ADD, "rec_001", "t1")
-        op2 = await queue.enqueue(QueueOperationType.ADD, "rec_002", "t1")
+        await queue.enqueue(QueueOperationType.ADD, "rec_002", "t1")
 
         removed = await queue.remove([op1.operation_id])
 
@@ -161,7 +157,7 @@ class TestOfflineQueue:
             await queue.enqueue(QueueOperationType.ADD, f"rec_{i:03d}", "t1")
 
         # Add one more
-        new_op = await queue.enqueue(QueueOperationType.ADD, "rec_new", "t1")
+        await queue.enqueue(QueueOperationType.ADD, "rec_new", "t1")
 
         # Queue should still be at max size
         assert queue.depth == 10

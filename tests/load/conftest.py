@@ -9,7 +9,6 @@ import base64
 import io
 import os
 import sys
-from typing import Generator
 
 import pytest
 

@@ -18,7 +18,6 @@ from application.frame_processing.confidence_cascade import (
     filter_by_confidence,
 )
 
-
 # ---------------------------------------------------------------------------
 # 3-Tier Confidence Filtering
 # ---------------------------------------------------------------------------

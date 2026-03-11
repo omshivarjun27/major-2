@@ -13,8 +13,8 @@ import json
 import logging
 import time
 from collections import deque
-from dataclasses import dataclass, field
-from typing import Any, Deque, Dict, List, Optional, Tuple
+from dataclasses import dataclass
+from typing import Any, Deque, List, Optional
 
 logger = logging.getLogger("debouncer")
 

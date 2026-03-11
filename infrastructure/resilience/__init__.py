@@ -13,17 +13,23 @@ from infrastructure.resilience.circuit_breaker import (
     register_circuit_breaker,
     with_circuit_breaker,
 )
+from infrastructure.resilience.degradation_coordinator import (
+    DegradationCoordinator,
+    DegradationEvent,
+    DegradationLevel,
+    DegradationPolicy,
+    create_degradation_coordinator,
+    get_current_degradation_level,
+    get_degradation_coordinator,
+    is_feature_enabled,
+    reset_degradation_coordinator,
+    should_use_local_speech,
+)
 from infrastructure.resilience.error_classifier import (
     ErrorCategory,
     ErrorClassification,
     classify_error,
     classify_status_code,
-)
-from infrastructure.resilience.retry_policy import (
-    RetryConfig,
-    RetryPolicy,
-    get_retry_policy,
-    with_retry,
 )
 from infrastructure.resilience.health_registry import (
     HealthSummary,
@@ -37,17 +43,11 @@ from infrastructure.resilience.health_registry import (
     is_system_degraded,
     reset_health_registry,
 )
-from infrastructure.resilience.degradation_coordinator import (
-    DegradationCoordinator,
-    DegradationEvent,
-    DegradationLevel,
-    DegradationPolicy,
-    create_degradation_coordinator,
-    get_current_degradation_level,
-    get_degradation_coordinator,
-    is_feature_enabled,
-    reset_degradation_coordinator,
-    should_use_local_speech,
+from infrastructure.resilience.retry_policy import (
+    RetryConfig,
+    RetryPolicy,
+    get_retry_policy,
+    with_retry,
 )
 from infrastructure.resilience.timeout_config import (
     AsyncTimeoutContext,

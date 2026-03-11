@@ -9,11 +9,11 @@ Provides:
 - QR API helpers: FastAPI endpoint builders
 """
 
-from .qr_scanner import QRScanner, QRDetection
-from .qr_decoder import QRDecoder, QRContentType, DecodedQR
-from .ar_tag_handler import ARTagHandler, ARDetection
-from .cache_manager import CacheManager, CacheEntry
+from .ar_tag_handler import ARDetection, ARTagHandler
+from .cache_manager import CacheEntry, CacheManager
 from .qr_api import build_qr_router
+from .qr_decoder import DecodedQR, QRContentType, QRDecoder
+from .qr_scanner import QRDetection, QRScanner
 
 __all__ = [
     "QRScanner",

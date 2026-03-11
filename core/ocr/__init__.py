@@ -47,6 +47,7 @@ except ImportError:
 
 # Lazy probe: check importability without triggering the Windows av/torchvision DLL hang
 import importlib.util as _iutil
+
 EASYOCR_AVAILABLE = _iutil.find_spec("easyocr") is not None
 _easyocr_module = None  # Imported lazily on first use
 

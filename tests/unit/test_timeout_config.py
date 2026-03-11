@@ -14,7 +14,6 @@ from __future__ import annotations
 
 import asyncio
 import time
-from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -30,7 +29,6 @@ from infrastructure.resilience.timeout_config import (
     with_async_timeout,
     with_timeout,
 )
-
 
 # ============================================================================
 # Fixtures
@@ -444,11 +442,11 @@ class TestTimeoutIntegration:
         # Verify we can get timeout from config
         stt_timeout = get_timeout("stt")
         tts_timeout = get_timeout("tts")
-        
+
         # Both should be positive numbers
         assert stt_timeout > 0
         assert tts_timeout > 0
-        
+
         # STT/TTS are typically shorter than LLM
         llm_timeout = get_timeout("llm")
         assert llm_timeout >= stt_timeout

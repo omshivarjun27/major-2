@@ -2,15 +2,14 @@
 
 from __future__ import annotations
 
-import json
-import os
-import tempfile
+import pathlib
+
+# Ensure shared/ is importable
+import sys
 
 import numpy as np
 import pytest
 
-# Ensure shared/ is importable
-import sys, pathlib
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 
 from shared.utils.encryption import EncryptionManager, reset_encryption_manager

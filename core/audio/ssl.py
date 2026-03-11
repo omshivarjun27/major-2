@@ -10,8 +10,8 @@ from __future__ import annotations
 import logging
 import math
 import time
-from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Tuple
+from dataclasses import dataclass
+from typing import List, Optional
 
 import numpy as np
 
@@ -181,7 +181,6 @@ class SoundSourceLocalizer:
         gcc = np.fft.irfft(R_phat, n=n_fft)
 
         max_delay_samples = int(self.config.mic_spacing_m / self.config.speed_of_sound * self.config.sample_rate) + 1
-        center = 0
         # Search in valid range
         indices = np.concatenate([
             np.arange(0, min(max_delay_samples + 1, len(gcc))),

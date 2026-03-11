@@ -35,17 +35,14 @@ from __future__ import annotations
 import logging
 import time
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, Optional, Sequence
+from typing import Any, Dict, Optional, Sequence
 
 from infrastructure.resilience.circuit_breaker import (
-    CircuitBreaker,
     CircuitBreakerConfig,
     CircuitBreakerOpenError,
     CircuitBreakerState,
     StateChangeCallback,
-    StateChangeEvent,
     register_circuit_breaker,
-    get_circuit_breaker,
 )
 
 logger = logging.getLogger("resilience.livekit_monitor")

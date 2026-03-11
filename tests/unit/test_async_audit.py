@@ -4,14 +4,12 @@ Validates the audit tool finds blocking patterns and correctly classifies
 hot-path vs startup-only vs non-hot-path findings.
 """
 
-from pathlib import Path
-from unittest.mock import patch
 
 from scripts.async_audit import (
-    AuditReport,
-    Finding,
     HOT_PATH_DIRS,
     STARTUP_ONLY_FILES,
+    AuditReport,
+    Finding,
     _is_hot_path,
     _should_skip,
     run_audit,
@@ -167,7 +165,7 @@ class TestRunAudit:
         report = run_audit()
         assert report.files_scanned > 50, f"Expected >50 files, got {report.files_scanned}"
         assert report.hot_path_violations == 0, (
-            f"Hot-path violations found:\n"
+            "Hot-path violations found:\n"
             + "\n".join(f"  {f.file}:{f.line_no} ({f.pattern_name})" for f in report.findings if f.hot_path)
         )
 

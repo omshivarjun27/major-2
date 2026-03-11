@@ -14,8 +14,6 @@ from __future__ import annotations
 import os
 from unittest.mock import patch
 
-import pytest
-
 from shared.config.settings import (
     CONFIG,
     get_circuit_breaker_config,
@@ -23,7 +21,6 @@ from shared.config.settings import (
     get_resilience_config,
     get_retry_config,
 )
-
 
 # ============================================================================
 # Circuit Breaker Config Tests
@@ -246,7 +243,6 @@ class TestCircuitBreakerIntegration:
     def test_circuit_breaker_reads_from_config(self):
         """Circuit breaker should read from centralized config."""
         from infrastructure.resilience.circuit_breaker import (
-            CircuitBreakerConfig,
             clear_registry,
             register_circuit_breaker,
         )

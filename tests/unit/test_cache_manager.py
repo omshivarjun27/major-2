@@ -2,14 +2,11 @@
 Unit tests for the QR/AR Cache Manager.
 """
 
-import json
-import os
-import tempfile
 import time
 
 import pytest
 
-from core.qr.cache_manager import CacheManager, CacheEntry
+from core.qr.cache_manager import CacheEntry, CacheManager
 
 
 @pytest.fixture

@@ -25,22 +25,22 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 from infrastructure.resilience.circuit_breaker import (
+    CircuitBreakerConfig,
     CircuitBreakerState,
     StateChangeEvent,
     get_circuit_breaker,
     register_circuit_breaker,
-    CircuitBreakerConfig,
 )
 from infrastructure.speech.local.whisper_stt import (
-    WhisperSTT,
-    WhisperConfig,
-    TranscriptionResult,
     WHISPER_AVAILABLE,
+    TranscriptionResult,
+    WhisperConfig,
+    WhisperSTT,
 )
 
 logger = logging.getLogger("speech.stt_failover")

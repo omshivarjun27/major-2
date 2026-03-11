@@ -5,7 +5,7 @@ Unit tests for QR Scanner module.
 import pytest
 from PIL import Image
 
-from core.qr.qr_scanner import QRScanner, QRDetection
+from core.qr.qr_scanner import QRDetection, QRScanner
 
 
 class TestQRDetection:

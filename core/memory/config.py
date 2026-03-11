@@ -6,9 +6,9 @@ Memory-specific configuration loaded from environment variables.
 Provides sensible defaults for resource-constrained devices.
 """
 
-import os
 import logging
-from dataclasses import dataclass, field
+import os
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
@@ -18,45 +18,45 @@ logger = logging.getLogger("memory-config")
 @dataclass
 class MemoryConfig:
     """Configuration for the memory engine.
-    
+
     All settings can be overridden via environment variables with
     the MEMORY_ prefix (e.g., MEMORY_ENABLED=true).
     """
-    
+
     # Core settings (privacy-first: memory opt-in)
     enabled: bool = False
     retention_days: int = 30
     max_vectors: int = 5000
     index_path: str = "./data/memory_index/"
-    
+
     # Privacy & Security
     encryption_enabled: bool = False
     encryption_key_env: str = "MEMORY_ENCRYPTION_KEY"
     save_raw_media: bool = False  # Only save if user consents
     telemetry_enabled: bool = False
-    
+
     # Embedding models
     text_embedding_model: str = "qwen3-embedding:4b"
     image_embedding_enabled: bool = False
     image_embedding_model: str = "clip-ViT-B-32"
     audio_embedding_enabled: bool = False
-    
+
     # Retrieval settings
     rag_k: int = 5
     similarity_threshold: float = 0.1
-    
+
     # Performance settings
     embedding_batch_size: int = 8
     async_indexing: bool = True
     index_commit_interval_sec: float = 5.0
-    
+
     # Light mode for resource-constrained devices
     light_mode: bool = False
-    
+
     @classmethod
     def from_env(cls) -> "MemoryConfig":
         """Load configuration from environment variables."""
-        
+
         def get_bool(key: str, default: bool) -> bool:
             val = os.environ.get(key, "").lower()
             if val in ("true", "1", "yes", "on"):
@@ -64,19 +64,19 @@ class MemoryConfig:
             if val in ("false", "0", "no", "off"):
                 return False
             return default
-        
+
         def get_int(key: str, default: int) -> int:
             try:
                 return int(os.environ.get(key, default))
             except ValueError:
                 return default
-        
+
         def get_float(key: str, default: float) -> float:
             try:
                 return float(os.environ.get(key, default))
             except ValueError:
                 return default
-        
+
         config = cls(
             enabled=get_bool("MEMORY_ENABLED", False),
             retention_days=get_int("MEMORY_RETENTION_DAYS", 30),
@@ -97,22 +97,22 @@ class MemoryConfig:
             index_commit_interval_sec=get_float("MEMORY_COMMIT_INTERVAL", 5.0),
             light_mode=get_bool("MEMORY_LIGHT_MODE", False),
         )
-        
+
         # Light mode overrides
         if config.light_mode:
             config.image_embedding_enabled = False
             config.audio_embedding_enabled = False
             config.max_vectors = min(config.max_vectors, 1000)
             logger.info("Memory engine running in LIGHT MODE (text-only, reduced capacity)")
-        
+
         return config
-    
+
     def ensure_index_dir(self) -> Path:
         """Ensure the index directory exists and return its path."""
         path = Path(self.index_path)
         path.mkdir(parents=True, exist_ok=True)
         return path
-    
+
     def get_encryption_key(self) -> Optional[bytes]:
         """Get encryption key from environment if encryption is enabled."""
         if not self.encryption_enabled:

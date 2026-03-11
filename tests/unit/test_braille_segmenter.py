@@ -8,7 +8,7 @@ Tests the braille segmentation pipeline with synthetic fixtures.
 import numpy as np
 import pytest
 
-from core.braille.braille_segmenter import BrailleSegmenter, SegmentationResult, DotInfo, CellInfo
+from core.braille.braille_segmenter import BrailleSegmenter, CellInfo, DotInfo, SegmentationResult
 
 try:
     import cv2

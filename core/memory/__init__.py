@@ -16,34 +16,34 @@ Components:
 - maintenance: Retention enforcement and backup
 """
 
-from .config import MemoryConfig, get_memory_config
 from .api_schema import (
-    MemoryStoreRequest,
-    MemoryStoreResponse,
-    MemorySearchRequest,
-    MemorySearchResponse,
+    MemoryConsentRequest,
+    MemoryHit,
     MemoryQueryRequest,
     MemoryQueryResponse,
     MemoryRecord,
-    MemoryHit,
-    MemoryConsentRequest,
+    MemorySearchRequest,
+    MemorySearchResponse,
+    MemoryStoreRequest,
+    MemoryStoreResponse,
 )
-from .embeddings import TextEmbedder, MultimodalFuser
+from .config import MemoryConfig, get_memory_config
+from .embeddings import MultimodalFuser, TextEmbedder
 from .indexer import FAISSIndexer
 from .ingest import MemoryIngester
-from .retriever import MemoryRetriever
-from .rag_reasoner import RAGReasoner
-from .maintenance import MemoryMaintenance
 from .llm_client import (
+    BaseLLMClient,
     ClaudeClient,
+    LLMRole,
     OllamaClient,
     StubLLMClient,
-    BaseLLMClient,
-    LLMRole,
-    init_backends,
     get_backend,
+    init_backends,
     register_backend,
 )
+from .maintenance import MemoryMaintenance
+from .rag_reasoner import RAGReasoner
+from .retriever import MemoryRetriever
 
 __all__ = [
     # Config

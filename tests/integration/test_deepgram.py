@@ -1,6 +1,7 @@
 import asyncio
-import aiohttp
 import os
+
+import aiohttp
 import pytest
 from dotenv import load_dotenv
 
@@ -10,7 +11,7 @@ load_dotenv()
 async def test_deepgram():
     api_key = os.getenv("DEEPGRAM_API_KEY")
     print(f"Testing Deepgram API key: {api_key[:10]}...")
-    
+
     # Test simple HTTP connection first
     async with aiohttp.ClientSession() as session:
         try:
@@ -30,7 +31,7 @@ async def test_deepgram():
     async with aiohttp.ClientSession() as session:
         try:
             print("\nTesting WebSocket connection...")
-            ws_url = f"wss://api.deepgram.com/v1/listen?encoding=linear16&sample_rate=16000"
+            ws_url = "wss://api.deepgram.com/v1/listen?encoding=linear16&sample_rate=16000"
             ws = await asyncio.wait_for(
                 session.ws_connect(
                     ws_url,

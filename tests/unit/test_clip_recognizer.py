@@ -2,10 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
-import time
-from unittest.mock import AsyncMock, MagicMock, patch
-
 import numpy as np
 import pytest
 
@@ -18,7 +14,6 @@ from core.action.clip_recognizer import (
     IndoorAction,
     create_clip_recognizer,
 )
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

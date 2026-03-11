@@ -7,7 +7,7 @@ Supports both lightweight mock implementations and real ML models.
 
 Performance targets:
 - Detection: ≤100ms
-- Segmentation: ≤100ms  
+- Segmentation: ≤100ms
 - Depth: ≤100ms
 - Total pipeline: ≤300ms
 
@@ -15,24 +15,23 @@ All core data types are imported from ``shared`` — do NOT redefine them here.
 """
 
 import asyncio
-import gc
 import logging
 import os
 import time
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, List, Optional
 
 import numpy as np
 
 # ── Canonical types from shared module ────────────────────────────────────
 from shared.schemas import (  # noqa: F401  – re-exported for backward compat
     BoundingBox,
-    Detection,
-    SegmentationMask,
-    DepthMap,
-    PerceptionResult,
-    ObjectDetector,
-    Segmenter,
     DepthEstimator,
+    DepthMap,
+    Detection,
+    ObjectDetector,
+    PerceptionResult,
+    SegmentationMask,
+    Segmenter,
 )
 
 try:
@@ -123,15 +122,15 @@ class MockObjectDetector(ObjectDetector):
     NOTE: No dimension-based cache — every call produces fresh detections
     so the system never answers from a stale frame.
     """
-    
+
     CLASSES = ("person", "chair", "table", "door", "wall", "car", "bicycle", "dog")
-    
+
     def __init__(self):
         self._ready = True
-    
+
     def is_ready(self) -> bool:
         return self._ready
-    
+
     async def detect(self, image: Any, max_detections: int = MAX_DETECTIONS) -> List[Detection]:
         """Ultra-fast mock detection — no caching, always fresh."""
         # Get image dimensions
@@ -141,10 +140,10 @@ class MockObjectDetector(ObjectDetector):
             width, height = image.size
         else:
             width, height = 640, 480
-        
+
         # Generate deterministic mock detections (no cache)
         detections = []
-        
+
         # Center object
         cx, cy = width // 2, height // 2
         detections.append(Detection(
@@ -153,16 +152,16 @@ class MockObjectDetector(ObjectDetector):
             confidence=0.87,
             bbox=BoundingBox(cx - 60, cy - 40, cx + 60, cy + 80)
         ))
-        
+
         # Left object
         if width > 400:
             detections.append(Detection(
-                id="obj_2", 
+                id="obj_2",
                 class_name="table",
                 confidence=0.75,
                 bbox=BoundingBox(50, cy, 180, cy + 100)
             ))
-        
+
         # Right object (sometimes)
         if width > 500:
             detections.append(Detection(
@@ -171,7 +170,7 @@ class MockObjectDetector(ObjectDetector):
                 confidence=0.82,
                 bbox=BoundingBox(width - 150, cy - 80, width - 30, cy + 100)
             ))
-        
+
         return detections[:max_detections]
 
 
@@ -180,7 +179,7 @@ class YOLODetector(ObjectDetector):
     YOLO-based object detector using ONNX Runtime or PyTorch.
     Supports YOLOv8 nano/small for fast inference.
     """
-    
+
     COCO_CLASSES = [
         "person", "bicycle", "car", "motorcycle", "airplane", "bus", "train", "truck",
         "boat", "traffic light", "fire hydrant", "stop sign", "parking meter", "bench",
@@ -195,7 +194,7 @@ class YOLODetector(ObjectDetector):
         "refrigerator", "book", "clock", "vase", "scissors", "teddy bear", "hair drier",
         "toothbrush"
     ]
-    
+
     def __init__(self, model_path: Optional[str] = None, use_onnx: bool = True):
         self._model_path = model_path or os.environ.get("DETECTION_MODEL_PATH")
         self._use_onnx = use_onnx
@@ -203,10 +202,10 @@ class YOLODetector(ObjectDetector):
         self._session = None
         self._ready = False
         self._conf_threshold = DETECTION_CONFIDENCE_THRESHOLD
-        
+
         if self._model_path:
             self._load_model()
-    
+
     def _load_model(self):
         """Load YOLO model."""
         try:
@@ -227,53 +226,53 @@ class YOLODetector(ObjectDetector):
         except Exception as e:
             logger.error(f"Failed to load YOLO model: {e}")
             self._ready = False
-    
+
     def is_ready(self) -> bool:
         return self._ready
-    
+
     async def detect(self, image: Any) -> List[Detection]:
         """Run YOLO detection."""
         if not self._ready:
             return []
-        
+
         try:
             # Convert to numpy if needed
             if hasattr(image, 'size'):  # PIL Image
                 img_np = np.array(image)
             else:
                 img_np = image
-            
+
             # Ensure RGB
             if len(img_np.shape) == 2:
                 img_np = cv2.cvtColor(img_np, cv2.COLOR_GRAY2RGB) if CV2_AVAILABLE else np.stack([img_np]*3, axis=-1)
             elif img_np.shape[2] == 4:
                 img_np = img_np[:, :, :3]
-            
+
             detections = []
-            
+
             if self._model and hasattr(self._model, 'predict'):
                 # Ultralytics YOLO
                 results = await asyncio.get_event_loop().run_in_executor(
                     None,
                     lambda: self._model.predict(img_np, conf=self._conf_threshold, verbose=False)
                 )
-                
+
                 for r in results:
                     for i, box in enumerate(r.boxes):
                         x1, y1, x2, y2 = map(int, box.xyxy[0].tolist())
                         conf = float(box.conf[0])
                         cls_id = int(box.cls[0])
                         cls_name = self.COCO_CLASSES[cls_id] if cls_id < len(self.COCO_CLASSES) else "object"
-                        
+
                         detections.append(Detection(
                             id=f"obj_{i+1}",
                             class_name=cls_name,
                             confidence=conf,
                             bbox=BoundingBox(x1, y1, x2, y2)
                         ))
-            
+
             return detections[:MAX_DETECTIONS]
-            
+
         except Exception as e:
             logger.error(f"YOLO detection error: {e}")
             return []
@@ -289,18 +288,18 @@ class EdgeAwareSegmenter(Segmenter):
     Uses Canny edges or variance-based confidence estimation.
     Target latency: <50ms
     """
-    
+
     MAX_SIZE = (160, 120)  # Process at reduced resolution
-    
+
     def __init__(self, use_canny: bool = False):
         self._use_canny = use_canny and CV2_AVAILABLE
         self._ready = True
-    
+
     async def segment(self, image: Any, detections: List[Detection]) -> List[SegmentationMask]:
         """Generate edge-aware masks for detections."""
         if not detections:
             return []
-        
+
         try:
             # Convert and resize for efficiency
             if hasattr(image, 'size'):
@@ -310,17 +309,17 @@ class EdgeAwareSegmenter(Segmenter):
             else:
                 img_np = image
                 orig_h, orig_w = image.shape[:2]
-            
+
             # Convert to grayscale
             if len(img_np.shape) == 3:
                 gray = np.mean(img_np, axis=2).astype(np.uint8)
             else:
                 gray = img_np
-            
+
             # Scale factors
             scale_x = self.MAX_SIZE[0] / orig_w
             scale_y = self.MAX_SIZE[1] / orig_h
-            
+
             masks = []
             for det in detections[:MAX_DETECTIONS]:
                 # Scale bbox to processing resolution
@@ -328,16 +327,16 @@ class EdgeAwareSegmenter(Segmenter):
                 y1 = int(det.bbox.y1 * scale_y)
                 x2 = int(det.bbox.x2 * scale_x)
                 y2 = int(det.bbox.y2 * scale_y)
-                
+
                 # Clamp
                 x1, y1 = max(0, x1), max(0, y1)
                 x2, y2 = min(self.MAX_SIZE[0], x2), min(self.MAX_SIZE[1], y2)
-                
+
                 if x2 <= x1 or y2 <= y1:
                     boundary_conf = 0.5
                 else:
                     roi = gray[y1:y2, x1:x2]
-                    
+
                     if self._use_canny and CV2_AVAILABLE:
                         edges = cv2.Canny(roi, 50, 150)
                         edge_strength = np.mean(edges) / 255.0
@@ -346,19 +345,19 @@ class EdgeAwareSegmenter(Segmenter):
                         # Variance-based confidence
                         variance = np.var(roi) if roi.size > 0 else 0
                         boundary_conf = min(0.5 + variance / 5000.0, 0.95)
-                
+
                 # Create simple binary mask for bounding box
                 mask_array = np.zeros((orig_h, orig_w), dtype=np.uint8)
                 mask_array[det.bbox.y1:det.bbox.y2, det.bbox.x1:det.bbox.x2] = 255
-                
+
                 masks.append(SegmentationMask(
                     detection_id=det.id,
                     mask=mask_array,
                     boundary_confidence=boundary_conf
                 ))
-            
+
             return masks
-            
+
         except Exception as e:
             logger.error(f"Segmentation error: {e}")
             return []
@@ -374,36 +373,36 @@ class SimpleDepthEstimator(DepthEstimator):
     Uses y-position as proxy for distance (closer objects at bottom).
     Target latency: <20ms
     """
-    
+
     DOWNSCALE = 4
-    
+
     def __init__(self, min_depth: float = 0.5, max_depth: float = 10.0):
         self._min_depth = min_depth
         self._max_depth = max_depth
         # NOTE: No dimension-based cache — every call produces a fresh depth map.
-    
+
     async def estimate(self, image: Any) -> DepthMap:
         """Estimate depth using position heuristics — no caching, always fresh."""
         try:
             # Convert VideoFrame / PIL → numpy early
             img_np = _to_numpy(image)
             orig_h, orig_w = img_np.shape[:2]
-            
+
             # Reduced resolution
             h = orig_h // self.DOWNSCALE
             w = orig_w // self.DOWNSCALE
-            
+
             # Generate depth map (linear gradient: top=far, bottom=near)
             row_depths = np.linspace(self._max_depth, self._min_depth, h, dtype=np.float32)
             depth = np.tile(row_depths[:, np.newaxis], (1, w))
-            
+
             return DepthMap(
                 depth_array=depth,
                 min_depth=self._min_depth,
                 max_depth=self._max_depth,
                 is_metric=False
             )
-            
+
         except Exception as e:
             logger.error(f"Depth estimation error: {e}")
             return DepthMap(
@@ -419,17 +418,17 @@ class MiDaSDepthEstimator(DepthEstimator):
     MiDaS-based monocular depth estimation.
     Provides more accurate relative depth.
     """
-    
+
     def __init__(self, model_path: Optional[str] = None, model_type: str = "MiDaS_small"):
         self._model_path = model_path or os.environ.get("DEPTH_MODEL_PATH")
         self._model_type = model_type
         self._model = None
         self._transform = None
         self._ready = False
-        
+
         if TORCH_AVAILABLE:
             self._load_model()
-    
+
     def _load_model(self):
         """Load MiDaS model."""
         try:
@@ -448,20 +447,20 @@ class MiDaSDepthEstimator(DepthEstimator):
         except Exception as e:
             logger.warning(f"Failed to load MiDaS: {e}")
             self._ready = False
-    
+
     async def estimate(self, image: Any) -> DepthMap:
         """Estimate depth using MiDaS."""
         if not self._ready:
             # Fallback to simple estimator
             fallback = SimpleDepthEstimator()
             return await fallback.estimate(image)
-        
+
         try:
             img_np = _to_numpy(image)
-            
+
             if self._transform and self._model:
                 input_batch = self._transform(img_np)
-                
+
                 with torch.no_grad():
                     prediction = self._model(input_batch)
                     prediction = torch.nn.functional.interpolate(
@@ -470,24 +469,24 @@ class MiDaSDepthEstimator(DepthEstimator):
                         mode="bicubic",
                         align_corners=False,
                     ).squeeze()
-                
+
                 depth = prediction.cpu().numpy()
-                
+
                 # Normalize to metric-like range (0.5m - 10m)
                 d_min, d_max = np.min(depth), np.max(depth)
                 depth_normalized = (depth - d_min) / (d_max - d_min + 1e-6)
                 depth_metric = 0.5 + depth_normalized * 9.5
-                
+
                 return DepthMap(
                     depth_array=depth_metric.astype(np.float32),
                     min_depth=float(np.min(depth_metric)),
                     max_depth=float(np.max(depth_metric)),
                     is_metric=False
                 )
-            
+
         except Exception as e:
             logger.error(f"MiDaS estimation error: {e}")
-        
+
         # Fallback
         fallback = SimpleDepthEstimator()
         return await fallback.estimate(image)
@@ -501,10 +500,10 @@ class PerceptionPipeline:
     """
     Unified perception pipeline running detection, segmentation, and depth
     in parallel for maximum throughput.
-    
+
     Target total latency: <300ms
     """
-    
+
     def __init__(
         self,
         detector: Optional[ObjectDetector] = None,
@@ -516,13 +515,13 @@ class PerceptionPipeline:
         self._detector = detector or MockObjectDetector()
         self._segmenter = segmenter or EdgeAwareSegmenter() if enable_segmentation else None
         self._depth_estimator = depth_estimator or SimpleDepthEstimator() if enable_depth else None
-        
+
         self._enable_segmentation = enable_segmentation
         self._enable_depth = enable_depth
-        
+
         logger.info(f"PerceptionPipeline initialized: detector={self._detector.name}, "
                    f"seg={enable_segmentation}, depth={enable_depth}")
-    
+
     # ── Public accessors (used by frame_orchestrator via main.py) ────
     @property
     def detector(self) -> ObjectDetector:
@@ -559,7 +558,7 @@ class PerceptionPipeline:
         """
         Run full perception pipeline.
         Returns detections, masks, depth map, and timing info.
-        
+
         Accepts PIL Image, numpy array, or LiveKit VideoFrame (auto-converted).
         """
         start_time = time.time()
@@ -580,7 +579,7 @@ class PerceptionPipeline:
                 except Exception as conv_err:
                     logger.warning(f"VideoFrame auto-convert failed: {conv_err}")
                     # Fall through with original image; downstream will handle gracefully
-        
+
         # Get image size
         if hasattr(image, 'size'):
             img_size = image.size
@@ -588,10 +587,10 @@ class PerceptionPipeline:
             img_size = (image.shape[1], image.shape[0])
         else:
             img_size = (640, 480)
-        
+
         # Step 1: Detection
         detections = await self._detector.detect(image)
-        
+
         if not detections:
             # Fast path for empty scene
             return PerceptionResult(
@@ -607,23 +606,23 @@ class PerceptionPipeline:
                 latency_ms=(time.time() - start_time) * 1000,
                 timestamp=timestamp
             )
-        
+
         # Steps 2 & 3: Run segmentation and depth in parallel
         masks = []
         depth_map = None
-        
+
         async def run_segmentation():
             nonlocal masks
             if self._segmenter and self._enable_segmentation:
                 masks = await self._segmenter.segment(image, detections)
-        
+
         async def run_depth():
             nonlocal depth_map
             if self._depth_estimator and self._enable_depth:
                 depth_map = await self._depth_estimator.estimate(image)
-        
+
         await asyncio.gather(run_segmentation(), run_depth())
-        
+
         # Default depth map if not computed
         if depth_map is None:
             depth_map = DepthMap(
@@ -632,7 +631,7 @@ class PerceptionPipeline:
                 max_depth=3.0,
                 is_metric=False
             )
-        
+
         latency_ms = (time.time() - start_time) * 1000
 
         # ── Structured event log ─────────────────────────────────────
@@ -710,7 +709,7 @@ def create_pipeline(
     detector = create_detector(use_yolo=use_yolo)
     segmenter = EdgeAwareSegmenter() if enable_segmentation else None
     depth_estimator = create_depth_estimator(use_midas=use_midas) if enable_depth else None
-    
+
     return PerceptionPipeline(
         detector=detector,
         segmenter=segmenter,

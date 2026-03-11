@@ -8,11 +8,9 @@ Task: T-100 - Backup Scheduler Orchestrator
 
 from __future__ import annotations
 
-import asyncio
 import logging
 import os
 import threading
-import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
@@ -48,7 +46,7 @@ class BackupJobResult:
     backup_id: Optional[str] = None
     compressed_size_bytes: int = 0
     error_message: Optional[str] = None
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
         return {
@@ -75,7 +73,7 @@ class BackupHealth:
     total_backup_size_bytes: int = 0
     is_healthy: bool = True
     overdue_jobs: List[str] = field(default_factory=list)
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
         return {
@@ -105,7 +103,7 @@ class BackupJobConfig:
     retention_days: int = 30
     verify_after_backup: bool = True
     extra_config: Dict[str, Any] = field(default_factory=dict)
-    
+
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "BackupJobConfig":
         """Create from dictionary."""
@@ -128,7 +126,7 @@ class BackupJobConfig:
 
 class BackupScheduler:
     """Unified scheduler for FAISS and SQLite backups.
-    
+
     Features:
     - Configurable cron schedules per job
     - Health monitoring with overdue detection
@@ -137,7 +135,7 @@ class BackupScheduler:
     - Prometheus metrics integration
     - Alert callbacks for failures
     """
-    
+
     def __init__(
         self,
         storage_backend: str = "local",
@@ -149,7 +147,7 @@ class BackupScheduler:
         on_backup_failed: Optional[Callable[[BackupJobResult], None]] = None,
     ):
         """Initialize backup scheduler.
-        
+
         Args:
             storage_backend: Storage backend type ("local" or "s3")
             local_backup_path: Path for local backups
@@ -168,21 +166,21 @@ class BackupScheduler:
         self._overdue_threshold_hours = overdue_threshold_hours
         self._on_backup_complete = on_backup_complete
         self._on_backup_failed = on_backup_failed
-        
+
         # Job registry
         self._jobs: Dict[str, BackupJobConfig] = {}
         self._job_results: Dict[str, BackupJobResult] = {}
         self._last_run_times: Dict[str, datetime] = {}
-        
+
         # Scheduler state
         self._scheduler = None
         self._running = False
         self._lock = threading.RLock()
-        
+
         # Initialize backup managers lazily
         self._faiss_manager = None
         self._sqlite_manager = None
-    
+
     def _get_faiss_manager(self):
         """Lazily initialize FAISS backup manager."""
         if self._faiss_manager is None:
@@ -194,7 +192,7 @@ class BackupScheduler:
                 s3_endpoint=self._s3_endpoint,
             )
         return self._faiss_manager
-    
+
     def _get_sqlite_manager(self):
         """Lazily initialize SQLite backup manager."""
         if self._sqlite_manager is None:
@@ -206,10 +204,10 @@ class BackupScheduler:
                 s3_endpoint=self._s3_endpoint,
             )
         return self._sqlite_manager
-    
+
     def register_job(self, config: BackupJobConfig) -> None:
         """Register a backup job.
-        
+
         Args:
             config: Job configuration
         """
@@ -222,13 +220,13 @@ class BackupScheduler:
                 config.target_name,
                 config.cron_expression,
             )
-    
+
     def unregister_job(self, job_id: str) -> bool:
         """Unregister a backup job.
-        
+
         Args:
             job_id: Job ID to remove
-            
+
         Returns:
             True if job was removed
         """
@@ -238,13 +236,13 @@ class BackupScheduler:
                 logger.info("Unregistered backup job: %s", job_id)
                 return True
             return False
-    
+
     def run_backup(self, job_id: str) -> BackupJobResult:
         """Run a backup job immediately.
-        
+
         Args:
             job_id: Job ID to run
-            
+
         Returns:
             BackupJobResult with execution details
         """
@@ -257,9 +255,9 @@ class BackupScheduler:
                     status=BackupStatus.FAILED,
                     error_message=f"Job not found: {job_id}",
                 )
-            
+
             config = self._jobs[job_id]
-        
+
         if not config.enabled:
             return BackupJobResult(
                 job_id=job_id,
@@ -268,7 +266,7 @@ class BackupScheduler:
                 status=BackupStatus.SKIPPED,
                 error_message="Job is disabled",
             )
-        
+
         started_at = datetime.now(timezone.utc)
         result = BackupJobResult(
             job_id=job_id,
@@ -277,7 +275,7 @@ class BackupScheduler:
             status=BackupStatus.RUNNING,
             started_at=started_at.isoformat(),
         )
-        
+
         try:
             if config.job_type == "faiss":
                 metadata = self._run_faiss_backup(config)
@@ -285,39 +283,39 @@ class BackupScheduler:
                 metadata = self._run_sqlite_backup(config)
             else:
                 raise ValueError(f"Unknown job type: {config.job_type}")
-            
+
             if metadata:
                 result.status = BackupStatus.SUCCESS
                 result.backup_id = metadata.backup_id
                 result.compressed_size_bytes = metadata.compressed_size_bytes
-                
+
                 # Verify if configured
                 if config.verify_after_backup:
                     self._verify_backup(config, metadata.backup_id)
-                
+
                 # Cleanup old backups
                 self._cleanup_old_backups(config)
             else:
                 result.status = BackupStatus.FAILED
                 result.error_message = "Backup returned no metadata"
-                
+
         except Exception as e:
             result.status = BackupStatus.FAILED
             result.error_message = str(e)
             logger.error("Backup job %s failed: %s", job_id, e, exc_info=True)
-        
+
         completed_at = datetime.now(timezone.utc)
         result.completed_at = completed_at.isoformat()
         result.duration_seconds = (completed_at - started_at).total_seconds()
-        
+
         # Update state
         with self._lock:
             self._job_results[job_id] = result
             self._last_run_times[job_id] = completed_at
-        
+
         # Emit metrics
         self._emit_metrics(result)
-        
+
         # Call callbacks
         if result.status == BackupStatus.SUCCESS:
             if self._on_backup_complete:
@@ -331,9 +329,9 @@ class BackupScheduler:
                     self._on_backup_failed(result)
                 except Exception as e:
                     logger.error("Backup failed callback failed: %s", e)
-        
+
         return result
-    
+
     def _run_faiss_backup(self, config: BackupJobConfig):
         """Run FAISS backup."""
         manager = self._get_faiss_manager()
@@ -344,7 +342,7 @@ class BackupScheduler:
             dimension=config.extra_config.get("dimension", 0),
             incremental=config.extra_config.get("incremental", True),
         )
-    
+
     def _run_sqlite_backup(self, config: BackupJobConfig):
         """Run SQLite backup."""
         manager = self._get_sqlite_manager()
@@ -353,7 +351,7 @@ class BackupScheduler:
             database_name=config.target_name,
             include_wal=config.extra_config.get("include_wal", True),
         )
-    
+
     def _verify_backup(self, config: BackupJobConfig, backup_id: str) -> bool:
         """Verify a backup after creation."""
         try:
@@ -365,7 +363,7 @@ class BackupScheduler:
         except Exception as e:
             logger.error("Backup verification failed for %s: %s", backup_id, e)
             return False
-    
+
     def _cleanup_old_backups(self, config: BackupJobConfig) -> int:
         """Clean up old backups for a job."""
         try:
@@ -377,58 +375,58 @@ class BackupScheduler:
         except Exception as e:
             logger.error("Backup cleanup failed for %s: %s", config.target_name, e)
             return 0
-    
+
     def _emit_metrics(self, result: BackupJobResult) -> None:
         """Emit Prometheus metrics for backup result."""
         try:
             from infrastructure.monitoring import get_metrics
             metrics = get_metrics()
-            
+
             # Record backup size
             if result.compressed_size_bytes > 0:
                 metrics.set_queue_size(
                     f"backup_{result.job_type}_{result.target_name}_size",
                     result.compressed_size_bytes,
                 )
-            
+
             # Record duration as histogram
             if result.duration_seconds > 0:
                 metrics.record_inference(
                     f"backup_{result.job_type}",
                     result.duration_seconds,
                 )
-            
+
             # Record errors
             if result.status == BackupStatus.FAILED:
                 metrics.record_error("backup", f"{result.job_type}_failure")
-                
+
         except Exception as e:
             logger.debug("Failed to emit backup metrics: %s", e)
-    
+
     def get_health(self) -> BackupHealth:
         """Get backup system health status.
-        
+
         Returns:
             BackupHealth with current status
         """
         health = BackupHealth()
         now = datetime.now(timezone.utc)
         today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
-        
+
         with self._lock:
             for job_id, result in self._job_results.items():
                 # Track last successful backup
                 if result.status == BackupStatus.SUCCESS and result.completed_at:
-                    if (health.last_successful_backup is None or 
+                    if (health.last_successful_backup is None or
                         result.completed_at > health.last_successful_backup):
                         health.last_successful_backup = result.completed_at
-                
+
                 # Track last attempt
                 if result.completed_at:
-                    if (health.last_backup_attempt is None or 
+                    if (health.last_backup_attempt is None or
                         result.completed_at > health.last_backup_attempt):
                         health.last_backup_attempt = result.completed_at
-                
+
                 # Count today's backups
                 if result.completed_at:
                     completed = datetime.fromisoformat(result.completed_at.replace("Z", "+00:00"))
@@ -436,66 +434,66 @@ class BackupScheduler:
                         health.total_backups_today += 1
                         if result.status == BackupStatus.FAILED:
                             health.failed_backups_today += 1
-                
+
                 # Track total size
                 health.total_backup_size_bytes += result.compressed_size_bytes
-            
+
             # Check for overdue jobs
             overdue_threshold = now.timestamp() - (self._overdue_threshold_hours * 3600)
             for job_id, config in self._jobs.items():
                 if not config.enabled:
                     continue
-                
+
                 last_run = self._last_run_times.get(job_id)
                 if last_run is None or last_run.timestamp() < overdue_threshold:
                     health.overdue_jobs.append(job_id)
-        
+
         # Determine overall health
         health.is_healthy = (
             health.failed_backups_today == 0 and
             len(health.overdue_jobs) == 0
         )
-        
+
         return health
-    
+
     def get_job_status(self, job_id: str) -> Optional[BackupJobResult]:
         """Get the last result for a job.
-        
+
         Args:
             job_id: Job ID
-            
+
         Returns:
             Last BackupJobResult or None
         """
         with self._lock:
             return self._job_results.get(job_id)
-    
+
     def get_all_job_statuses(self) -> Dict[str, BackupJobResult]:
         """Get all job statuses.
-        
+
         Returns:
             Dictionary of job_id to BackupJobResult
         """
         with self._lock:
             return dict(self._job_results)
-    
+
     def start(self) -> None:
         """Start the scheduler.
-        
+
         Requires APScheduler to be installed.
         """
         if self._running:
             logger.warning("Scheduler already running")
             return
-        
+
         try:
             from apscheduler.schedulers.background import BackgroundScheduler
             from apscheduler.triggers.cron import CronTrigger
         except ImportError:
             raise RuntimeError("APScheduler not installed. Run: pip install apscheduler")
-        
+
         self._scheduler = BackgroundScheduler()
-        
+
         with self._lock:
             for job_id, config in self._jobs.items():
                 if config.enabled:
@@ -517,52 +515,52 @@ class BackupScheduler:
                             name=f"backup_{config.job_type}_{config.target_name}",
                         )
                         logger.info("Scheduled job %s: %s", job_id, config.cron_expression)
-        
+
         self._scheduler.start()
         self._running = True
         logger.info("Backup scheduler started with %d jobs", len(self._jobs))
-    
+
     def stop(self) -> None:
         """Stop the scheduler."""
         if self._scheduler and self._running:
             self._scheduler.shutdown(wait=True)
             self._running = False
             logger.info("Backup scheduler stopped")
-    
+
     def run_all_now(self) -> Dict[str, BackupJobResult]:
         """Run all registered backup jobs immediately.
-        
+
         Returns:
             Dictionary of job_id to BackupJobResult
         """
         results = {}
         with self._lock:
             job_ids = list(self._jobs.keys())
-        
+
         for job_id in job_ids:
             results[job_id] = self.run_backup(job_id)
-        
+
         return results
-    
+
     def test_restore(self, job_id: str) -> bool:
         """Test restore capability for a job.
-        
+
         Performs a test restore to a temporary location and validates.
-        
+
         Args:
             job_id: Job ID to test
-            
+
         Returns:
             True if restore test passed
         """
         import tempfile
-        
+
         with self._lock:
             if job_id not in self._jobs:
                 logger.error("Job not found: %s", job_id)
                 return False
             config = self._jobs[job_id]
-        
+
         try:
             # Get latest backup
             if config.job_type == "faiss":
@@ -574,17 +572,17 @@ class BackupScheduler:
             else:
                 logger.error("Unknown job type: %s", config.job_type)
                 return False
-            
+
             if not backups:
                 logger.warning("No backups found for %s", config.target_name)
                 return False
-            
+
             latest = backups[0]
-            
+
             # Test restore to temp location
             with tempfile.TemporaryDirectory() as tmpdir:
                 restore_path = Path(tmpdir) / "test_restore"
-                
+
                 if config.job_type == "faiss":
                     success = manager.restore(
                         latest.backup_id,
@@ -599,7 +597,7 @@ class BackupScheduler:
                         restore_path,
                         verify=True,
                     )
-                
+
                 if success:
                     logger.info(
                         "Restore test passed for %s (backup: %s)",
@@ -608,9 +606,9 @@ class BackupScheduler:
                     )
                 else:
                     logger.error("Restore test failed for %s", job_id)
-                
+
                 return success
-                
+
         except Exception as e:
             logger.error("Restore test failed for %s: %s", job_id, e)
             return False
@@ -627,13 +625,13 @@ def create_backup_scheduler(
     overdue_threshold_hours: int = 24,
 ) -> BackupScheduler:
     """Create a configured backup scheduler.
-    
+
     Args:
         storage_backend: "local" or "s3"
         local_backup_path: Path for local backups
         s3_bucket: S3 bucket name
         overdue_threshold_hours: Overdue threshold
-        
+
     Returns:
         Configured BackupScheduler
     """
@@ -651,7 +649,7 @@ def create_backup_scheduler(
 
 def get_default_backup_jobs() -> List[BackupJobConfig]:
     """Get default backup job configurations for Voice & Vision Assistant.
-    
+
     Returns:
         List of default BackupJobConfig
     """

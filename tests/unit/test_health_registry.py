@@ -11,8 +11,6 @@ Tests cover:
 """
 
 import time
-from unittest.mock import MagicMock, patch
-import pytest
 
 
 class TestServiceStatus:
@@ -79,7 +77,6 @@ class TestHealthSummary:
         """Test creating a health summary."""
         from infrastructure.resilience.health_registry import (
             HealthSummary,
-            ServiceHealth,
             ServiceStatus,
         )
 
@@ -159,11 +156,11 @@ class TestServiceHealthRegistryQueries:
 
     def test_get_service_health_unknown_service(self):
         """Test getting health for unregistered service."""
+        from infrastructure.resilience.circuit_breaker import clear_registry
         from infrastructure.resilience.health_registry import (
             ServiceHealthRegistry,
             ServiceStatus,
         )
-        from infrastructure.resilience.circuit_breaker import clear_registry
 
         clear_registry()
 
@@ -178,13 +175,13 @@ class TestServiceHealthRegistryQueries:
 
     def test_get_service_health_registered_service(self):
         """Test getting health for registered service."""
-        from infrastructure.resilience.health_registry import (
-            ServiceHealthRegistry,
-            ServiceStatus,
-        )
         from infrastructure.resilience.circuit_breaker import (
             clear_registry,
             register_circuit_breaker,
+        )
+        from infrastructure.resilience.health_registry import (
+            ServiceHealthRegistry,
+            ServiceStatus,
         )
 
         clear_registry()
@@ -203,13 +200,13 @@ class TestServiceHealthRegistryQueries:
 
     def test_get_service_health_open_circuit(self):
         """Test getting health for service with open circuit."""
-        from infrastructure.resilience.health_registry import (
-            ServiceHealthRegistry,
-            ServiceStatus,
-        )
         from infrastructure.resilience.circuit_breaker import (
             clear_registry,
             register_circuit_breaker,
+        )
+        from infrastructure.resilience.health_registry import (
+            ServiceHealthRegistry,
+            ServiceStatus,
         )
 
         clear_registry()
@@ -236,11 +233,11 @@ class TestServiceHealthRegistrySummary:
 
     def test_get_health_summary_no_services(self):
         """Test getting summary with no registered services."""
+        from infrastructure.resilience.circuit_breaker import clear_registry
         from infrastructure.resilience.health_registry import (
             ServiceHealthRegistry,
             reset_health_registry,
         )
-        from infrastructure.resilience.circuit_breaker import clear_registry
 
         clear_registry()
         reset_health_registry()
@@ -258,13 +255,13 @@ class TestServiceHealthRegistrySummary:
 
     def test_get_health_summary_all_healthy(self):
         """Test summary when all services are healthy."""
-        from infrastructure.resilience.health_registry import (
-            ServiceHealthRegistry,
-            ServiceStatus,
-        )
         from infrastructure.resilience.circuit_breaker import (
             clear_registry,
             register_circuit_breaker,
+        )
+        from infrastructure.resilience.health_registry import (
+            ServiceHealthRegistry,
+            ServiceStatus,
         )
 
         clear_registry()
@@ -286,19 +283,20 @@ class TestServiceHealthRegistrySummary:
 
     def test_get_health_summary_mixed_status(self):
         """Test summary with mixed service statuses."""
-        from infrastructure.resilience.health_registry import (
-            ServiceHealthRegistry,
-            ServiceStatus,
-        )
+        import asyncio
+
         from infrastructure.resilience.circuit_breaker import (
             clear_registry,
             register_circuit_breaker,
         )
-        import asyncio
+        from infrastructure.resilience.health_registry import (
+            ServiceHealthRegistry,
+            ServiceStatus,
+        )
 
         clear_registry()
 
-        cb_a = register_circuit_breaker("healthy_service")
+        register_circuit_breaker("healthy_service")
         cb_b = register_circuit_breaker("unhealthy_service")
 
         async def setup():
@@ -325,11 +323,11 @@ class TestServiceHealthRegistryDegradation:
 
     def test_is_degraded_all_healthy(self):
         """Test is_degraded returns False when all healthy."""
-        from infrastructure.resilience.health_registry import ServiceHealthRegistry
         from infrastructure.resilience.circuit_breaker import (
             clear_registry,
             register_circuit_breaker,
         )
+        from infrastructure.resilience.health_registry import ServiceHealthRegistry
 
         clear_registry()
 
@@ -343,12 +341,13 @@ class TestServiceHealthRegistryDegradation:
 
     def test_is_degraded_with_open_circuit(self):
         """Test is_degraded returns True when circuit is open."""
-        from infrastructure.resilience.health_registry import ServiceHealthRegistry
+        import asyncio
+
         from infrastructure.resilience.circuit_breaker import (
             clear_registry,
             register_circuit_breaker,
         )
-        import asyncio
+        from infrastructure.resilience.health_registry import ServiceHealthRegistry
 
         clear_registry()
 
@@ -366,16 +365,17 @@ class TestServiceHealthRegistryDegradation:
 
     def test_get_degraded_services(self):
         """Test getting list of degraded services."""
-        from infrastructure.resilience.health_registry import ServiceHealthRegistry
+        import asyncio
+
         from infrastructure.resilience.circuit_breaker import (
             clear_registry,
             register_circuit_breaker,
         )
-        import asyncio
+        from infrastructure.resilience.health_registry import ServiceHealthRegistry
 
         clear_registry()
 
-        cb_a = register_circuit_breaker("healthy_service")
+        register_circuit_breaker("healthy_service")
         cb_b = register_circuit_breaker("unhealthy_service")
 
         async def setup():
@@ -393,16 +393,17 @@ class TestServiceHealthRegistryDegradation:
 
     def test_get_healthy_services(self):
         """Test getting list of healthy services."""
-        from infrastructure.resilience.health_registry import ServiceHealthRegistry
+        import asyncio
+
         from infrastructure.resilience.circuit_breaker import (
             clear_registry,
             register_circuit_breaker,
         )
-        import asyncio
+        from infrastructure.resilience.health_registry import ServiceHealthRegistry
 
         clear_registry()
 
-        cb_a = register_circuit_breaker("healthy_service")
+        register_circuit_breaker("healthy_service")
         cb_b = register_circuit_breaker("unhealthy_service")
 
         async def setup():
@@ -424,11 +425,11 @@ class TestServiceHealthRegistryHealthScore:
 
     def test_health_score_all_healthy(self):
         """Test 100% score when all services healthy."""
-        from infrastructure.resilience.health_registry import ServiceHealthRegistry
         from infrastructure.resilience.circuit_breaker import (
             clear_registry,
             register_circuit_breaker,
         )
+        from infrastructure.resilience.health_registry import ServiceHealthRegistry
 
         clear_registry()
 
@@ -445,12 +446,13 @@ class TestServiceHealthRegistryHealthScore:
 
     def test_health_score_all_unhealthy(self):
         """Test 0% score when all services unhealthy."""
-        from infrastructure.resilience.health_registry import ServiceHealthRegistry
+        import asyncio
+
         from infrastructure.resilience.circuit_breaker import (
             clear_registry,
             register_circuit_breaker,
         )
-        import asyncio
+        from infrastructure.resilience.health_registry import ServiceHealthRegistry
 
         clear_registry()
 
@@ -472,16 +474,17 @@ class TestServiceHealthRegistryHealthScore:
 
     def test_health_score_mixed(self):
         """Test partial score with mixed health."""
-        from infrastructure.resilience.health_registry import ServiceHealthRegistry
+        import asyncio
+
         from infrastructure.resilience.circuit_breaker import (
             clear_registry,
             register_circuit_breaker,
         )
-        import asyncio
+        from infrastructure.resilience.health_registry import ServiceHealthRegistry
 
         clear_registry()
 
-        cb_a = register_circuit_breaker("healthy")
+        register_circuit_breaker("healthy")
         cb_b = register_circuit_breaker("unhealthy")
 
         async def setup():
@@ -536,8 +539,8 @@ class TestServiceHealthRegistryHealth:
 
     def test_health_snapshot(self):
         """Test registry health snapshot."""
-        from infrastructure.resilience.health_registry import ServiceHealthRegistry
         from infrastructure.resilience.circuit_breaker import clear_registry
+        from infrastructure.resilience.health_registry import ServiceHealthRegistry
 
         clear_registry()
 
@@ -595,11 +598,11 @@ class TestConvenienceFunctions:
 
     def test_get_service_health_function(self):
         """Test get_service_health convenience function."""
+        from infrastructure.resilience.circuit_breaker import clear_registry
         from infrastructure.resilience.health_registry import (
             get_service_health,
             reset_health_registry,
         )
-        from infrastructure.resilience.circuit_breaker import clear_registry
 
         clear_registry()
         reset_health_registry()
@@ -614,11 +617,11 @@ class TestConvenienceFunctions:
 
     def test_is_system_degraded_function(self):
         """Test is_system_degraded convenience function."""
+        from infrastructure.resilience.circuit_breaker import clear_registry
         from infrastructure.resilience.health_registry import (
             is_system_degraded,
             reset_health_registry,
         )
-        from infrastructure.resilience.circuit_breaker import clear_registry
 
         clear_registry()
         reset_health_registry()
@@ -630,11 +633,11 @@ class TestConvenienceFunctions:
 
     def test_get_system_health_score_function(self):
         """Test get_system_health_score convenience function."""
+        from infrastructure.resilience.circuit_breaker import clear_registry
         from infrastructure.resilience.health_registry import (
             get_system_health_score,
             reset_health_registry,
         )
-        from infrastructure.resilience.circuit_breaker import clear_registry
 
         clear_registry()
         reset_health_registry()
@@ -649,11 +652,11 @@ class TestConvenienceFunctions:
 
     async def test_async_get_health_summary(self):
         """Test async health summary function."""
+        from infrastructure.resilience.circuit_breaker import clear_registry
         from infrastructure.resilience.health_registry import (
             async_get_health_summary,
             reset_health_registry,
         )
-        from infrastructure.resilience.circuit_breaker import clear_registry
 
         clear_registry()
         reset_health_registry()

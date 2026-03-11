@@ -9,10 +9,7 @@ Tests:
 - Conflict resolution
 """
 
-import json
 import sqlite3
-import tempfile
-from pathlib import Path
 
 import pytest
 

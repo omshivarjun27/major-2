@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-import asyncio
 import time
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import numpy as np
 import pytest
@@ -17,13 +16,10 @@ from core.action.action_context import (
     create_action_context_integrator,
 )
 from core.action.clip_recognizer import (
-    ALERT_ACTIONS,
     CLIPActionRecognizer,
     CLIPActionResult,
-    CLIPConfig,
     IndoorAction,
 )
-
 
 # =============================================================================
 # Fixtures

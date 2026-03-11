@@ -10,7 +10,7 @@ from __future__ import annotations
 import logging
 import time
 import uuid
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
@@ -175,7 +175,6 @@ class FaceDetector:
             return []
 
     def _detect_mtcnn(self, image: Any, frame_id: str, ts: float) -> List[FaceDetection]:
-        import torch
         boxes, probs, landmarks = self._mtcnn.detect(image, landmarks=True)
         if boxes is None:
             return []

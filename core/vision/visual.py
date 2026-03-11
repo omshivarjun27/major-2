@@ -1,15 +1,11 @@
 import asyncio
-import gc
 import logging
 import os
 import time
-from typing import Optional, List, Tuple, Dict, Any
+from typing import Any, Dict, List, Optional, Tuple
 
 from livekit import rtc
-from livekit.agents.llm.chat_context import ChatContext, ImageContent
-from livekit.plugins import openai
 from PIL import Image
-import numpy as np
 
 # Performance constants - ULTRA-LOW-LATENCY MODE
 MAX_IMAGE_SIZE = (480, 360)  # Aggressive reduction for speed
@@ -19,13 +15,7 @@ FRAME_BUFFER_SIZE = 1  # Single frame - no buffering delay
 SPATIAL_COOLDOWN_MS = 300  # Minimum ms between spatial calls
 
 # Import spatial perception module
-from .spatial import (
-    SpatialProcessor,
-    create_spatial_processor,
-    NavigationOutput,
-    ObstacleRecord,
-    Priority
-)
+from .spatial import NavigationOutput, ObstacleRecord, Priority, SpatialProcessor, create_spatial_processor
 
 # Simple logger without custom handler, will use root logger's config
 logger = logging.getLogger("visual-processor")
@@ -40,7 +30,7 @@ def convert_video_frame_to_pil(frame) -> Optional[Image.Image]:
         # Already PIL Image - fast path
         if isinstance(frame, Image.Image):
             return frame
-        
+
         # LiveKit VideoFrame with convert method
         if hasattr(frame, 'convert'):
             rgba_frame = frame.convert(rtc.VideoBufferType.RGBA)
@@ -51,13 +41,13 @@ def convert_video_frame_to_pil(frame) -> Optional[Image.Image]:
             img.close()
             del img
             return rgb
-        
+
         # Direct data access fallback
         if hasattr(frame, 'data') and hasattr(frame, 'width'):
             width, height = frame.width, frame.height
             data = bytes(frame.data)
             data_len = len(data)
-            
+
             if data_len == width * height * 4:
                 rgba = Image.frombytes('RGBA', (width, height), data)
                 rgb = rgba.convert('RGB')
@@ -66,10 +56,10 @@ def convert_video_frame_to_pil(frame) -> Optional[Image.Image]:
                 return rgb
             elif data_len == width * height * 3:
                 return Image.frombytes('RGB', (width, height), data)
-        
+
         logger.warning(f"Unknown frame type: {type(frame)}")
         return None
-            
+
     except Exception as e:
         logger.error(f"Frame conversion error: {e}")
         return None
@@ -79,7 +69,7 @@ def resize_image_for_processing(img: Image.Image, max_size: Tuple[int, int] = MA
     """FAST resize - use NEAREST for speed, BILINEAR for quality."""
     if img.width <= max_size[0] and img.height <= max_size[1]:
         return img
-    
+
     ratio = min(max_size[0] / img.width, max_size[1] / img.height)
     new_size = (int(img.width * ratio), int(img.height * ratio))
     # BILINEAR is 2-3x faster than LANCZOS with acceptable quality
@@ -95,7 +85,7 @@ class VisualProcessor:
     NEW: Each captured frame is tagged with a timestamp and frame_id
     for freshness validation downstream.
     """
-    
+
     __slots__ = (
         'latest_frame', '_frames_buffer', '_buffer_size', '_cached_video_track',
         '_persistent_stream', '_stream_track_sid',
@@ -103,7 +93,7 @@ class VisualProcessor:
         '_spatial_cooldown', '_last_spatial_time',
         '_frame_sequence', '_last_capture_epoch_ms', '_last_frame_id',
     )
-    
+
     def __init__(self, enable_spatial: bool = True):
         self.latest_frame: Optional[Image.Image] = None
         self._frames_buffer: List[Image.Image] = []
@@ -111,7 +101,7 @@ class VisualProcessor:
         self._cached_video_track: Optional[rtc.RemoteVideoTrack] = None
         self._persistent_stream: Optional[rtc.VideoStream] = None
         self._stream_track_sid: Optional[str] = None
-        
+
         # Spatial perception (lazy init for speed)
         self._enable_spatial = enable_spatial
         self._spatial_processor: Optional[SpatialProcessor] = None
@@ -124,10 +114,10 @@ class VisualProcessor:
         self._frame_sequence: int = 0
         self._last_capture_epoch_ms: float = 0.0
         self._last_frame_id: str = ""
-        
+
         if enable_spatial:
             self._init_spatial_processor()
-    
+
     def _init_spatial_processor(self):
         """Initialize spatial processor with FAST defaults.
 
@@ -179,7 +169,7 @@ class VisualProcessor:
         except Exception as e:
             logger.warning(f"Spatial processor init failed: {e}")
             self._spatial_processor = None
-    
+
     @property
     def spatial_enabled(self) -> bool:
         """Check if spatial perception is enabled and ready"""
@@ -201,17 +191,17 @@ class VisualProcessor:
             return False
         age = (time.time() * 1000) - self._last_capture_epoch_ms
         return age <= max_age_ms
-    
+
     @property
     def last_navigation(self) -> Optional[NavigationOutput]:
         """Get last navigation output from spatial processing"""
         return self._last_nav_output
-    
+
     @property
     def last_obstacles(self) -> List[ObstacleRecord]:
         """Get last detected obstacles"""
         return self._last_obstacles
-    
+
     async def process_spatial(self, image: Optional[Image.Image] = None) -> Optional[NavigationOutput]:
         """
         FAST spatial perception with rate limiting.
@@ -219,16 +209,16 @@ class VisualProcessor:
         """
         if not self._spatial_processor:
             return None
-        
+
         # Rate limiting - return cached result if too soon
         current_time = time.time()
         if current_time - self._last_spatial_time < self._spatial_cooldown:
             return self._last_nav_output
-        
+
         frame = image or self.latest_frame
         if frame is None:
             return None
-        
+
         try:
             # Convert if needed
             if not isinstance(frame, Image.Image):
@@ -237,20 +227,20 @@ class VisualProcessor:
                     return None
             else:
                 pil_image = frame
-            
+
             # FAST resize
             pil_image = resize_image_for_processing(pil_image, SPATIAL_IMAGE_SIZE)
-            
+
             nav_output = await self._spatial_processor.process_frame(pil_image)
             self._last_nav_output = nav_output
             self._last_obstacles = self._spatial_processor.last_obstacles[:MAX_OBSTACLES]
             self._last_spatial_time = current_time
-            
+
             return nav_output
         except Exception as e:
             logger.error(f"Spatial processing error: {e}")
             return None
-    
+
     async def get_quick_warning(self, image: Optional[Image.Image] = None) -> str:
         """
         Get immediate hazard warning (low-latency path).
@@ -258,11 +248,11 @@ class VisualProcessor:
         """
         if not self._spatial_processor:
             return "Spatial perception not available."
-        
+
         frame = image or self.latest_frame
         if frame is None:
             return "No frame available."
-        
+
         try:
             # Convert VideoFrame to PIL Image if needed
             if not isinstance(frame, Image.Image):
@@ -271,12 +261,12 @@ class VisualProcessor:
                     return "Unable to process frame."
             else:
                 pil_image = frame
-            
+
             return await self._spatial_processor.get_quick_warning(pil_image)
         except Exception as e:
             logger.error(f"Quick warning error: {e}")
             return "Unable to assess obstacles."
-    
+
     def get_spatial_context(self) -> str:
         """
         Get spatial context summary for LLM prompts.
@@ -284,7 +274,7 @@ class VisualProcessor:
         """
         if not self._last_obstacles:
             return "No obstacles currently detected."
-        
+
         lines = ["Detected obstacles:"]
         for obs in self._last_obstacles[:5]:  # Limit to top 5
             lines.append(
@@ -292,7 +282,7 @@ class VisualProcessor:
                 f"priority={obs.priority.value}"
             )
         return "\n".join(lines)
-    
+
     async def enable_camera(self, room: rtc.Room) -> None:
         """Send a signal to enable the camera for the remote participant."""
         logger.info("Enabling camera...")
@@ -304,7 +294,7 @@ class VisualProcessor:
         except Exception as e:
             logger.error(f"Error enabling camera: {e}")
             raise
-    
+
     async def get_video_track(self, room: rtc.Room, timeout: float = 10.0) -> rtc.RemoteVideoTrack:
         """
         Sets up video track handling using LiveKit's subscription model.
@@ -313,33 +303,33 @@ class VisualProcessor:
         # Return cached track if available
         if self._cached_video_track is not None:
             return self._cached_video_track
-            
+
         logger.info("Waiting for video track...")
         video_track_future = asyncio.Future[rtc.RemoteVideoTrack]()
-        
+
         # Check existing tracks first
         for participant in room.remote_participants.values():
             logger.info(f"Checking participant: {participant.identity}")
             for pub in participant.track_publications.values():
-                if (pub.track and 
-                    pub.track.kind == rtc.TrackKind.KIND_VIDEO and 
+                if (pub.track and
+                    pub.track.kind == rtc.TrackKind.KIND_VIDEO and
                     isinstance(pub.track, rtc.RemoteVideoTrack)):
-                    
+
                     logger.info(f"Found existing video track: {pub.track.sid}")
                     self._cached_video_track = pub.track
                     return self._cached_video_track
 
         # Set up listener for future video tracks
-        @room.on("track_subscribed") 
+        @room.on("track_subscribed")
         def on_track_subscribed(
             track: rtc.Track,
             publication: rtc.TrackPublication,
             participant: rtc.RemoteParticipant,
         ):
-            if (not video_track_future.done() and 
-                track.kind == rtc.TrackKind.KIND_VIDEO and 
+            if (not video_track_future.done() and
+                track.kind == rtc.TrackKind.KIND_VIDEO and
                 isinstance(track, rtc.RemoteVideoTrack)):
-                
+
                 logger.info(f"Subscribed to video track: {track.sid}")
                 self._cached_video_track = track
                 video_track_future.set_result(track)
@@ -351,7 +341,7 @@ class VisualProcessor:
         except asyncio.TimeoutError:
             logger.error(f"Timeout waiting for video track after {timeout} seconds")
             raise TimeoutError(f"No video track received within {timeout} seconds")
-    
+
     async def capture_frame(self, room: rtc.Room) -> Optional[Image.Image]:
         """FAST single frame capture — reuses a persistent VideoStream to avoid memory leaks."""
         try:
@@ -395,11 +385,11 @@ class VisualProcessor:
             # Reset stream on error so next call creates a fresh one
             self._persistent_stream = None
             return None
-    
+
     def get_latest_frame(self) -> Optional[Image.Image]:
         """Get the most recently captured frame."""
         return self.latest_frame
-    
+
     async def capture_and_analyze_spatial(self, room: rtc.Room) -> Tuple[Optional[Image.Image], Optional[NavigationOutput]]:
         """
         Capture frame and run spatial analysis in one call.
@@ -408,19 +398,19 @@ class VisualProcessor:
         image = await self.capture_frame(room)
         if image is None:
             return None, None
-        
+
         nav_output = await self.process_spatial(image)
         return image, nav_output
-    
+
     def has_critical_obstacles(self) -> bool:
         """Check if any critical obstacles are detected"""
         return any(obs.priority == Priority.CRITICAL for obs in self._last_obstacles)
-    
+
     def get_obstacle_summary(self) -> Dict[str, Any]:
         """Get structured summary of detected obstacles"""
         if not self._last_obstacles:
             return {"count": 0, "obstacles": [], "has_critical": False}
-        
+
         return {
             "count": len(self._last_obstacles),
             "obstacles": [obs.to_dict() for obs in self._last_obstacles],

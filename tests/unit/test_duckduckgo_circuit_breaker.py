@@ -7,10 +7,14 @@ graceful degradation when DuckDuckGo is unavailable.
 from __future__ import annotations
 
 import asyncio
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
+from infrastructure.llm.internet_search import (
+    _CB_OPEN_MESSAGE,
+    InternetSearch,
+)
 from infrastructure.resilience.circuit_breaker import (
     CircuitBreakerConfig,
     CircuitBreakerState,
@@ -18,12 +22,6 @@ from infrastructure.resilience.circuit_breaker import (
     get_circuit_breaker,
     register_circuit_breaker,
 )
-from infrastructure.llm.internet_search import (
-    InternetSearch,
-    _CB_OPEN_MESSAGE,
-    _DUCKDUCKGO_CB_CONFIG,
-)
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

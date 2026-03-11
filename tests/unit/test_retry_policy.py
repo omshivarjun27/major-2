@@ -2,13 +2,9 @@
 
 from __future__ import annotations
 
-import asyncio
-from unittest.mock import MagicMock
-
 import pytest
 
 from infrastructure.resilience.circuit_breaker import (
-    CircuitBreaker,
     CircuitBreakerConfig,
     CircuitBreakerOpenError,
     clear_registry,
@@ -20,7 +16,6 @@ from infrastructure.resilience.retry_policy import (
     get_retry_policy,
     with_retry,
 )
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

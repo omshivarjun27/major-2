@@ -18,8 +18,8 @@ from typing import Any, Dict, List, Optional
 
 import numpy as np
 
+from .braille_classifier import BrailleChar, BrailleClassifier
 from .braille_segmenter import BrailleSegmenter, SegmentationResult
-from .braille_classifier import BrailleClassifier, BrailleChar
 
 logger = logging.getLogger("braille-ocr")
 

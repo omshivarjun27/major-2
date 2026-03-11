@@ -22,7 +22,7 @@ import asyncio
 import logging
 import time
 from dataclasses import dataclass, field
-from typing import Any, Coroutine, Dict, List, Optional, Set
+from typing import Coroutine, List, Optional
 
 logger = logging.getLogger("cancellation")
 
@@ -68,7 +68,7 @@ class CancellationScope:
     @property
     def cancel_event(self) -> asyncio.Event:
         """Event that is set when cancellation is requested.
-        
+
         Workers can await this to detect cancellation without polling.
         """
         return self._cancel_event

@@ -225,7 +225,7 @@ class TestObstacleRecordEdgeCases:
 
     def test_obstacle_record_construction(self) -> None:
         """ObstacleRecord can be constructed with minimum fields."""
-        det = _make_detection()
+        _make_detection()
         record = ObstacleRecord(
             id="obs_min",
             class_name="chair",
@@ -245,7 +245,7 @@ class TestObstacleRecordEdgeCases:
 
     def test_obstacle_record_zero_distance(self) -> None:
         """Distance of 0.0 (contact) is representable."""
-        det = _make_detection()
+        _make_detection()
         record = ObstacleRecord(
             id="obs_zero",
             class_name="chair",

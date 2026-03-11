@@ -10,11 +10,9 @@ Returns top-3 highest-risk obstacles based on:
 - Collision risk (estimated time-to-contact)
 """
 
-import asyncio
 import logging
-import math
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum, auto
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -93,28 +91,28 @@ OBSTACLE_TYPE_RISK = {
 @dataclass
 class Hazard:
     """Represents a detected hazard with risk assessment."""
-    
+
     # Identification
     object_id: str
     class_name: str
-    
+
     # Position
     distance_m: float
     direction: DirectionZone
     direction_str: str  # Human-readable direction
-    
+
     # Bounding box (normalized 0-1)
     bbox: Tuple[float, float, float, float]  # x1, y1, x2, y2
-    
+
     # Risk assessment
     detection_confidence: float
     risk_score: float
     severity: HazardSeverity
     collision_time_sec: Optional[float] = None
-    
+
     # Metadata
     short_cue: str = ""  # Brief TTS-friendly description
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
         return {
@@ -135,22 +133,22 @@ class Hazard:
 @dataclass
 class PrioritySceneResult:
     """Result of priority scene analysis."""
-    
+
     # Top hazards
     top_hazards: List[Hazard]
     all_hazards: List[Hazard]
-    
+
     # Summary
     total_detected: int
     highest_severity: HazardSeverity
     path_clear: bool
-    
+
     # Timing
     processing_time_ms: float
-    
+
     # Navigation suggestion
     navigation_cue: str = ""
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
         return {
@@ -170,10 +168,10 @@ class PrioritySceneResult:
 class PrioritySceneAnalyzer:
     """
     Analyzes scene for prioritized hazard detection.
-    
+
     Returns top-3 highest-risk obstacles for immediate awareness.
     """
-    
+
     def __init__(
         self,
         walking_speed_ms: float = 1.4,  # Average walking speed
@@ -185,11 +183,11 @@ class PrioritySceneAnalyzer:
         self.critical_distance_m = critical_distance_m
         self.high_distance_m = high_distance_m
         self.medium_distance_m = medium_distance_m
-        
+
         # Stats
         self._total_analyses = 0
         self._avg_processing_ms = 0.0
-    
+
     def analyze(
         self,
         detections: List[Dict[str, Any]],
@@ -200,7 +198,7 @@ class PrioritySceneAnalyzer:
     ) -> PrioritySceneResult:
         """
         Analyze detections and return prioritized hazards.
-        
+
         Args:
             detections: List of detection dicts with keys:
                 - class: object class name
@@ -211,48 +209,48 @@ class PrioritySceneAnalyzer:
             image_width: Image width for direction calculation
             image_height: Image height
             top_n: Number of top hazards to return
-            
+
         Returns:
             PrioritySceneResult with top hazards
         """
         start_time = time.time()
-        
+
         hazards = []
-        
+
         for i, det in enumerate(detections):
             hazard = self._process_detection(
                 det, i, depth_map, image_width, image_height
             )
             if hazard:
                 hazards.append(hazard)
-        
+
         # Sort by risk score (highest first)
         hazards.sort(key=lambda h: h.risk_score, reverse=True)
-        
+
         # Get top-N
         top_hazards = hazards[:top_n]
-        
+
         # Determine overall state
         highest_severity = HazardSeverity.MINIMAL
         for h in hazards:
             if h.severity.value < highest_severity.value:
                 highest_severity = h.severity
-        
+
         path_clear = not any(
             h.direction in {DirectionZone.CENTER, DirectionZone.LEFT_CENTER, DirectionZone.RIGHT_CENTER}
             and h.distance_m < self.high_distance_m
             for h in hazards
         )
-        
+
         # Generate navigation cue
         navigation_cue = self._generate_navigation_cue(top_hazards, path_clear)
-        
+
         processing_time = (time.time() - start_time) * 1000
-        
+
         # Update stats
         self._total_analyses += 1
         self._avg_processing_ms = (self._avg_processing_ms * 0.9) + (processing_time * 0.1)
-        
+
         return PrioritySceneResult(
             top_hazards=top_hazards,
             all_hazards=hazards,
@@ -262,7 +260,7 @@ class PrioritySceneAnalyzer:
             processing_time_ms=processing_time,
             navigation_cue=navigation_cue,
         )
-    
+
     def _process_detection(
         self,
         det: Dict[str, Any],
@@ -276,7 +274,7 @@ class PrioritySceneAnalyzer:
             class_name = det.get("class", det.get("label", "unknown"))
             confidence = det.get("confidence", det.get("score", 0.5))
             bbox = det.get("bbox", det.get("box", [0, 0, 1, 1]))
-            
+
             # Normalize bbox if in pixel coords
             if bbox[2] > 1:
                 bbox = [
@@ -285,33 +283,33 @@ class PrioritySceneAnalyzer:
                     bbox[2] / image_width,
                     bbox[3] / image_height,
                 ]
-            
+
             # Get distance
             distance = det.get("depth", det.get("distance", None))
             if distance is None and depth_map is not None:
                 distance = self._estimate_depth_from_map(bbox, depth_map)
             if distance is None:
                 distance = self._estimate_depth_from_bbox(bbox)
-            
+
             # Get direction
             direction, direction_str = self._get_direction(bbox, image_width, image_height)
-            
+
             # Calculate risk score
             risk_score = self._calculate_risk_score(
                 class_name, distance, direction, confidence
             )
-            
+
             # Determine severity
             severity = self._determine_severity(distance, direction, risk_score)
-            
+
             # Calculate collision time
             collision_time = None
             if direction in {DirectionZone.CENTER, DirectionZone.LEFT_CENTER, DirectionZone.RIGHT_CENTER}:
                 collision_time = distance / self.walking_speed_ms
-            
+
             # Generate short cue
             short_cue = self._generate_short_cue(class_name, direction_str, distance)
-            
+
             return Hazard(
                 object_id=f"haz-{index:03d}",
                 class_name=class_name,
@@ -325,11 +323,11 @@ class PrioritySceneAnalyzer:
                 collision_time_sec=collision_time,
                 short_cue=short_cue,
             )
-            
+
         except Exception as e:
             logger.warning(f"Failed to process detection: {e}")
             return None
-    
+
     def _get_direction(
         self,
         bbox: List[float],
@@ -340,7 +338,7 @@ class PrioritySceneAnalyzer:
         # Get center of bbox (normalized)
         center_x = (bbox[0] + bbox[2]) / 2
         center_y = (bbox[1] + bbox[3]) / 2
-        
+
         # Determine horizontal zone
         if center_x < 0.2:
             h_zone = "far-left"
@@ -357,7 +355,7 @@ class PrioritySceneAnalyzer:
         else:
             h_zone = "center"
             h_name = "ahead"
-        
+
         # Check vertical position
         if center_y < 0.3:
             direction_zone = DirectionZone.ABOVE
@@ -368,9 +366,9 @@ class PrioritySceneAnalyzer:
         else:
             direction_zone = DirectionZone(h_zone)
             direction_str = h_name
-        
+
         return direction_zone, direction_str
-    
+
     def _estimate_depth_from_map(
         self,
         bbox: List[float],
@@ -379,34 +377,34 @@ class PrioritySceneAnalyzer:
         """Estimate depth from depth map."""
         try:
             import numpy as np
-            
+
             h, w = depth_map.shape[:2]
             x1 = int(bbox[0] * w)
             y1 = int(bbox[1] * h)
             x2 = int(bbox[2] * w)
             y2 = int(bbox[3] * h)
-            
+
             # Get center region
             cx1 = x1 + (x2 - x1) // 4
             cx2 = x2 - (x2 - x1) // 4
             cy1 = y1 + (y2 - y1) // 4
             cy2 = y2 - (y2 - y1) // 4
-            
+
             region = depth_map[cy1:cy2, cx1:cx2]
             if region.size > 0:
                 return float(np.median(region))
-            
+
             return None
         except Exception:
             return None
-    
+
     def _estimate_depth_from_bbox(self, bbox: List[float]) -> float:
         """Estimate depth from bounding box size."""
         # Larger bbox = closer object
         bbox_height = bbox[3] - bbox[1]
         bbox_width = bbox[2] - bbox[0]
         bbox_area = bbox_height * bbox_width
-        
+
         # Simple inverse relationship
         # Very rough estimate: area ~0.5 → ~1m, area ~0.1 → ~5m
         if bbox_area > 0.3:
@@ -415,7 +413,7 @@ class PrioritySceneAnalyzer:
             return 2.0 + (0.3 - bbox_area) * 10
         else:
             return 5.0 + (0.1 - bbox_area) * 50
-    
+
     def _calculate_risk_score(
         self,
         class_name: str,
@@ -428,29 +426,29 @@ class PrioritySceneAnalyzer:
         if distance <= self.critical_distance_m:
             distance_score = 1.0
         elif distance <= self.high_distance_m:
-            distance_score = 0.7 + 0.3 * (1 - (distance - self.critical_distance_m) / 
+            distance_score = 0.7 + 0.3 * (1 - (distance - self.critical_distance_m) /
                                           (self.high_distance_m - self.critical_distance_m))
         elif distance <= self.medium_distance_m:
-            distance_score = 0.4 + 0.3 * (1 - (distance - self.high_distance_m) / 
+            distance_score = 0.4 + 0.3 * (1 - (distance - self.high_distance_m) /
                                           (self.medium_distance_m - self.high_distance_m))
         else:
             distance_score = max(0.1, 0.4 * (1 - (distance - self.medium_distance_m) / 10))
-        
+
         # Direction score
         direction_score = DIRECTION_RISK.get(direction, 0.5)
-        
+
         # Confidence score
         confidence_score = confidence
-        
+
         # Collision risk (simplified - based on direction and distance)
         if direction in {DirectionZone.CENTER, DirectionZone.LEFT_CENTER, DirectionZone.RIGHT_CENTER}:
             collision_score = 1.0 - min(1.0, distance / 10.0)
         else:
             collision_score = 0.2
-        
+
         # Object type modifier
         type_modifier = OBSTACLE_TYPE_RISK.get(class_name.lower(), OBSTACLE_TYPE_RISK["default"])
-        
+
         # Weighted combination
         risk_score = (
             RISK_WEIGHTS["distance"] * distance_score +
@@ -458,16 +456,16 @@ class PrioritySceneAnalyzer:
             RISK_WEIGHTS["confidence"] * confidence_score +
             RISK_WEIGHTS["collision_risk"] * collision_score
         ) * type_modifier
-        
+
         # Proximity urgency bonus (not affected by type modifier)
         # Ensures closer objects always rank above distant ones
         if distance <= self.critical_distance_m:
             risk_score += 0.3
         elif distance <= self.high_distance_m:
             risk_score += 0.15
-        
+
         return min(1.0, risk_score)
-    
+
     def _determine_severity(
         self,
         distance: float,
@@ -486,7 +484,7 @@ class PrioritySceneAnalyzer:
             return HazardSeverity.LOW
         else:
             return HazardSeverity.MINIMAL
-    
+
     def _generate_short_cue(
         self,
         class_name: str,
@@ -501,9 +499,9 @@ class PrioritySceneAnalyzer:
             dist_str = f"{distance:.1f} meters"
         else:
             dist_str = f"{int(distance)} meters"
-        
+
         return f"{class_name} {direction}, {dist_str}"
-    
+
     def _generate_navigation_cue(
         self,
         top_hazards: List[Hazard],
@@ -512,15 +510,15 @@ class PrioritySceneAnalyzer:
         """Generate navigation suggestion."""
         if path_clear:
             return "Path appears clear ahead."
-        
+
         if not top_hazards:
             return "Area scanned, no immediate hazards."
-        
+
         # Analyze positions of top hazards
         center_hazards = [h for h in top_hazards if h.direction == DirectionZone.CENTER]
         left_hazards = [h for h in top_hazards if "left" in h.direction.value]
         right_hazards = [h for h in top_hazards if "right" in h.direction.value]
-        
+
         if center_hazards:
             closest = min(center_hazards, key=lambda h: h.distance_m)
             if closest.distance_m < self.critical_distance_m:
@@ -531,9 +529,9 @@ class PrioritySceneAnalyzer:
                 return "Suggest moving left to avoid obstacles."
             else:
                 return f"Caution: {closest.class_name} ahead at {closest.distance_m:.1f} meters."
-        
+
         return "Proceed with caution, obstacles detected nearby."
-    
+
     def get_stats(self) -> Dict[str, Any]:
         """Get analyzer statistics."""
         return {
@@ -553,12 +551,12 @@ def analyze_priority_scene(
 ) -> Dict[str, Any]:
     """
     Quick priority scene analysis.
-    
+
     Args:
         detections: Detection list
         depth_map: Optional depth map
         top_n: Number of top hazards
-        
+
     Returns:
         Result dictionary
     """

@@ -12,12 +12,10 @@ import httpx
 import pytest
 
 from infrastructure.resilience.circuit_breaker import (
-    CircuitBreakerOpenError,
     CircuitBreakerState,
     clear_registry,
     get_circuit_breaker,
 )
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

@@ -27,17 +27,14 @@ import asyncio
 import logging
 import time
 from dataclasses import dataclass, field
-from enum import Enum, auto
+from enum import Enum
 from typing import Any, Callable, Dict, List, Optional, Set
 
 from infrastructure.resilience.circuit_breaker import (
-    CircuitBreakerState,
     StateChangeEvent,
     get_all_breakers,
-    get_circuit_breaker,
 )
 from infrastructure.resilience.health_registry import (
-    ServiceHealthRegistry,
     ServiceStatus,
     get_health_registry,
 )

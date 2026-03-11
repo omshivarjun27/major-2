@@ -7,31 +7,30 @@ FastAPI router with memory storage, search, query, and management endpoints.
 
 import logging
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
-from fastapi import APIRouter, HTTPException, Depends
-from fastapi.responses import JSONResponse
+from fastapi import APIRouter, Depends, HTTPException
 
-from .config import get_memory_config, MemoryConfig
 from .api_schema import (
-    MemoryStoreRequest,
-    MemoryStoreResponse,
-    MemorySearchRequest,
-    MemorySearchResponse,
+    MemoryConsentRequest,
+    MemoryConsentResponse,
+    MemoryDebugInfo,
+    MemoryDeleteResponse,
     MemoryQueryRequest,
     MemoryQueryResponse,
     MemoryRecord,
-    MemoryConsentRequest,
-    MemoryConsentResponse,
-    MemoryDeleteResponse,
-    MemoryDebugInfo,
+    MemorySearchRequest,
+    MemorySearchResponse,
+    MemoryStoreRequest,
+    MemoryStoreResponse,
 )
-from .embeddings import create_embedders, TextEmbedder, MultimodalFuser
+from .config import MemoryConfig, get_memory_config
+from .embeddings import MultimodalFuser, TextEmbedder, create_embedders
 from .indexer import FAISSIndexer
 from .ingest import MemoryIngester
-from .retriever import MemoryRetriever
-from .rag_reasoner import RAGReasoner
 from .maintenance import MemoryMaintenance
+from .rag_reasoner import RAGReasoner
+from .retriever import MemoryRetriever
 
 logger = logging.getLogger("memory-api")
 
@@ -53,24 +52,24 @@ def _ensure_initialized():
     """Ensure all components are initialized."""
     global _config, _indexer, _text_embedder, _fuser
     global _ingester, _retriever, _rag_reasoner, _maintenance
-    
+
     if _config is None:
         _config = get_memory_config()
-    
+
     if not _config.enabled:
         raise HTTPException(status_code=503, detail="Memory engine is disabled")
-    
+
     if _indexer is None:
         # Create embedders
         _text_embedder, img_emb, audio_emb, _fuser = create_embedders(_config)
-        
+
         # Create indexer
         _indexer = FAISSIndexer(
             index_path=_config.index_path,
             dimension=_text_embedder.dimension,
             max_vectors=_config.max_vectors,
         )
-        
+
         # Create ingester
         _ingester = MemoryIngester(
             indexer=_indexer,
@@ -78,27 +77,27 @@ def _ensure_initialized():
             fuser=_fuser,
             config=_config,
         )
-        
+
         # Create retriever
         _retriever = MemoryRetriever(
             indexer=_indexer,
             text_embedder=_text_embedder,
             config=_config,
         )
-        
+
         # Create RAG reasoner (without LLM for now)
         _rag_reasoner = RAGReasoner(
             retriever=_retriever,
             llm_client=None,  # Will be set externally if needed
             config=_config,
         )
-        
+
         # Create maintenance
         _maintenance = MemoryMaintenance(
             indexer=_indexer,
             config=_config,
         )
-        
+
         logger.info("Memory engine initialized")
 
 
@@ -136,7 +135,7 @@ async def store_memory(
     ingester: MemoryIngester = Depends(get_ingester),
 ):
     """Store a multimodal memory.
-    
+
     Accepts image, audio, transcript, and/or scene graph.
     Generates embeddings and stores in FAISS index.
     """
@@ -144,7 +143,7 @@ async def store_memory(
         # Check consent (if device_id provided)
         consent = ingester.get_consent(request.device_id)
         consent_given = consent.get("memory_enabled", True) and consent.get("save_raw_media", False)
-        
+
         response = await ingester.ingest(request, consent_given=consent_given)
         return response
     except Exception as e:
@@ -162,7 +161,7 @@ async def search_memories(
     retriever: MemoryRetriever = Depends(get_retriever),
 ):
     """Search memories by text query.
-    
+
     Returns top-K similar memories with scores.
     """
     try:
@@ -183,7 +182,7 @@ async def query_memories(
     reasoner: RAGReasoner = Depends(get_rag_reasoner),
 ):
     """Answer a natural language query using retrieved memories.
-    
+
     Uses RAG pipeline with optional LLM reasoning.
     """
     try:
@@ -242,7 +241,7 @@ async def set_consent(
     ingester: MemoryIngester = Depends(get_ingester),
 ):
     """Set memory consent preferences.
-    
+
     Controls whether memories are stored and if raw media is saved.
     """
     settings = ingester.record_consent(
@@ -251,7 +250,7 @@ async def set_consent(
         save_raw_media=request.save_raw_media,
         reason=request.reason,
     )
-    
+
     return MemoryConsentResponse(
         consent_recorded=True,
         timestamp=datetime.utcnow().isoformat() + "Z",
@@ -277,18 +276,18 @@ async def get_consent(
 async def delete_memory(memory_id: str):
     """Delete a specific memory."""
     _ensure_initialized()
-    
+
     deleted = _indexer.delete(memory_id)
     if not deleted:
         raise HTTPException(status_code=404, detail=f"Memory {memory_id} not found")
-    
+
     return MemoryDeleteResponse(deleted=True, id=memory_id, count=1)
 
 
 @router.post("/delete_all", response_model=MemoryDeleteResponse)
 async def delete_all_memories(confirm: bool = False):
     """Delete all memories.
-    
+
     Requires confirm=true for safety.
     """
     if not confirm:
@@ -296,12 +295,12 @@ async def delete_all_memories(confirm: bool = False):
             status_code=400,
             detail="Set confirm=true to delete all memories",
         )
-    
+
     _ensure_initialized()
-    
+
     count = _indexer.size
     _indexer.clear()
-    
+
     return MemoryDeleteResponse(deleted=True, count=count)
 
 
@@ -312,14 +311,14 @@ async def delete_session_memories(
 ):
     """Delete all memories for a session."""
     _ensure_initialized()
-    
+
     memories = retriever.get_session_memories(session_id, limit=1000)
     deleted = 0
-    
+
     for mem in memories:
         if _indexer.delete(mem.id):
             deleted += 1
-    
+
     return MemoryDeleteResponse(deleted=True, count=deleted)
 
 
@@ -369,9 +368,9 @@ async def debug_session(
 ):
     """Get debug information for a session."""
     _ensure_initialized()
-    
+
     memories = retriever.get_session_memories(session_id, limit=10)
-    
+
     # Try a sample search
     sample_results = None
     if memories:
@@ -381,7 +380,7 @@ async def debug_session(
             sample_results = search_resp.results
         except Exception:
             pass
-    
+
     return MemoryDebugInfo(
         session_id=session_id,
         memory_count=len(memories),
@@ -402,7 +401,7 @@ async def debug_session(
 
 def get_router() -> APIRouter:
     """Get the memory API router.
-    
+
     Usage in main app:
         from core.memory.api_endpoints import get_router as get_memory_router
         app.include_router(get_memory_router(), prefix="/memory")
@@ -412,14 +411,14 @@ def get_router() -> APIRouter:
 
 def set_llm_client(client: Any):
     """Set the LLM client for RAG reasoning.
-    
+
     Call this after initialization to enable LLM-based answers.
-    
+
     Args:
         client: OpenAI-compatible or Ollama client
     """
     global _rag_reasoner
-    
+
     _ensure_initialized()
     if _rag_reasoner:
         _rag_reasoner._llm_client = client
@@ -430,7 +429,7 @@ def reset_for_testing():
     """Reset all global state (for testing)."""
     global _config, _indexer, _text_embedder, _fuser
     global _ingester, _retriever, _rag_reasoner, _maintenance
-    
+
     _config = None
     _indexer = None
     _text_embedder = None

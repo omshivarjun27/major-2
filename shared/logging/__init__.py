@@ -1,28 +1,28 @@
 # shared/logging — Logging configuration, correlation, and rotation
-from .logging_config import configure_logging, log_event, PIIScrubFilter
 from .correlation import (
-    LogContext,
     CorrelatedLoggerAdapter,
-    get_correlated_logger,
-    get_correlation_id,
-    set_correlation_id,
-    get_session_id,
-    set_session_id,
-    get_service_name,
-    set_service_name,
+    LogContext,
+    correlated,
+    correlation_middleware,
     generate_correlation_id,
     generate_span_id,
-    correlated,
-    with_span,
-    correlation_middleware,
+    get_correlated_logger,
+    get_correlation_id,
+    get_service_name,
+    get_session_id,
     log_correlated_event,
+    set_correlation_id,
+    set_service_name,
+    set_session_id,
+    with_span,
 )
+from .logging_config import PIIScrubFilter, configure_logging, log_event
 from .rotation import (
-    LogRotationConfig,
     CompressedTimedRotatingFileHandler,
+    LogRotationConfig,
     SizeAndTimeRotatingHandler,
-    configure_file_logging,
     cleanup_old_logs,
+    configure_file_logging,
     get_log_stats,
 )
 

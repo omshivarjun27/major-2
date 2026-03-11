@@ -5,15 +5,14 @@ Tests for action_engine — ActionRecognizer, ClipBuffer, ActionResult.
 from __future__ import annotations
 
 import numpy as np
-import pytest
 
 from core.action.action_recognizer import (
+    ALERT_ACTIONS,
+    ActionConfig,
     ActionRecognizer,
     ActionResult,
-    ActionConfig,
     ActionType,
     ClipBuffer,
-    ALERT_ACTIONS,
 )
 
 
@@ -138,9 +137,6 @@ class TestPackageImports:
     def test_action_engine_imports(self):
         from core.action import (
             ActionRecognizer,
-            ActionResult,
-            ActionConfig,
-            ActionType,
             ClipBuffer,
         )
         assert ActionRecognizer is not None

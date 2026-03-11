@@ -6,10 +6,8 @@ Verifies the system degrades gracefully when resources are
 limited or optional modules are unavailable.
 """
 
-import os
-import sys
 import importlib
-import pytest
+import os
 from unittest.mock import patch
 
 
@@ -64,8 +62,8 @@ class TestGracefulDegradation:
         """When model files are missing, system should NOT crash."""
         from shared.config import get_config
         cfg = get_config()
-        yolo_path = cfg.get("YOLO_MODEL_PATH", "models/yolov8n.onnx")
-        midas_path = cfg.get("MIDAS_MODEL_PATH", "models/midas_v21_small_256.onnx")
+        cfg.get("YOLO_MODEL_PATH", "models/yolov8n.onnx")
+        cfg.get("MIDAS_MODEL_PATH", "models/midas_v21_small_256.onnx")
 
         # System should work even if these don't exist on disk
         # The auto-detection should handle it

@@ -7,7 +7,6 @@ The monitor tracks connection events and uses a circuit breaker for health state
 from __future__ import annotations
 
 import asyncio
-from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -24,7 +23,6 @@ from infrastructure.resilience.livekit_monitor import (
     clear_monitor,
     get_livekit_monitor,
 )
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

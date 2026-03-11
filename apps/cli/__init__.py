@@ -8,12 +8,12 @@ Canonical location: ``shared/debug/``
 
 from shared.debug import (
     DebugVisualizer,
-    VisualizerConfig,
     DebugVisualizerResult,
-    render_debug_image,
-    annotate_image,
-    SessionLogger,
     SessionEvent,
+    SessionLogger,
+    VisualizerConfig,
+    annotate_image,
+    render_debug_image,
 )
 
 __all__ = [

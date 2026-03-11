@@ -4,7 +4,7 @@ Unit tests for QR Decoder module — all content type paths.
 
 import pytest
 
-from core.qr.qr_decoder import QRDecoder, QRContentType, DecodedQR
+from core.qr.qr_decoder import DecodedQR, QRContentType, QRDecoder
 
 
 class TestQRContentClassification:

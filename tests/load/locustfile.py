@@ -7,7 +7,7 @@ RTX 4060 hardware while maintaining <500ms hot path latency.
 Usage:
     # Web UI mode
     locust -f tests/load/locustfile.py --host=http://localhost:8000
-    
+
     # Headless mode (CI)
     locust -f tests/load/locustfile.py --host=http://localhost:8000 \
         --headless -u 10 -r 2 -t 60s --csv=results/load_test
@@ -26,7 +26,7 @@ import os
 import random
 import sys
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 # Add project root to path
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
@@ -34,7 +34,7 @@ if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
 try:
-    from locust import HttpUser, task, between, events, LoadTestShape
+    from locust import HttpUser, LoadTestShape, between, events, task
     from locust.env import Environment
     LOCUST_AVAILABLE = True
 except ImportError:
@@ -58,7 +58,7 @@ except ImportError:
 
 class TestDataGenerator:
     """Generates test data for load tests."""
-    
+
     VOICE_QUERIES = [
         "What do you see in front of me?",
         "Is there anyone nearby?",
@@ -71,7 +71,7 @@ class TestDataGenerator:
         "Read the sign for me",
         "What's on the table?",
     ]
-    
+
     VISION_PROMPTS = [
         "Describe everything you see",
         "Are there any people in this image?",
@@ -84,21 +84,21 @@ class TestDataGenerator:
         "Describe the room layout",
         "Are there any hazards?",
     ]
-    
+
     @staticmethod
     def random_voice_query() -> str:
         return random.choice(TestDataGenerator.VOICE_QUERIES)
-    
+
     @staticmethod
     def random_vision_prompt() -> str:
         return random.choice(TestDataGenerator.VISION_PROMPTS)
-    
+
     @staticmethod
     def mock_audio_bytes(duration_ms: int = 1000) -> bytes:
         """Generate mock audio data (16kHz, 16-bit mono silence)."""
         samples = int(16000 * duration_ms / 1000)
         return b"\x00\x00" * samples
-    
+
     @staticmethod
     def mock_image_base64(width: int = 640, height: int = 480) -> str:
         """Generate mock image as base64 (gray placeholder)."""
@@ -119,7 +119,7 @@ class TestDataGenerator:
 
 class LatencyTracker:
     """Tracks latency metrics across load test runs."""
-    
+
     def __init__(self):
         self.stt_latencies: List[float] = []
         self.llm_latencies: List[float] = []
@@ -127,22 +127,22 @@ class LatencyTracker:
         self.total_latencies: List[float] = []
         self.sla_violations: int = 0
         self.total_requests: int = 0
-    
+
     def record(self, total_ms: float, stt_ms: float = 0, llm_ms: float = 0, tts_ms: float = 0):
         """Record a request's latencies."""
         self.total_latencies.append(total_ms)
         self.total_requests += 1
-        
+
         if stt_ms > 0:
             self.stt_latencies.append(stt_ms)
         if llm_ms > 0:
             self.llm_latencies.append(llm_ms)
         if tts_ms > 0:
             self.tts_latencies.append(tts_ms)
-        
+
         if total_ms > 500:
             self.sla_violations += 1
-    
+
     def get_stats(self) -> Dict[str, Any]:
         """Get summary statistics."""
         def calc_stats(latencies: List[float]) -> Dict[str, float]:
@@ -156,7 +156,7 @@ class LatencyTracker:
                 "p99": sorted_lat[int(len(sorted_lat) * 0.99)],
                 "max": max(latencies),
             }
-        
+
         return {
             "total": calc_stats(self.total_latencies),
             "stt": calc_stats(self.stt_latencies),
@@ -181,26 +181,26 @@ def get_latency_tracker() -> LatencyTracker:
 
 class VoiceUser(HttpUser):
     """Simulates a user making voice interaction requests.
-    
+
     Flow: Audio -> STT -> LLM -> TTS -> Audio response
     """
-    
+
     wait_time = between(1, 3)  # 1-3 seconds between requests
     weight = 3  # Voice interactions are most common
-    
+
     def on_start(self):
         """Initialize user session."""
         self.user_id = f"voice_user_{random.randint(1000, 9999)}"
         self.data_gen = TestDataGenerator()
-    
+
     @task(weight=5)
     def voice_query(self):
         """Execute a voice query (STT -> LLM -> TTS)."""
         query = self.data_gen.random_voice_query()
         audio_data = self.data_gen.mock_audio_bytes(1500)  # 1.5 second audio
-        
+
         start_time = time.perf_counter()
-        
+
         # Simulate STT request
         stt_start = time.perf_counter()
         with self.client.post(
@@ -220,7 +220,7 @@ class VoiceUser(HttpUser):
                 response.failure(f"STT failed: {response.status_code}")
                 return
         stt_latency = (time.perf_counter() - stt_start) * 1000
-        
+
         # Simulate LLM request
         llm_start = time.perf_counter()
         with self.client.post(
@@ -238,7 +238,7 @@ class VoiceUser(HttpUser):
                 response.failure(f"LLM failed: {response.status_code}")
                 return
         llm_latency = (time.perf_counter() - llm_start) * 1000
-        
+
         # Simulate TTS request
         tts_start = time.perf_counter()
         with self.client.post(
@@ -253,9 +253,9 @@ class VoiceUser(HttpUser):
                 response.failure(f"TTS failed: {response.status_code}")
                 return
         tts_latency = (time.perf_counter() - tts_start) * 1000
-        
+
         total_latency = (time.perf_counter() - start_time) * 1000
-        
+
         # Record latencies
         get_latency_tracker().record(
             total_ms=total_latency,
@@ -263,7 +263,7 @@ class VoiceUser(HttpUser):
             llm_ms=llm_latency,
             tts_ms=tts_latency
         )
-    
+
     @task(weight=2)
     def health_check(self):
         """Periodic health check."""
@@ -274,26 +274,26 @@ class VoiceUser(HttpUser):
 
 class VisionUser(HttpUser):
     """Simulates a user making vision/VQA requests.
-    
+
     Flow: Image + Prompt -> VQA -> TTS -> Audio response
     """
-    
+
     wait_time = between(2, 5)  # Vision queries are typically slower
     weight = 2  # Less common than voice
-    
+
     def on_start(self):
         """Initialize user session."""
         self.user_id = f"vision_user_{random.randint(1000, 9999)}"
         self.data_gen = TestDataGenerator()
-    
+
     @task(weight=4)
     def vision_query(self):
         """Execute a vision query (VQA -> TTS)."""
         prompt = self.data_gen.random_vision_prompt()
         image_b64 = self.data_gen.mock_image_base64()
-        
+
         start_time = time.perf_counter()
-        
+
         # VQA request
         llm_start = time.perf_counter()
         with self.client.post(
@@ -311,7 +311,7 @@ class VisionUser(HttpUser):
                 response.failure(f"VQA failed: {response.status_code}")
                 return
         llm_latency = (time.perf_counter() - llm_start) * 1000
-        
+
         # TTS request
         tts_start = time.perf_counter()
         with self.client.post(
@@ -326,9 +326,9 @@ class VisionUser(HttpUser):
                 response.failure(f"TTS failed: {response.status_code}")
                 return
         tts_latency = (time.perf_counter() - tts_start) * 1000
-        
+
         total_latency = (time.perf_counter() - start_time) * 1000
-        
+
         get_latency_tracker().record(
             total_ms=total_latency,
             llm_ms=llm_latency,
@@ -338,22 +338,22 @@ class VisionUser(HttpUser):
 
 class MixedUser(HttpUser):
     """Simulates a user with mixed voice and vision interactions."""
-    
+
     wait_time = between(1, 4)
     weight = 1  # Least common
-    
+
     def on_start(self):
         """Initialize user session."""
         self.user_id = f"mixed_user_{random.randint(1000, 9999)}"
         self.data_gen = TestDataGenerator()
-    
+
     @task(weight=3)
     def voice_interaction(self):
         """Voice-only interaction."""
         query = self.data_gen.random_voice_query()
-        
+
         start_time = time.perf_counter()
-        
+
         with self.client.post(
             "/api/chat",
             json={"message": query, "user_id": self.user_id},
@@ -364,18 +364,18 @@ class MixedUser(HttpUser):
                 response.success()
             else:
                 response.failure(f"Chat failed: {response.status_code}")
-        
+
         total_latency = (time.perf_counter() - start_time) * 1000
         get_latency_tracker().record(total_ms=total_latency)
-    
+
     @task(weight=2)
     def vision_interaction(self):
         """Vision-only interaction."""
         prompt = self.data_gen.random_vision_prompt()
         image_b64 = self.data_gen.mock_image_base64()
-        
+
         start_time = time.perf_counter()
-        
+
         with self.client.post(
             "/api/vqa",
             json={"image": image_b64, "prompt": prompt, "user_id": self.user_id},
@@ -386,7 +386,7 @@ class MixedUser(HttpUser):
                 response.success()
             else:
                 response.failure(f"VQA failed: {response.status_code}")
-        
+
         total_latency = (time.perf_counter() - start_time) * 1000
         get_latency_tracker().record(total_ms=total_latency)
 
@@ -397,14 +397,14 @@ class MixedUser(HttpUser):
 
 class StagesShape(LoadTestShape):
     """Custom load test shape with defined stages.
-    
+
     Stages:
         1. Ramp up: 0 -> 10 users over 30 seconds
         2. Sustain: 10 users for 60 seconds
         3. Spike: 10 -> 15 users over 10 seconds, hold 30 seconds
         4. Ramp down: 15 -> 0 users over 20 seconds
     """
-    
+
     stages = [
         {"duration": 30, "users": 10, "spawn_rate": 1},   # Ramp up
         {"duration": 90, "users": 10, "spawn_rate": 1},   # Sustain
@@ -412,14 +412,14 @@ class StagesShape(LoadTestShape):
         {"duration": 130, "users": 15, "spawn_rate": 1},  # Spike sustain
         {"duration": 150, "users": 0, "spawn_rate": 2},   # Ramp down
     ]
-    
+
     def tick(self):
         run_time = self.get_run_time()
-        
+
         for stage in self.stages:
             if run_time < stage["duration"]:
                 return (stage["users"], stage["spawn_rate"])
-        
+
         return None  # Stop test
 
 
@@ -433,13 +433,13 @@ if LOCUST_AVAILABLE and events is not None:
         """Print final latency statistics when test stops."""
         tracker = get_latency_tracker()
         stats = tracker.get_stats()
-        
+
         print("\n" + "=" * 60)
         print("LOAD TEST LATENCY SUMMARY")
         print("=" * 60)
         print(f"Total Requests: {stats['total_requests']}")
         print(f"SLA Violation Rate: {stats['sla_violation_rate']:.1f}%")
-        print(f"\nTotal Latency:")
+        print("\nTotal Latency:")
         print(f"  Avg: {stats['total']['avg']:.1f}ms")
         print(f"  P50: {stats['total']['p50']:.1f}ms")
         print(f"  P95: {stats['total']['p95']:.1f}ms")
@@ -456,18 +456,18 @@ def run_mock_test(num_iterations: int = 10):
     """Run a mock load test without Locust (for testing the test)."""
     print("Running mock load test...")
     tracker = get_latency_tracker()
-    data_gen = TestDataGenerator()
-    
+    TestDataGenerator()
+
     for i in range(num_iterations):
         # Simulate voice user
         stt_ms = random.uniform(70, 120)
         llm_ms = random.uniform(150, 280)
         tts_ms = random.uniform(60, 110)
         total_ms = stt_ms + llm_ms + tts_ms + random.uniform(5, 20)
-        
+
         tracker.record(total_ms=total_ms, stt_ms=stt_ms, llm_ms=llm_ms, tts_ms=tts_ms)
         print(f"  [{i+1}/{num_iterations}] Total: {total_ms:.1f}ms")
-    
+
     stats = tracker.get_stats()
     print(f"\nResults: Avg={stats['total']['avg']:.1f}ms, P95={stats['total']['p95']:.1f}ms, Violations={stats['sla_violation_rate']:.1f}%")
     return stats

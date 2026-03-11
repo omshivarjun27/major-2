@@ -31,10 +31,8 @@ import logging
 import os
 import re
 import sys
-import time
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional
-
 
 # ── PII Scrubbing Patterns ────────────────────────────────────────────
 _PII_PATTERNS = [

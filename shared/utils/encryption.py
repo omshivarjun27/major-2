@@ -164,14 +164,18 @@ class EncryptionManager:
 
     def save_npy_encrypted(self, path: str | Path, arr) -> None:
         """Serialize a numpy array and encrypt it on disk."""
-        import io, numpy as np  # noqa: E401
+        import io  # noqa: E401
+
+        import numpy as np
         buf = io.BytesIO()
         np.save(buf, arr)
         self.save_encrypted(path, buf.getvalue())
 
     def load_npy_decrypted(self, path: str | Path):
         """Load an encrypted ``.npy`` file and return the numpy array."""
-        import io, numpy as np  # noqa: E401
+        import io  # noqa: E401
+
+        import numpy as np
         raw = self.load_decrypted(path)
         return np.load(io.BytesIO(raw))
 

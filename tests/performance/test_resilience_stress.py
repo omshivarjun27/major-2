@@ -15,11 +15,9 @@ from __future__ import annotations
 import asyncio
 import gc
 import random
-import sys
-import time
 import tracemalloc
 from typing import Any, Callable, Dict, List, Optional
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -29,20 +27,17 @@ from infrastructure.resilience.circuit_breaker import (
     CircuitBreakerState,
     StateChangeEvent,
     clear_registry,
-    get_all_breakers,
-    get_circuit_breaker,
     register_circuit_breaker,
-)
-from infrastructure.resilience.health_registry import (
-    ServiceHealthRegistry,
-    ServiceHealth,
-    ServiceStatus,
 )
 from infrastructure.resilience.degradation_coordinator import (
     DegradationCoordinator,
-    DegradationPolicy,
     DegradationLevel,
 )
+from infrastructure.resilience.health_registry import (
+    ServiceHealthRegistry,
+    ServiceStatus,
+)
+
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
@@ -475,7 +470,6 @@ class TestRecoveryUnderLoad:
         cb = register_circuit_breaker("load_test", config=fast_cb_config)
         successful_calls = 0
         failed_calls = 0
-        recovered = False
 
         async def make_call(call_id: int) -> bool:
             nonlocal successful_calls, failed_calls
@@ -502,7 +496,7 @@ class TestRecoveryUnderLoad:
             if i % 10 == 0:
                 await asyncio.sleep(0.02)
 
-        results = await asyncio.gather(*tasks)
+        await asyncio.gather(*tasks)
 
         # Wait for potential recovery
         await asyncio.sleep(0.2)
@@ -570,19 +564,19 @@ class TestHealthRegistryConsistency:
     ):
         """Health registry accurately reflects circuit breaker states."""
         registry = ServiceHealthRegistry(known_services=list(registered_breakers.keys()))
-        
+
         # Trip some services
         await registered_breakers["deepgram"].trip()
         await registered_breakers["ollama"].trip()
-        
+
         # Check registry reflects CB states
         summary = registry.get_health_summary()
-        
+
         # Deepgram and Ollama should be unhealthy
         deepgram_health = summary.services.get("deepgram")
         ollama_health = summary.services.get("ollama")
         elevenlabs_health = summary.services.get("elevenlabs")
-        
+
         assert deepgram_health is not None
         assert deepgram_health.status is ServiceStatus.UNHEALTHY
         assert ollama_health is not None
@@ -595,30 +589,30 @@ class TestHealthRegistryConsistency:
     ):
         """Health registry stays accurate during rapid state changes."""
         registry = ServiceHealthRegistry(known_services=list(registered_breakers.keys()))
-        
+
         # Rapid changes
         for _ in range(10):
             service = random.choice(list(registered_breakers.keys()))
             cb = registered_breakers[service]
-            
+
             if random.random() < 0.5:
                 await cb.trip()
             else:
                 await cb.reset()
-            
+
             await asyncio.sleep(0.01)
-        
+
         # Registry should accurately reflect current states
         summary = registry.get_health_summary()
-        
+
         # Verify services are reported
         assert len(summary.services) == len(registered_breakers)
-        
+
         # Each service status should match its CB state
         for service_name, cb in registered_breakers.items():
             health = summary.services.get(service_name)
             assert health is not None, f"Missing health for {service_name}"
-            
+
             if cb.state is CircuitBreakerState.CLOSED:
                 assert health.status is ServiceStatus.HEALTHY
             elif cb.state is CircuitBreakerState.OPEN:
@@ -642,7 +636,7 @@ class TestMemoryStability:
         # Force garbage collection and get baseline
         gc.collect()
         tracemalloc.start()
-        
+
         try:
             snapshot_start = tracemalloc.take_snapshot()
 
@@ -668,7 +662,7 @@ class TestMemoryStability:
 
             # Check memory growth
             top_stats = snapshot_end.compare_to(snapshot_start, "lineno")
-            
+
             # Sum up growth (only positive diffs)
             total_growth = sum(
                 stat.size_diff for stat in top_stats[:10]
@@ -690,8 +684,8 @@ class TestMemoryStability:
             patch("infrastructure.speech.tts_failover.EDGE_TTS_AVAILABLE", True),
             patch("infrastructure.speech.tts_failover.PYTTSX3_AVAILABLE", True),
         ):
-            from infrastructure.speech.stt_failover import STTFailoverManager, STTFailoverConfig
-            from infrastructure.speech.tts_failover import TTSFailoverManager, TTSFailoverConfig
+            from infrastructure.speech.stt_failover import STTFailoverConfig, STTFailoverManager
+            from infrastructure.speech.tts_failover import TTSFailoverConfig, TTSFailoverManager
 
             # Use pre-registered CBs
             register_circuit_breaker("deepgram", config=fast_cb_config)
@@ -797,46 +791,43 @@ class TestSystemInvariants:
     ):
         """Degradation coordinator level changes are consistent."""
         from infrastructure.resilience.degradation_coordinator import (
-            DegradationCoordinator,
-            DegradationLevel,
-            get_degradation_coordinator,
             reset_degradation_coordinator,
         )
-        
+
         # Reset singleton for clean state
         reset_degradation_coordinator()
-        
+
         announcements: List[str] = []
-        
+
         def on_announce(message: str):
             announcements.append(message)
-        
+
         # Create coordinator with announcement callback
         coordinator = DegradationCoordinator(announcement_callback=on_announce)
         await coordinator.initialize()
-        
+
         # Initially should be FULL
         assert coordinator.get_degradation_level() is DegradationLevel.FULL
-        
+
         # Trip critical services to cause degradation
         await registered_breakers["deepgram"].trip()
         await registered_breakers["elevenlabs"].trip()
-        
+
         # Refresh coordinator to pick up CB changes
         await coordinator.refresh()
-        
+
         # Should now be degraded (MINIMAL since critical services are down)
         level = coordinator.get_degradation_level()
         assert level in (DegradationLevel.MINIMAL, DegradationLevel.PARTIAL, DegradationLevel.OFFLINE)
-        
+
         # Reset services
         await registered_breakers["deepgram"].reset()
         await registered_breakers["elevenlabs"].reset()
-        
+
         # Refresh again
         await coordinator.refresh()
-        
+
         # Should be back to FULL
         assert coordinator.get_degradation_level() is DegradationLevel.FULL
-        
+
         await coordinator.shutdown()

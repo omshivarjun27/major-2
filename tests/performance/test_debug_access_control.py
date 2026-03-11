@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import sys
+
 import pytest
 
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
@@ -20,8 +21,9 @@ class TestDebugAccessControl:
 
     def test_require_debug_auth_exists(self):
         """api_server should export a require_debug_auth dependency."""
-        from api_server import require_debug_auth
         import inspect
+
+        from api_server import require_debug_auth
         assert inspect.iscoroutinefunction(require_debug_auth)
 
     def test_debug_disabled_raises_403(self, monkeypatch):
@@ -30,8 +32,9 @@ class TestDebugAccessControl:
         monkeypatch.setattr("api_server._DEBUG_TOKEN", "some-token")
 
         import asyncio
-        from fastapi import HTTPException
+
         from api_server import require_debug_auth
+        from fastapi import HTTPException
 
         with pytest.raises(HTTPException) as exc_info:
             asyncio.get_event_loop().run_until_complete(
@@ -45,8 +48,9 @@ class TestDebugAccessControl:
         monkeypatch.setattr("api_server._DEBUG_TOKEN", "correct-token")
 
         import asyncio
-        from fastapi import HTTPException
+
         from api_server import require_debug_auth
+        from fastapi import HTTPException
 
         with pytest.raises(HTTPException) as exc_info:
             asyncio.get_event_loop().run_until_complete(
@@ -60,8 +64,9 @@ class TestDebugAccessControl:
         monkeypatch.setattr("api_server._DEBUG_TOKEN", "correct-token")
 
         import asyncio
-        from fastapi import HTTPException
+
         from api_server import require_debug_auth
+        from fastapi import HTTPException
 
         with pytest.raises(HTTPException) as exc_info:
             asyncio.get_event_loop().run_until_complete(
@@ -75,6 +80,7 @@ class TestDebugAccessControl:
         monkeypatch.setattr("api_server._DEBUG_TOKEN", "correct-token")
 
         import asyncio
+
         from api_server import require_debug_auth
 
         # Should NOT raise

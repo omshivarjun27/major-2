@@ -5,11 +5,9 @@ Tests for face_engine — FaceDetector, FaceEmbeddingStore, FaceTracker, SocialC
 from __future__ import annotations
 
 import numpy as np
-import pytest
 
 # ── FaceDetector ──────────────────────────────────────────────────────
-
-from core.face.face_detector import FaceDetector, FaceDetection, FaceDetectorConfig
+from core.face.face_detector import FaceDetection, FaceDetector, FaceDetectorConfig
 
 
 class TestFaceDetectorConfig:
@@ -57,9 +55,9 @@ class TestFaceDetector:
 # ── FaceEmbeddingStore ────────────────────────────────────────────────
 
 from core.face.face_embeddings import (
+    EmbeddingConfig,
     FaceEmbeddingStore,
     FaceIdentity,
-    EmbeddingConfig,
 )
 
 
@@ -194,10 +192,10 @@ class TestFaceTracker:
 # ── SocialCueAnalyzer ────────────────────────────────────────────────
 
 from core.face.face_social_cues import (
-    SocialCueAnalyzer,
-    SocialCues,
     EmotionResult,
     HeadPose,
+    SocialCueAnalyzer,
+    SocialCues,
 )
 
 
@@ -236,18 +234,9 @@ class TestPackageImports:
     def test_face_engine_imports(self):
         from core.face import (
             FaceDetector,
-            FaceDetection,
-            FaceDetectorConfig,
             FaceEmbeddingStore,
-            FaceIdentity,
-            EmbeddingConfig,
             FaceTracker,
-            TrackedFace,
-            TrackerConfig,
             SocialCueAnalyzer,
-            SocialCues,
-            EmotionResult,
-            HeadPose,
         )
         assert FaceDetector is not None
         assert FaceEmbeddingStore is not None

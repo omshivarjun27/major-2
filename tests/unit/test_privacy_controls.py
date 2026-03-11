@@ -2,9 +2,6 @@
 Unit tests for Cloud Sync Privacy Controls (T-115).
 """
 
-import asyncio
-import tempfile
-from pathlib import Path
 
 import pytest
 

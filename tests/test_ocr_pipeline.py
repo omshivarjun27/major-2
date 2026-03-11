@@ -6,7 +6,6 @@ Covers: preprocessing functions, OCRResult/OCRPipelineResult data
 structures, pipeline with no backend, and pipeline with mock backends.
 """
 
-import asyncio
 import os
 import sys
 
@@ -16,6 +15,7 @@ import pytest
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from core.ocr import (
+    CV2_AVAILABLE,
     OCRPipeline,
     OCRPipelineResult,
     OCRResult,
@@ -25,9 +25,7 @@ from core.ocr import (
     denoise,
     deskew,
     preprocess,
-    CV2_AVAILABLE,
 )
-
 
 # ============================================================================
 # OCRResult

@@ -6,11 +6,9 @@ import pytest
 
 from infrastructure.resilience.error_classifier import (
     ErrorCategory,
-    ErrorClassification,
     classify_error,
     classify_status_code,
 )
-
 
 # ---------------------------------------------------------------------------
 # HTTP status code classification

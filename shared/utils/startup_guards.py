@@ -21,7 +21,6 @@ from __future__ import annotations
 import logging
 import os
 import sys
-from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger("startup-guards")

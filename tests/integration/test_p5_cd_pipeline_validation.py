@@ -181,7 +181,7 @@ class TestCDPipelineValidation:
         jobs = staging_workflow["jobs"]
 
         # Build should have no dependencies (first job)
-        build_needs = jobs.get("build", {}).get("needs", [])
+        jobs.get("build", {}).get("needs", [])
         # Build can be first or have minimal deps
 
         # Deploy should depend on build

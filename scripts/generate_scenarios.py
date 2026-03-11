@@ -31,9 +31,8 @@ import hashlib
 import itertools
 import json
 import os
-import sys
 from dataclasses import asdict, dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 SEED = 42
 OUTPUT_PATH = os.path.join(os.path.dirname(__file__), "..", "tests", "generated_scenarios.json")

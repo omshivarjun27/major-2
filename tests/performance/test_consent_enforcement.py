@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import sys
+
 import pytest
 
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
@@ -23,7 +24,8 @@ class TestConsentEnforcement:
     def test_registration_fails_without_consent(self, tmp_path):
         """Attempting to register a face without consent raises ValueError."""
         import numpy as np
-        from core.face.face_embeddings import FaceEmbeddingStore, EmbeddingConfig
+
+        from core.face.face_embeddings import EmbeddingConfig, FaceEmbeddingStore
 
         config = EmbeddingConfig(
             storage_dir=str(tmp_path / "consent_test"),
@@ -39,7 +41,8 @@ class TestConsentEnforcement:
     def test_registration_succeeds_with_consent(self, tmp_path):
         """Registration must succeed when consent is explicitly given."""
         import numpy as np
-        from core.face.face_embeddings import FaceEmbeddingStore, EmbeddingConfig
+
+        from core.face.face_embeddings import EmbeddingConfig, FaceEmbeddingStore
 
         config = EmbeddingConfig(
             storage_dir=str(tmp_path / "consent_ok"),
@@ -55,7 +58,8 @@ class TestConsentEnforcement:
     def test_identification_skips_revoked_consent(self, tmp_path):
         """Faces with revoked consent should not be matched during identify."""
         import numpy as np
-        from core.face.face_embeddings import FaceEmbeddingStore, EmbeddingConfig
+
+        from core.face.face_embeddings import EmbeddingConfig, FaceEmbeddingStore
 
         config = EmbeddingConfig(
             storage_dir=str(tmp_path / "consent_revoke"),
@@ -76,7 +80,8 @@ class TestConsentEnforcement:
     def test_consent_log_recorded(self, tmp_path):
         """Each registration should log consent."""
         import numpy as np
-        from core.face.face_embeddings import FaceEmbeddingStore, EmbeddingConfig
+
+        from core.face.face_embeddings import EmbeddingConfig, FaceEmbeddingStore
 
         config = EmbeddingConfig(
             storage_dir=str(tmp_path / "consent_log"),
@@ -94,7 +99,7 @@ class TestConsentEnforcement:
     def test_face_config_consent_default(self):
         """Config.py should default FACE_CONSENT_REQUIRED to true."""
         from shared.config import get_config
-        cfg = get_config()
+        get_config()
         # The face config is loaded from EmbeddingConfig defaults
         # which requires consent_required=True by default
         from core.face.face_embeddings import EmbeddingConfig

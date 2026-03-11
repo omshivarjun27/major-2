@@ -15,7 +15,7 @@ import json
 import logging
 import time
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional
 
 from .live_frame_manager import TimestampedFrame
 
@@ -27,8 +27,13 @@ except ImportError:
 # ── Perception Controller integrations ────────────────────────────────
 try:
     from application.pipelines.perception_telemetry import (
-        FrameLog, DetectionEntry, QREntry, MetaEntry,
-        emit_frame_log, get_metrics, get_misclass_tracker,
+        DetectionEntry,
+        FrameLog,
+        MetaEntry,
+        QREntry,
+        emit_frame_log,
+        get_metrics,
+        get_misclass_tracker,
     )
     _TELEMETRY_AVAILABLE = True
 except ImportError:
@@ -36,8 +41,11 @@ except ImportError:
 
 try:
     from .confidence_cascade import (
-        filter_by_confidence, SecondaryVerifier,
-        apply_robustness_heuristics, CascadeConfig, config_from_yaml,
+        CascadeConfig,
+        SecondaryVerifier,
+        apply_robustness_heuristics,
+        config_from_yaml,
+        filter_by_confidence,
     )
     _CASCADE_AVAILABLE = True
 except ImportError:
@@ -299,8 +307,9 @@ class FrameOrchestrator:
         # ── Build SceneGraph ──────────────────────────────────────────
         if self._scene_builder and result.detections:
             try:
-                from shared.schemas import PerceptionResult, DepthMap
                 import numpy as np
+
+                from shared.schemas import DepthMap, PerceptionResult
 
                 depth = result.depth_map
                 if depth is None:

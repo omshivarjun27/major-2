@@ -12,10 +12,8 @@ Tests:
 """
 
 import json
-import os
-import tempfile
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -183,14 +181,14 @@ class TestMonitoringStackIntegration:
         assert get_correlation_id() == test_id
 
         # Test context manager (LogContext, not CorrelationContext)
-        with LogContext(correlation_id="context-456") as ctx:
+        with LogContext(correlation_id="context-456"):
             assert get_correlation_id() == "context-456"
 
         # Context restored or cleared after exiting
 
     def test_log_rotation_configuration(self):
         """Verify log rotation is properly configured."""
-        from shared.logging.rotation import LogRotationConfig, get_log_stats
+        from shared.logging.rotation import LogRotationConfig
 
         # Verify LogRotationConfig can be instantiated with options
         config = LogRotationConfig(
@@ -225,7 +223,7 @@ class TestMonitoringStackIntegration:
         for config_file in env_files:
             with open(config_file) as f:
                 try:
-                    config = yaml.safe_load(f)
+                    yaml.safe_load(f)
                 except yaml.YAMLError as e:
                     pytest.fail(f"Config {config_file.name} has invalid YAML: {e}")
 

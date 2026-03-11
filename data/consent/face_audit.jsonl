@@ -103,3 +103,6 @@
 {"timestamp": "2026-02-27T19:10:05.440800Z", "event_type": "consent_granted", "person_id": "fid_783c17adb104", "details": {"name": "Consented", "reason": "initial_registration"}}
 {"timestamp": "2026-02-27T19:10:05.460867Z", "event_type": "consent_granted", "person_id": "fid_fff6cf41f52c", "details": {"name": "Revokable", "reason": "initial_registration"}}
 {"timestamp": "2026-02-27T19:10:05.483785Z", "event_type": "consent_granted", "person_id": "fid_72d9c76f2fd7", "details": {"name": "Logged", "reason": "initial_registration"}}
+{"timestamp": "2026-03-10T17:30:13.038134Z", "event_type": "consent_granted", "person_id": "fid_ac3fa1b0d55f", "details": {"name": "Consented", "reason": "initial_registration"}}
+{"timestamp": "2026-03-10T17:30:13.045647Z", "event_type": "consent_granted", "person_id": "fid_16215bebab22", "details": {"name": "Revokable", "reason": "initial_registration"}}
+{"timestamp": "2026-03-10T17:30:13.054419Z", "event_type": "consent_granted", "person_id": "fid_11023e4e1b45", "details": {"name": "Logged", "reason": "initial_registration"}}

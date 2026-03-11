@@ -22,7 +22,6 @@ import os
 import shutil
 import subprocess
 import sys
-import tempfile
 import urllib.request
 
 MODEL_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "models")

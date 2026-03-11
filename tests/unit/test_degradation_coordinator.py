@@ -14,8 +14,6 @@ Tests cover:
 
 import asyncio
 import time
-from unittest.mock import AsyncMock, MagicMock, patch
-import pytest
 
 
 class TestDegradationLevel:
@@ -37,8 +35,8 @@ class TestDegradationPolicy:
     def test_default_policy_creation(self):
         """Test creating a default policy."""
         from infrastructure.resilience.degradation_coordinator import (
-            DegradationPolicy,
             DegradationLevel,
+            DegradationPolicy,
         )
 
         policy = DegradationPolicy(level=DegradationLevel.FULL)
@@ -52,8 +50,8 @@ class TestDegradationPolicy:
     def test_custom_policy_creation(self):
         """Test creating a custom policy."""
         from infrastructure.resilience.degradation_coordinator import (
-            DegradationPolicy,
             DegradationLevel,
+            DegradationPolicy,
         )
 
         policy = DegradationPolicy(
@@ -129,8 +127,8 @@ class TestDegradationCoordinatorInitialization:
         """Test initialization with custom policies."""
         from infrastructure.resilience.degradation_coordinator import (
             DegradationCoordinator,
-            DegradationPolicy,
             DegradationLevel,
+            DegradationPolicy,
         )
 
         custom_policies = {
@@ -147,8 +145,8 @@ class TestDegradationCoordinatorInitialization:
 
     async def test_initialize(self):
         """Test coordinator initialization."""
-        from infrastructure.resilience.degradation_coordinator import DegradationCoordinator
         from infrastructure.resilience.circuit_breaker import clear_registry
+        from infrastructure.resilience.degradation_coordinator import DegradationCoordinator
 
         clear_registry()
 
@@ -163,8 +161,8 @@ class TestDegradationCoordinatorInitialization:
 
     async def test_initialize_is_idempotent(self):
         """Test that initialize can be called multiple times safely."""
-        from infrastructure.resilience.degradation_coordinator import DegradationCoordinator
         from infrastructure.resilience.circuit_breaker import clear_registry
+        from infrastructure.resilience.degradation_coordinator import DegradationCoordinator
 
         clear_registry()
 
@@ -185,11 +183,11 @@ class TestDegradationCoordinatorLevel:
 
     async def test_default_level_is_full(self):
         """Test that default level is FULL."""
+        from infrastructure.resilience.circuit_breaker import clear_registry
         from infrastructure.resilience.degradation_coordinator import (
             DegradationCoordinator,
             DegradationLevel,
         )
-        from infrastructure.resilience.circuit_breaker import clear_registry
         from infrastructure.resilience.health_registry import reset_health_registry
 
         clear_registry()
@@ -207,11 +205,11 @@ class TestDegradationCoordinatorLevel:
 
     async def test_get_current_policy(self):
         """Test getting current policy."""
+        from infrastructure.resilience.circuit_breaker import clear_registry
         from infrastructure.resilience.degradation_coordinator import (
             DegradationCoordinator,
             DegradationLevel,
         )
-        from infrastructure.resilience.circuit_breaker import clear_registry
         from infrastructure.resilience.health_registry import reset_health_registry
 
         clear_registry()
@@ -234,8 +232,8 @@ class TestDegradationCoordinatorFeatures:
 
     async def test_all_features_available_at_full(self):
         """Test that all features are available at FULL level."""
-        from infrastructure.resilience.degradation_coordinator import DegradationCoordinator
         from infrastructure.resilience.circuit_breaker import clear_registry
+        from infrastructure.resilience.degradation_coordinator import DegradationCoordinator
         from infrastructure.resilience.health_registry import reset_health_registry
 
         clear_registry()
@@ -255,11 +253,11 @@ class TestDegradationCoordinatorFeatures:
 
     async def test_features_disabled_at_partial(self):
         """Test that some features are disabled at PARTIAL level."""
+        from infrastructure.resilience.circuit_breaker import clear_registry
         from infrastructure.resilience.degradation_coordinator import (
             DegradationCoordinator,
             DegradationLevel,
         )
-        from infrastructure.resilience.circuit_breaker import clear_registry
         from infrastructure.resilience.health_registry import reset_health_registry
 
         clear_registry()
@@ -280,11 +278,11 @@ class TestDegradationCoordinatorFeatures:
 
     async def test_features_disabled_at_minimal(self):
         """Test that more features are disabled at MINIMAL level."""
+        from infrastructure.resilience.circuit_breaker import clear_registry
         from infrastructure.resilience.degradation_coordinator import (
             DegradationCoordinator,
             DegradationLevel,
         )
-        from infrastructure.resilience.circuit_breaker import clear_registry
         from infrastructure.resilience.health_registry import reset_health_registry
 
         clear_registry()
@@ -305,11 +303,11 @@ class TestDegradationCoordinatorFeatures:
 
     async def test_get_disabled_features(self):
         """Test getting disabled features."""
+        from infrastructure.resilience.circuit_breaker import clear_registry
         from infrastructure.resilience.degradation_coordinator import (
             DegradationCoordinator,
             DegradationLevel,
         )
-        from infrastructure.resilience.circuit_breaker import clear_registry
         from infrastructure.resilience.health_registry import reset_health_registry
 
         clear_registry()
@@ -334,8 +332,8 @@ class TestDegradationCoordinatorSpeech:
 
     async def test_cloud_speech_at_full(self):
         """Test cloud speech used at FULL level."""
-        from infrastructure.resilience.degradation_coordinator import DegradationCoordinator
         from infrastructure.resilience.circuit_breaker import clear_registry
+        from infrastructure.resilience.degradation_coordinator import DegradationCoordinator
         from infrastructure.resilience.health_registry import reset_health_registry
 
         clear_registry()
@@ -355,11 +353,11 @@ class TestDegradationCoordinatorSpeech:
 
     async def test_local_speech_at_minimal(self):
         """Test local speech used at MINIMAL level."""
+        from infrastructure.resilience.circuit_breaker import clear_registry
         from infrastructure.resilience.degradation_coordinator import (
             DegradationCoordinator,
             DegradationLevel,
         )
-        from infrastructure.resilience.circuit_breaker import clear_registry
         from infrastructure.resilience.health_registry import reset_health_registry
 
         clear_registry()
@@ -384,11 +382,11 @@ class TestDegradationCoordinatorTransitions:
 
     async def test_force_degradation_level(self):
         """Test forcing degradation level."""
+        from infrastructure.resilience.circuit_breaker import clear_registry
         from infrastructure.resilience.degradation_coordinator import (
             DegradationCoordinator,
             DegradationLevel,
         )
-        from infrastructure.resilience.circuit_breaker import clear_registry
         from infrastructure.resilience.health_registry import reset_health_registry
 
         clear_registry()
@@ -410,11 +408,11 @@ class TestDegradationCoordinatorTransitions:
 
     async def test_transition_records_event(self):
         """Test that transitions record events."""
+        from infrastructure.resilience.circuit_breaker import clear_registry
         from infrastructure.resilience.degradation_coordinator import (
             DegradationCoordinator,
             DegradationLevel,
         )
-        from infrastructure.resilience.circuit_breaker import clear_registry
         from infrastructure.resilience.health_registry import reset_health_registry
 
         clear_registry()
@@ -439,11 +437,11 @@ class TestDegradationCoordinatorTransitions:
 
     async def test_no_event_for_same_level(self):
         """Test that no event is recorded when level doesn't change."""
+        from infrastructure.resilience.circuit_breaker import clear_registry
         from infrastructure.resilience.degradation_coordinator import (
             DegradationCoordinator,
             DegradationLevel,
         )
-        from infrastructure.resilience.circuit_breaker import clear_registry
         from infrastructure.resilience.health_registry import reset_health_registry
 
         clear_registry()
@@ -468,11 +466,11 @@ class TestDegradationCoordinatorAnnouncements:
 
     async def test_announcement_callback_called(self):
         """Test that announcement callback is called on transition."""
+        from infrastructure.resilience.circuit_breaker import clear_registry
         from infrastructure.resilience.degradation_coordinator import (
             DegradationCoordinator,
             DegradationLevel,
         )
-        from infrastructure.resilience.circuit_breaker import clear_registry
         from infrastructure.resilience.health_registry import reset_health_registry
 
         clear_registry()
@@ -498,11 +496,11 @@ class TestDegradationCoordinatorAnnouncements:
 
     async def test_async_announcement_callback(self):
         """Test async announcement callback."""
+        from infrastructure.resilience.circuit_breaker import clear_registry
         from infrastructure.resilience.degradation_coordinator import (
             DegradationCoordinator,
             DegradationLevel,
         )
-        from infrastructure.resilience.circuit_breaker import clear_registry
         from infrastructure.resilience.health_registry import reset_health_registry
 
         clear_registry()
@@ -528,11 +526,11 @@ class TestDegradationCoordinatorAnnouncements:
 
     async def test_set_announcement_callback(self):
         """Test setting announcement callback after initialization."""
+        from infrastructure.resilience.circuit_breaker import clear_registry
         from infrastructure.resilience.degradation_coordinator import (
             DegradationCoordinator,
             DegradationLevel,
         )
-        from infrastructure.resilience.circuit_breaker import clear_registry
         from infrastructure.resilience.health_registry import reset_health_registry
 
         clear_registry()
@@ -559,8 +557,8 @@ class TestDegradationCoordinatorHealth:
 
     async def test_health_snapshot(self):
         """Test health snapshot."""
-        from infrastructure.resilience.degradation_coordinator import DegradationCoordinator
         from infrastructure.resilience.circuit_breaker import clear_registry
+        from infrastructure.resilience.degradation_coordinator import DegradationCoordinator
         from infrastructure.resilience.health_registry import reset_health_registry
 
         clear_registry()
@@ -591,8 +589,8 @@ class TestDegradationCoordinatorShutdown:
 
     async def test_shutdown(self):
         """Test coordinator shutdown."""
-        from infrastructure.resilience.degradation_coordinator import DegradationCoordinator
         from infrastructure.resilience.circuit_breaker import clear_registry
+        from infrastructure.resilience.degradation_coordinator import DegradationCoordinator
         from infrastructure.resilience.health_registry import reset_health_registry
 
         clear_registry()
@@ -662,9 +660,9 @@ class TestConvenienceFunctions:
     def test_get_current_degradation_level(self):
         """Test get_current_degradation_level function."""
         from infrastructure.resilience.degradation_coordinator import (
+            DegradationLevel,
             get_current_degradation_level,
             reset_degradation_coordinator,
-            DegradationLevel,
         )
 
         reset_degradation_coordinator()
@@ -693,8 +691,8 @@ class TestConvenienceFunctions:
     def test_should_use_local_speech(self):
         """Test should_use_local_speech function."""
         from infrastructure.resilience.degradation_coordinator import (
-            should_use_local_speech,
             reset_degradation_coordinator,
+            should_use_local_speech,
         )
 
         reset_degradation_coordinator()
@@ -706,10 +704,10 @@ class TestConvenienceFunctions:
 
     async def test_create_degradation_coordinator(self):
         """Test create_degradation_coordinator function."""
+        from infrastructure.resilience.circuit_breaker import clear_registry
         from infrastructure.resilience.degradation_coordinator import (
             create_degradation_coordinator,
         )
-        from infrastructure.resilience.circuit_breaker import clear_registry
         from infrastructure.resilience.health_registry import reset_health_registry
 
         clear_registry()
@@ -730,13 +728,13 @@ class TestDegradationLevelComputation:
 
     async def test_partial_when_non_critical_down(self):
         """Test PARTIAL level when non-critical service is down."""
-        from infrastructure.resilience.degradation_coordinator import (
-            DegradationCoordinator,
-            DegradationLevel,
-        )
         from infrastructure.resilience.circuit_breaker import (
             clear_registry,
             register_circuit_breaker,
+        )
+        from infrastructure.resilience.degradation_coordinator import (
+            DegradationCoordinator,
+            DegradationLevel,
         )
         from infrastructure.resilience.health_registry import reset_health_registry
 
@@ -765,13 +763,13 @@ class TestDegradationLevelComputation:
 
     async def test_minimal_when_critical_down(self):
         """Test MINIMAL level when critical service is down."""
-        from infrastructure.resilience.degradation_coordinator import (
-            DegradationCoordinator,
-            DegradationLevel,
-        )
         from infrastructure.resilience.circuit_breaker import (
             clear_registry,
             register_circuit_breaker,
+        )
+        from infrastructure.resilience.degradation_coordinator import (
+            DegradationCoordinator,
+            DegradationLevel,
         )
         from infrastructure.resilience.health_registry import reset_health_registry
 
@@ -797,13 +795,13 @@ class TestDegradationLevelComputation:
 
     async def test_offline_when_all_critical_down(self):
         """Test OFFLINE level when all critical services are down."""
-        from infrastructure.resilience.degradation_coordinator import (
-            DegradationCoordinator,
-            DegradationLevel,
-        )
         from infrastructure.resilience.circuit_breaker import (
             clear_registry,
             register_circuit_breaker,
+        )
+        from infrastructure.resilience.degradation_coordinator import (
+            DegradationCoordinator,
+            DegradationLevel,
         )
         from infrastructure.resilience.health_registry import reset_health_registry
 
@@ -834,13 +832,13 @@ class TestDegradationCoordinatorRefresh:
 
     async def test_refresh_updates_level(self):
         """Test that refresh updates degradation level."""
-        from infrastructure.resilience.degradation_coordinator import (
-            DegradationCoordinator,
-            DegradationLevel,
-        )
         from infrastructure.resilience.circuit_breaker import (
             clear_registry,
             register_circuit_breaker,
+        )
+        from infrastructure.resilience.degradation_coordinator import (
+            DegradationCoordinator,
+            DegradationLevel,
         )
         from infrastructure.resilience.health_registry import reset_health_registry
 

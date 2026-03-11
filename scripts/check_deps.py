@@ -10,7 +10,6 @@ Usage:  python scripts/check_deps.py
 """
 
 import importlib
-import os
 import platform
 import re
 import shutil
@@ -143,7 +142,7 @@ def main():
         print(f"\n  {len(missing_bins)} binary(ies) missing")
 
     print("\n--- OCR Backends ---")
-    ocr = check_ocr_backends()
+    check_ocr_backends()
 
     print("\n=== Summary ===")
     if exit_code:

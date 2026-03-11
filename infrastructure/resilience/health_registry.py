@@ -32,7 +32,6 @@ from enum import Enum
 from typing import Any, Dict, List, Optional
 
 from infrastructure.resilience.circuit_breaker import (
-    CircuitBreaker,
     CircuitBreakerState,
     get_all_breakers,
     get_circuit_breaker,
