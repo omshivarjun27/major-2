@@ -7,9 +7,9 @@
 - [x] Task: Conductor - User Manual Verification 'Phase 1: Codebase Audit and Preparation' (Protocol in workflow.md) 959c2b2
 
 ## Phase 2: Linter and Formatting Fixes
-- [ ] Task: Resolve import-linter boundaries
-    - [ ] Write Tests: Ensure architectural boundaries tests exist.
-    - [ ] Implement Fix: Adjust imports to respect layer boundaries.
+- [x] Task: Resolve import-linter boundaries f90ed1e
+    - [x] Write Tests: Ensure architectural boundaries tests exist.
+    - [x] Implement Fix: Adjust imports to respect layer boundaries.
 - [ ] Task: Resolve ruff warnings
     - [ ] Write Tests: N/A for formatting/linting, ensure tests still pass.
     - [ ] Implement Fix: Apply ruff fixes across the codebase.
