@@ -1,0 +1,8 @@
+{
+  "track_id": "cross_referenced_feature_mapping_20260311",
+  "type": "chore",
+  "status": "new",
+  "created_at": "2026-03-11T00:00:00Z",
+  "updated_at": "2026-03-11T00:00:00Z",
+  "description": "Read the architecture and documentation files first to establish a foundational understanding. Perform a full Feature Mapping analysis of the entire codebase, cross-referencing against existing architecture documentation (CODEBASE_ARCHITECTURE.md, CODEBASE_DATAFLOW.md, CODEBASE_MODULES.md) and AGENTS.md files to produce a unified feature inventory validating documented features against actual code, highlighting discrepancies."
+}

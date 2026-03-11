@@ -16,3 +16,8 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 - [x] **Track: Comprehensive Feature Mapping Analysis**
 *Link: [./tracks/feature_mapping_analysis_20260311/](./tracks/feature_mapping_analysis_20260311/)*
+
+---
+
+- [ ] **Track: Cross-Referenced Feature Mapping Analysis**
+*Link: [./tracks/cross_referenced_feature_mapping_20260311/](./tracks/cross_referenced_feature_mapping_20260311/)*
