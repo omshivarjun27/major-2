@@ -1,8 +1,8 @@
 # Implementation Plan: Cross-Referenced Feature Mapping
 
 ## Phase 1: Documentation Parsing and Pre-analysis
-- [ ] Task: Create a script or sub-agent harness to systematically crawl the directory tree, respecting the skip list.
-- [ ] Task: Parse `CODEBASE_ARCHITECTURE.md`, `CODEBASE_DATAFLOW.md`, `CODEBASE_MODULES.md`, and all `AGENTS.md` files to extract the documented feature inventory and expected data flows.
+- [~] Task: Create a script or sub-agent harness to systematically crawl the directory tree, respecting the skip list.
+- [~] Task: Parse `CODEBASE_ARCHITECTURE.md`, `CODEBASE_DATAFLOW.md`, `CODEBASE_MODULES.md`, and all `AGENTS.md` files to extract the documented feature inventory and expected data flows.
 - [ ] Task: Conductor - User Manual Verification 'Documentation Parsing and Pre-analysis' (Protocol in workflow.md)
 
 ## Phase 2: Full Codebase Read and Discovery
