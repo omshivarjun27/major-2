@@ -13,7 +13,7 @@
 # Stage 1: builder
 # Installs system build tools + Python packages into /install
 # ----------------------------------------------------------------
-FROM python:3.11-slim AS builder
+FROM python:3.14-slim AS builder
 
 # Install system build-time deps only
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -37,7 +37,7 @@ RUN pip install --no-cache-dir --prefix=/install -r requirements.txt \
 # Stage 2: runtime
 # Lean image — no build tools, no dev dependencies
 # ----------------------------------------------------------------
-FROM python:3.11-slim AS runtime
+FROM python:3.14-slim AS runtime
 
 LABEL org.opencontainers.image.title="Voice & Vision Assistant for Blind" \
       org.opencontainers.image.description="Real-time accessibility assistant for blind users" \
